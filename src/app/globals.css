@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/* PrimeStreet brand tokens — SINGLE SOURCE OF TRUTH. One yellow only. */
+:root {
+  --prime-yellow: #FFD400;
+  --prime-yellow-hover: #FFE14D;
+  --prime-yellow-dark: #E6BF00;   /* pressed/active only */
+  --prime-yellow-soft: #FFF6C2;   /* tinted backgrounds only, never text */
+  --prime-black: #0A0A0A;
+  --prime-charcoal: #1C1C1E;
+  --prime-white: #FFFFFF;
+  --prime-grey: #6B6B70;          /* secondary text: 5.2:1 on white */
+  --prime-grey-light: #F4F4F5;    /* section backgrounds */
+  --prime-border: #E4E4E7;
+}
+
+@theme inline {
+  --color-yellow: var(--prime-yellow);
+  --color-yellow-hover: var(--prime-yellow-hover);
+  --color-yellow-dark: var(--prime-yellow-dark);
+  --color-yellow-soft: var(--prime-yellow-soft);
+  --color-ink: var(--prime-black);
+  --color-charcoal: var(--prime-charcoal);
+  --color-grey: var(--prime-grey);
+  --color-mist: var(--prime-grey-light);
+  --color-line: var(--prime-border);
+  --font-display: var(--font-display), system-ui, sans-serif;
+  --font-sans: var(--font-body), system-ui, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+body { background: #fff; color: var(--prime-black); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+h1,h2,h3,h4 { font-family: var(--font-display); letter-spacing: -0.02em; }
+
+/* Focus: black ring with yellow halo — visible on both white and yellow. */
+:where(a,button,input,select,textarea,summary):focus-visible {
+  outline: 3px solid var(--prime-black);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--prime-yellow);
+  border-radius: 4px;
+}
+.on-dark :where(a,button,input,select,textarea):focus-visible { outline-color: var(--prime-yellow); box-shadow: none; }
+
+.prose-ps p { margin: 0 0 1.25em; line-height: 1.75; font-size: 1.125rem; }
+.prose-ps h2 { font-size: 1.6rem; font-weight: 800; margin: 2em 0 .6em; }
+.prose-ps blockquote { border-left: 6px solid var(--prime-yellow); padding: .25em 0 .25em 1.1em; margin: 1.5em 0; font-size: 1.15rem; font-weight: 600; }
+.prose-ps ul { list-style: disc; padding-left: 1.4em; margin: 0 0 1.25em; line-height: 1.75; font-size: 1.125rem; }
+.prose-ps a { text-decoration: underline; text-decoration-color: var(--prime-yellow); text-decoration-thickness: 3px; text-underline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

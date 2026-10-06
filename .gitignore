@@ -1,0 +1,9 @@
+node_modules
+.next
+.env
+*.db
+*.db-journal
+.env*
+!.env.example
+tsconfig.tsbuildinfo
+.vercel

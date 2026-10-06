@@ -1,0 +1,1 @@
+export const REPORT_REASONS = { SPAM: "Spam or advertising", FAKE: "Fake or not a real customer", ABUSIVE: "Abusive or hateful", PERSONAL_INFO: "Contains personal information", CONFLICT: "Conflict of interest", OTHER: "Something else" } as const;
