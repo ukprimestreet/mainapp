@@ -12,7 +12,7 @@ export const articlePath = (a: { type: string; slug: string }) =>
 const live = { status: "PUBLISHED", publishedAt: { lte: new Date() } } as const;
 
 export const latestArticles = (type?: string, take = 12, extra: object = {}) =>
-  db.article.findMany({ where: { ...live, ...(type ? { type } : {}), ...extra }, orderBy: { publishedAt: "desc" }, take, include: { author: true, location: true } });
+  db.article.findMany({ where: { ...live, ...(type ? { type } : {}), ...extra }, orderBy: { publishedAt: "desc" }, take, include: { author: true, location: { include: { city: true } } } });
 
 export const parseJson = <T,>(s: string | null | undefined, fallback: T): T => {
   try { return s ? (JSON.parse(s) as T) : fallback; } catch { return fallback; }

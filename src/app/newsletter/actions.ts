@@ -11,7 +11,7 @@ const emailSchema = z.string().trim().toLowerCase().email("Enter a valid email a
 
 export async function subscribe(_: NlState, fd: FormData): Promise<NlState> {
   if (String(fd.get("fax_number") ?? "")) return { ok: true, message: "Check your email to confirm." }; // honeypot
-  const t = checkFormToken(String(fd.get("ft") ?? ""), { minMs: 1500 });
+  const t = checkFormToken(String(fd.get("ft") ?? ""), { minMs: 2500 }); // a human must still type an email address
   if (t === "too-fast") return { error: "That was quick — please try again." };
   if (t !== "ok") return { error: "This form has expired. Please reload the page." };
   const p = emailSchema.safeParse(fd.get("email"));

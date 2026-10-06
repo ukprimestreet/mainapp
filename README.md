@@ -30,6 +30,7 @@ Podcast & video: see docs/podcast.md (Admin → Podcast & video; RSS at /podcast
 Search, discovery, saved lists and the newsletter: see docs/search.md. Run `npm run start:test` (mock-friendly) before `npm run test:e2e`.
 Database, search engine, security and storage on Supabase: see docs/supabase.md.
 Deployment (Vercel + Supabase): see docs/deploy.md.
+Cities, areas and multi-city routing: see docs/cities.md.
 Advertising, premium profiles, Stripe and sponsorships: see docs/commerce.md.
 
 Docs: `phases.md` (roadmap), `projecttodolist.md`, `docs/decisions.md`, `docs/brand.md`, `docs/analytics.md`. Brand guide page: `/brand` (noindex).

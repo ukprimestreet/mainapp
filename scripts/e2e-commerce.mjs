@@ -54,7 +54,7 @@ async function newPage() {
 }
 const admin = await newPage(), owner = await newPage(), free = await newPage(), pub = await newPage();
 
-const city = await db.city.findFirst(), hk = await db.location.findUnique({ where: { slug: "hackney" } }), cmd = await db.location.findUnique({ where: { slug: "camden" } });
+const city = await db.city.findFirst(), hk = await db.location.findFirst({ where: { slug: "hackney" } }), cmd = await db.location.findFirst({ where: { slug: "camden" } });
 const cl = await db.category.findUnique({ where: { slug: "cleaning" } }), cf = await db.category.findUnique({ where: { slug: "cafes" } });
 const wipe = async () => {
   const ids = (await db.business.findMany({ where: { slug: { startsWith: "e2e-com-" } }, select: { id: true } })).map((b) => b.id);

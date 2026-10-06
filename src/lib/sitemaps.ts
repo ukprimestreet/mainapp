@@ -4,7 +4,7 @@ import { collectIndexable, type SitemapEntry } from "./seo-engine";
 export const SITEMAP_CHUNK = 5000; // well under the 50,000-URL protocol limit
 const esc = (s: string) => s.replace(/[<>&'"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[c]!));
 
-export const SITEMAP_GROUPS = ["pages", "locations", "categories", "businesses", "articles", "podcast", "authors"] as const;
+export const SITEMAP_GROUPS = ["pages", "cities", "locations", "categories", "businesses", "articles", "podcast", "authors"] as const;
 export type SitemapGroup = (typeof SITEMAP_GROUPS)[number];
 
 const day = (d?: Date) => (d ? d.toISOString().slice(0, 10) : undefined);

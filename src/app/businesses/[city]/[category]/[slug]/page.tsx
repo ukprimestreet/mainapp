@@ -92,7 +92,7 @@ export default async function BusinessPage({ params }: P) {
           <h1 className="mt-4 text-4xl font-extrabold leading-[1.05] sm:text-6xl">{b.name}</h1>
           <div className="mt-4"><SaveButton id={b.id} name={b.name} /></div>
           <p className="mt-3 max-w-2xl text-lg text-white/80">{b.summary}</p>
-          <p className="mt-2 text-sm text-white/60">{b.category.name} · <Link className="underline hover:text-yellow" href={`/locations/${b.location.slug}`}>{b.location.name}</Link>{b.founded ? ` · Est. ${b.founded}` : ""}</p>
+          <p className="mt-2 text-sm text-white/60">{b.category.name} · <Link className="underline hover:text-yellow" href={`/locations/${b.city.slug}/${b.location.slug}`}>{b.location.name}</Link>{b.founded ? ` · Est. ${b.founded}` : ""}</p>
         </Container>
       </section>
 
@@ -150,8 +150,8 @@ export default async function BusinessPage({ params }: P) {
       </Container>
 
       <Container className="mb-10"><nav aria-label="Browse more" className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-bold">
-        <Link className="underline decoration-yellow decoration-4 underline-offset-4" href={`/locations/${b.location.slug}/${b.category.slug}`}>More {b.category.name.toLowerCase()} in {b.location.name}</Link>
-        <Link className="underline decoration-yellow decoration-4 underline-offset-4" href={`/locations/${b.location.slug}`}>All businesses in {b.location.name}</Link>
+        <Link className="underline decoration-yellow decoration-4 underline-offset-4" href={`/locations/${b.city.slug}/${b.location.slug}/${b.category.slug}`}>More {b.category.name.toLowerCase()} in {b.location.name}</Link>
+        <Link className="underline decoration-yellow decoration-4 underline-offset-4" href={`/locations/${b.city.slug}/${b.location.slug}`}>All businesses in {b.location.name}</Link>
         <Link className="underline decoration-yellow decoration-4 underline-offset-4" href={`/businesses/${b.city.slug}/${b.category.slug}`}>All {b.category.name.toLowerCase()} in {b.city.name}</Link>
       </nav></Container>
       {related.length > 0 && <Container><SectionHead title="Similar businesses" /><div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{related.map((r) => <BusinessCard key={r.id} b={r} />)}</div></Container>}

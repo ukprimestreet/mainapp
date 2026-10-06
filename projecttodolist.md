@@ -538,8 +538,19 @@ Legend: `[x]` done · `[ ]` open · `(blocked)` needs info/credentials. See `pha
 - [ ] Stripe live keys, Price IDs, VAT/invoicing handling (blocked on user)
 - [ ] Legal review of advertising terms
 
-## Phase 10
-- [ ] Expand into tasks before starting
+## Phase 10 - London Expansion + Future Cities (complete)
+- [x] All 33 London boroughs plus ~50 real neighbourhoods (borough/neighbourhood tree, parent breadcrumbs)
+- [x] City-scoped URLs `/locations/{city}/{area}/{category}` with 308 redirects from every pre-multi-city URL
+- [x] Area slugs unique per city; categories remain one shared taxonomy
+- [x] City model: status, intro, region, centre, postcode prefixes, launch date, ordering
+- [x] COMING_SOON cities: browsable, honest, never indexed, impossible to force-index
+- [x] Launch gate in admin (real businesses + 100+ char intro) and in the one SEO gate
+- [x] Per-city editorial teams (`CityEditor`, roles) named on the city hub; articles carry a city
+- [x] City-scoped search + city chooser (hidden while single-city); postcode to city detection
+- [x] Admin: cities list with coverage, city detail with team and areas, automatic redirects on rename
+- [x] Sitemaps gained a `cities` group; index-health covers city hubs
+- [x] Tests: unit (39 checks) + e2e; docs/cities.md
+- [ ] Second city launch needs real businesses and a reporter on the ground (blocked on the user)
 
 ## Supabase migration (done for dev schema)
 - [x] Prisma → PostgreSQL, search → tsvector/GIN, case-insensitive filters, NULLS LAST rating sort

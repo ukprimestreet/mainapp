@@ -90,7 +90,7 @@ const t = (n: string, c: boolean, d = "") => { console.log(c ? "PASS" : "FAIL", 
     await db.newsletterSubscriber.deleteMany({ where: { email: { endsWith: "@srch.example" } } });
   };
   await wipe();
-  const city = (await db.city.findFirst())!; const L = async (s: string) => (await db.location.findUnique({ where: { slug: s } }))!; const C = async (s: string) => (await db.category.findUnique({ where: { slug: s } }))!;
+  const city = (await db.city.findFirst())!; const L = async (s: string) => (await db.location.findFirst({ where: { slug: s } }))!; const C = async (s: string) => (await db.category.findUnique({ where: { slug: s } }))!;
   const [hk, cm, cl, cn, cf, author] = [await L("hackney"), await L("camden"), await C("cleaning"), await C("construction"), await C("cafes"), (await db.author.findFirst())!];
   const allDays = JSON.stringify(Object.fromEntries(["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((k) => [k, "00:00-23:59"])));
   const mk = (slug: string, name: string, loc: typeof hk, cat: typeof cl, o: Record<string, unknown> = {}) => db.business.create({ data: { slug: `srch-${slug}`, name, summary: `${name} summary text here.`, description: "A locally run business serving customers across the borough with care and attention to detail.", cityId: city.id, locationId: loc.id, categoryId: cat.id, isSample: false, ...o } });

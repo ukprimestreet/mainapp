@@ -36,7 +36,7 @@ export async function decideSubmission(fd: FormData) {
     await audit("SUBMISSION_REJECT", "BusinessSubmission", id);
     return back("/admin/submissions", "Rejected");
   }
-  const [cat, loc, city] = await Promise.all([db.category.findUnique({ where: { slug: s.category } }), db.location.findUnique({ where: { slug: s.area } }), db.city.findUnique({ where: { slug: "london" } })]);
+  const [cat, loc, city] = await Promise.all([db.category.findUnique({ where: { slug: s.category } }), db.location.findFirst({ where: { slug: s.area } }), db.city.findUnique({ where: { slug: "london" } })]);
   if (!cat || !loc || !city) return back("/admin/submissions", "Category or area no longer exists");
   const dupe = await findDuplicate({ name: s.name, locationId: loc.id, phone: s.phone, website: s.website });
   if (dupe) return back("/admin/submissions", `Looks like a duplicate of "${dupe.business.name}" — reject it or edit that profile`);

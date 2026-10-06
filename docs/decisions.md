@@ -54,3 +54,9 @@
 47. **Products ship inactive at £0** so nothing can be sold by accident; VAT/invoicing must be addressed before live payments.
 48. **Moved from SQLite to Supabase Postgres.** One raw-SQL file (`lib/search/fts.ts`) was the only engine-specific code; search is now tsvector/GIN. Text filters use `mode: "insensitive"` to keep SQLite's behaviour.
 49. **Dev/test live in a separate `dev` schema; RLS on every table** so the exposed anon key can never read data. Service-role key is server-only.
+50. **City-scoped URLs from the start of multi-city.** Area pages moved from `/locations/{area}` to `/locations/{city}/{area}` with 308s, and area slugs became unique per city rather than globally. Done before launch, while there is no index to lose.
+51. **A city must earn its launch.** `COMING_SOON` cities are browsable but never indexable, list nothing and say so; admin refuses to launch a city without real businesses and an intro. Not even a manual override can index one, because empty city pages are exactly the thin-content trap this project is meant to avoid.
+52. **Neighbourhoods ship as geography, not as pages.** Real London neighbourhoods are seeded with no intro, so the existing gate keeps them out of search until an editor writes something original.
+53. **Articles belong to a city** (derived from the area they are about), so city hubs and city-scoped search stay correct without a second taxonomy.
+54. **Raw SQL names its schema explicitly.** Through a transaction pooler the `search_path` is not reliable, so the search index was silently created in two schemas and lost rows. `fts.ts` qualifies every statement and prunes orphaned index rows; the drift check now rebuilds on any count mismatch, not just a shortfall.
+

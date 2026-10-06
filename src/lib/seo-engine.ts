@@ -37,6 +37,12 @@ export function decideLocation(count: number, intro: string | null, override?: O
 }
 export const decideCategory = decideLocation; // same rule: enough real businesses + original intro
 
+/** A city hub needs real businesses and an original intro, and a city we have not launched is never indexed. */
+export function decideCity(count: number, intro: string | null, status: string, override?: Override): Verdict {
+  if (status !== "LIVE") return { index: false, reasons: ["City has not launched yet"], needs: ["Launch the city"] };
+  return decideLocation(count, intro, override);
+}
+
 export function decideLocCat(count: number, intro: string | null, override?: Override): Verdict {
   const needs: string[] = [], reasons: string[] = [];
   if (count < MIN_BUSINESSES) { needs.push(`${plural(MIN_BUSINESSES - count, "more real business")}`); reasons.push(`Only ${count} real business${count === 1 ? "" : "es"} (need ${MIN_BUSINESSES})`); }
@@ -99,13 +105,14 @@ export function listingMetadata(o: { path: string; title: string; description: s
 
 // ---------- everything indexable (single source for sitemaps + audit) ----------
 export type SitemapEntry = { path: string; lastmod?: Date; priority?: number };
-export type IndexableSet = { pages: SitemapEntry[]; articles: SitemapEntry[]; businesses: SitemapEntry[]; locations: SitemapEntry[]; categories: SitemapEntry[]; podcast: SitemapEntry[]; authors: SitemapEntry[] };
+export type IndexableSet = { pages: SitemapEntry[]; articles: SitemapEntry[]; businesses: SitemapEntry[]; cities: SitemapEntry[]; locations: SitemapEntry[]; categories: SitemapEntry[]; podcast: SitemapEntry[]; authors: SitemapEntry[] };
 
 export async function collectIndexable(): Promise<IndexableSet> {
   const now = new Date();
-  const [overrides, counts, locations, categories, businesses, articles, eps, authors] = await Promise.all([
+  const [overrides, counts, cities, locations, categories, businesses, articles, eps, authors] = await Promise.all([
     db.seoPage.findMany(),
     realCounts(),
+    db.city.findMany({ where: { active: true } }),
     db.location.findMany({ include: { city: true } }),
     db.category.findMany(),
     db.business.findMany({ where: { published: true, isSample: false }, include: { city: true, category: true, location: true } }),
@@ -114,60 +121,76 @@ export async function collectIndexable(): Promise<IndexableSet> {
     db.author.findMany({ where: { articles: { some: { status: "PUBLISHED", isSample: false, publishedAt: { lte: now } } } } }),
   ]);
   const ov = new Map(overrides.map((o) => [o.path, o]));
-  const city = locations[0]?.city.slug ?? "london";
   const pages: SitemapEntry[] = [
-    { path: "/", priority: 1 }, { path: "/businesses", priority: 0.9 }, { path: "/locations", priority: 0.7 }, { path: "/podcast", priority: 0.7 },
+    { path: "/", priority: 1 }, { path: "/businesses", priority: 0.9 }, { path: "/podcast", priority: 0.7 },
     { path: "/about", priority: 0.5 }, { path: "/privacy", priority: 0.2 }, { path: "/advertise", priority: 0.4 }, { path: "/claim", priority: 0.7 }, { path: "/businesses/submit", priority: 0.5 },
     ...Object.values(ARTICLE_TYPES).map((t) => ({ path: `/${t.path}`, priority: 0.8 })),
   ];
-  const cityReal = [...counts.byLocation.values()].reduce((a, b) => a + b, 0);
-  const cityPath = `/businesses/${city}`;
-  if (ov.get(cityPath)?.robots !== "NOINDEX" && (ov.get(cityPath)?.robots === "INDEX" ? cityReal > 0 : cityReal >= MIN_BUSINESSES)) pages.push({ path: cityPath, priority: 0.9 });
-  const locEntries: SitemapEntry[] = [], catEntries: SitemapEntry[] = [];
-  for (const l of locations) {
-    const p = `/locations/${l.slug}`;
-    if (decideLocation(counts.byLocation.get(l.id) ?? 0, resolveIntro(ov.get(p), l.intro), ov.get(p)).index) locEntries.push({ path: p, priority: 0.7 });
+  // /locations is a city chooser: with a single city it redirects to that city's hub, so it is not a page of its own.
+  if (cities.length > 1) pages.push({ path: "/locations", priority: 0.7 });
+  const cityEntries: SitemapEntry[] = [], locEntries: SitemapEntry[] = [], catEntries: SitemapEntry[] = [];
+  for (const city of cities.filter((c) => c.status === "LIVE")) {
+    const inCity = locations.filter((l) => l.cityId === city.id);
+    const cityReal = inCity.reduce((a, l) => a + (counts.byLocation.get(l.id) ?? 0), 0);
+    for (const p of [`/businesses/${city.slug}`, `/locations/${city.slug}`]) {
+      if (decideCity(cityReal, resolveIntro(ov.get(p), city.intro), city.status, ov.get(p)).index) cityEntries.push({ path: p, priority: 0.9 });
+    }
+    for (const l of inCity) {
+      const p = `/locations/${city.slug}/${l.slug}`;
+      if (decideLocation(counts.byLocation.get(l.id) ?? 0, resolveIntro(ov.get(p), l.intro), ov.get(p)).index) locEntries.push({ path: p, priority: 0.7 });
+      for (const c of categories) {
+        const lp = `/locations/${city.slug}/${l.slug}/${c.slug}`;
+        const n = counts.byLocCat.get(`${l.id}:${c.id}`) ?? 0;
+        if (n && decideLocCat(n, resolveIntro(ov.get(lp), null), ov.get(lp)).index) locEntries.push({ path: lp, priority: 0.6 });
+      }
+    }
     for (const c of categories) {
-      const lp = `/locations/${l.slug}/${c.slug}`;
-      const n = counts.byLocCat.get(`${l.id}:${c.id}`) ?? 0;
-      if (n && decideLocCat(n, resolveIntro(ov.get(lp), null), ov.get(lp)).index) locEntries.push({ path: lp, priority: 0.6 });
+      const p = `/businesses/${city.slug}/${c.slug}`;
+      const n = inCity.reduce((a, l) => a + (counts.byLocCat.get(`${l.id}:${c.id}`) ?? 0), 0);
+      if (decideCategory(n, resolveIntro(ov.get(p), c.intro), ov.get(p)).index) catEntries.push({ path: p, priority: 0.8 });
     }
   }
-  for (const c of categories) {
-    const p = `/businesses/${city}/${c.slug}`;
-    if (decideCategory(counts.byCategory.get(c.id) ?? 0, resolveIntro(ov.get(p), c.intro), ov.get(p)).index) catEntries.push({ path: p, priority: 0.8 });
-  }
   const bizEntries: SitemapEntry[] = businesses
-    .filter((b) => decideBusiness(b, ov.get(`/businesses/${b.city.slug}/${b.category.slug}/${b.slug}`)).index)
+    .filter((b) => b.city.active && b.city.status === "LIVE" && decideBusiness(b, ov.get(`/businesses/${b.city.slug}/${b.category.slug}/${b.slug}`)).index)
     .map((b) => ({ path: `/businesses/${b.city.slug}/${b.category.slug}/${b.slug}`, lastmod: b.updatedAt, priority: 0.7 }));
   const artEntries: SitemapEntry[] = articles.map((a) => ({ path: `/${ARTICLE_TYPES[a.type as keyof typeof ARTICLE_TYPES].path}/${a.slug}`, lastmod: a.updatedAt, priority: 0.7 }));
   return {
-    pages, articles: artEntries, businesses: bizEntries, locations: locEntries, categories: catEntries,
+    pages, articles: artEntries, businesses: bizEntries, cities: cityEntries, locations: locEntries, categories: catEntries,
     podcast: eps.filter((e) => decideEpisode(e, ov.get(`/podcast/${e.slug}`)).index).map((e) => ({ path: `/podcast/${e.slug}`, lastmod: e.updatedAt, priority: 0.5 })),
     authors: authors.map((a) => ({ path: `/authors/${a.slug}`, priority: 0.4 })),
   };
 }
 
 // ---------- admin "index health" ----------
-export type HealthRow = { path: string; kind: "Area" | "Category" | "Area × category"; label: string; count: number; introChars: number; verdict: Verdict; robots: string };
+export type HealthRow = { path: string; kind: "City" | "Area" | "Category" | "Area × category"; label: string; count: number; introChars: number; verdict: Verdict; robots: string };
 export async function seoHealth(): Promise<HealthRow[]> {
-  const [overrides, counts, locations, categories] = await Promise.all([db.seoPage.findMany(), realCounts(), db.location.findMany({ include: { city: true } }), db.category.findMany()]);
+  const [overrides, counts, cities, locations, categories] = await Promise.all([
+    db.seoPage.findMany(), realCounts(), db.city.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
+    db.location.findMany({ orderBy: { name: "asc" } }), db.category.findMany(),
+  ]);
   const ov = new Map(overrides.map((o) => [o.path, o]));
-  const city = locations[0]?.city.slug ?? "london";
   const rows: HealthRow[] = [];
-  for (const l of locations) {
-    const p = `/locations/${l.slug}`, n = counts.byLocation.get(l.id) ?? 0, intro = resolveIntro(ov.get(p), l.intro);
-    rows.push({ path: p, kind: "Area", label: l.name, count: n, introChars: introLength(intro), verdict: decideLocation(n, intro, ov.get(p)), robots: ov.get(p)?.robots ?? "AUTO" });
-    for (const c of categories) {
-      const lp = `/locations/${l.slug}/${c.slug}`, k = counts.byLocCat.get(`${l.id}:${c.id}`) ?? 0;
-      if (!k) continue;
-      const li = resolveIntro(ov.get(lp), null);
-      rows.push({ path: lp, kind: "Area × category", label: `${c.name} in ${l.name}`, count: k, introChars: introLength(li), verdict: decideLocCat(k, li, ov.get(lp)), robots: ov.get(lp)?.robots ?? "AUTO" });
+  for (const city of cities) {
+    const inCity = locations.filter((l) => l.cityId === city.id);
+    const cityReal = inCity.reduce((a, l) => a + (counts.byLocation.get(l.id) ?? 0), 0);
+    for (const p of [`/businesses/${city.slug}`, `/locations/${city.slug}`]) {
+      const intro = resolveIntro(ov.get(p), city.intro);
+      rows.push({ path: p, kind: "City", label: city.name, count: cityReal, introChars: introLength(intro), verdict: decideCity(cityReal, intro, city.status, ov.get(p)), robots: ov.get(p)?.robots ?? "AUTO" });
     }
-  }
-  for (const c of categories) {
-    const p = `/businesses/${city}/${c.slug}`, n = counts.byCategory.get(c.id) ?? 0, intro = resolveIntro(ov.get(p), c.intro);
-    rows.push({ path: p, kind: "Category", label: c.name, count: n, introChars: introLength(intro), verdict: decideCategory(n, intro, ov.get(p)), robots: ov.get(p)?.robots ?? "AUTO" });
+    for (const l of inCity) {
+      const p = `/locations/${city.slug}/${l.slug}`, n = counts.byLocation.get(l.id) ?? 0, intro = resolveIntro(ov.get(p), l.intro);
+      rows.push({ path: p, kind: "Area", label: `${l.name}${l.kind === "NEIGHBOURHOOD" ? " (neighbourhood)" : ""}`, count: n, introChars: introLength(intro), verdict: decideLocation(n, intro, ov.get(p)), robots: ov.get(p)?.robots ?? "AUTO" });
+      for (const c of categories) {
+        const lp = `/locations/${city.slug}/${l.slug}/${c.slug}`, k = counts.byLocCat.get(`${l.id}:${c.id}`) ?? 0;
+        if (!k) continue;
+        const li = resolveIntro(ov.get(lp), null);
+        rows.push({ path: lp, kind: "Area × category", label: `${c.name} in ${l.name}`, count: k, introChars: introLength(li), verdict: decideLocCat(k, li, ov.get(lp)), robots: ov.get(lp)?.robots ?? "AUTO" });
+      }
+    }
+    for (const c of categories) {
+      const p = `/businesses/${city.slug}/${c.slug}`, n = inCity.reduce((a, l) => a + (counts.byLocCat.get(`${l.id}:${c.id}`) ?? 0), 0), intro = resolveIntro(ov.get(p), c.intro);
+      rows.push({ path: p, kind: "Category", label: `${c.name} in ${city.name}`, count: n, introChars: introLength(intro), verdict: decideCategory(n, intro, ov.get(p)), robots: ov.get(p)?.robots ?? "AUTO" });
+    }
   }
   return rows;
 }

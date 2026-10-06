@@ -36,7 +36,7 @@ const good = { name: "Zed Test Plumbing", category: "Construction", area: "Hackn
   const again = await runImport([head, row(good)].join("\n"), { dryRun: false });
   t("re-import is idempotent (duplicate)", again.created === 0 && again.duplicates === 1);
   // dupe by website / phone in different name
-  const loc = await db.location.findUnique({ where: { slug: "camden" } });
+  const loc = await db.location.findFirst({ where: { slug: "camden" } });
   t("dupe by website", (await findDuplicate({ name: "Other Name", locationId: loc!.id, website: "http://zedtest.example" }))?.reason.includes("website") === true);
   t("dupe by phone", (await findDuplicate({ name: "Other Name", locationId: loc!.id, phone: "+442079460001" }))?.reason === "same phone number");
   t("no false positive", (await findDuplicate({ name: "Totally New Biz", locationId: loc!.id, phone: "07000000000", website: "https://new.example" })) === null);

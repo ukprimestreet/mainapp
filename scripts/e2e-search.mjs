@@ -84,10 +84,13 @@ let tx = await text();
 t("results: businesses ranked, counts shown, stories section present", tx.includes("Brightwell Cleaning Co") && /Businesses \(\d+\)/.test(tx) && tx.includes("Stories & guides"));
 t("results: area/category chips link to listing pages", await page.evaluate(() => !!document.querySelector('a[href="/businesses/london/cleaning"]')));
 t("facets: category counts visible", tx.includes("Cleaning") && tx.includes("Filter"));
-await click("Hackney", "Area"); // click a facet link (area)
-t("facet click filters results and keeps the query in the URL", page.url().includes("area=hackney") && page.url().includes("q=cleaning"));
-await click("Clear all filters");
-t("clear all filters", !page.url().includes("area="));
+// click the area facet by its link, not by scanning for text: several things on the page now say "area"
+const clickHref = async (sub) => { await page.evaluate((x) => { const a = [...document.querySelectorAll("a")].find((e) => (e.getAttribute("href") ?? "").includes(x)); if (!a) throw new Error("no link containing " + x); a.click(); }, sub); await page.waitForNavigation({ waitUntil: "networkidle0", timeout: 60000 }).catch(() => {}); };
+await clickHref("area=hackney");
+t("facet click filters results and keeps the query in the URL", page.url().includes("area=hackney") && page.url().includes("q=cleaning"), page.url());
+await page.evaluate(() => [...document.querySelectorAll("a")].find((e) => e.innerText.trim() === "Clear all filters")?.click());
+await page.waitForNavigation({ waitUntil: "networkidle0", timeout: 60000 }).catch(() => {});
+t("clear all filters", !page.url().includes("area="), page.url());
 await go("/search?q=cleaning&sort=rating");
 t("sort links work and mark the current sort", await page.evaluate(() => document.querySelector('nav[aria-label="Sort"] a[aria-current="true"]')?.innerText === "Top rated"));
 await go("/search?q=claening");
@@ -167,7 +170,16 @@ await go("/");
 t("footer newsletter form + privacy link", await page.evaluate(() => !!document.querySelector("footer form input[name=email]") && !!document.querySelector('footer a[href="/privacy"]')));
 await page.type("footer #nl-footer", "not-an-email"); await sleep(1800); await click("Subscribe");
 t("newsletter: invalid email refused", (await text()).includes("valid email"));
-await go("/"); await page.type("footer #nl-footer", "fast@e2esearch.example"); await click("Subscribe");
+// Submit as fast as the browser allows: against a remote database a full networkidle load can itself
+// outlast the bot-speed guard, so wait only for the markup before submitting.
+await page.goto(BASE + "/", { waitUntil: "domcontentloaded" });
+await page.evaluate(() => {
+  const i = document.querySelector("footer #nl-footer");
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(i, "fast@e2esearch.example");
+  i.dispatchEvent(new Event("input", { bubbles: true }));
+  [...document.querySelectorAll("footer button")].find((b) => b.innerText.trim() === "Subscribe").click();
+});
+await sleep(1800);
 t("newsletter: instant (bot-speed) submit refused", (await text()).includes("That was quick") && (await db.newsletterSubscriber.count({ where: { email: "fast@e2esearch.example" } })) === 0);
 await go("/"); await page.type("footer #nl-footer", "mal@mailinator.com"); await sleep(1800); await click("Subscribe");
 t("newsletter: disposable address refused", (await text()).includes("permanent email") && (await db.newsletterSubscriber.count({ where: { email: "mal@mailinator.com" } })) === 0);
@@ -201,7 +213,7 @@ t("admin: subscriber counts", (await text()).includes("Active subscribers") && (
 await db.article.updateMany({ where: { isSample: false, publishedAt: { gte: new Date(Date.now() - 7 * 86400_000) } }, data: { publishedAt: new Date(Date.now() - 20 * 86400_000) } });
 await click("+ Build this week's digest");
 t("digest: nothing real & new → clear message, no empty draft", (await text()).includes("Nothing new") && (await db.newsletterIssue.count()) === 0);
-const author = await db.author.findFirst(); const city = await db.city.findFirst(); const loc = await db.location.findUnique({ where: { slug: "hackney" } }); const cat = await db.category.findUnique({ where: { slug: "cafes" } });
+const author = await db.author.findFirst(); const city = await db.city.findFirst(); const loc = await db.location.findFirst({ where: { slug: "hackney" } }); const cat = await db.category.findUnique({ where: { slug: "cafes" } });
 await db.article.create({ data: { slug: "e2e-srch-news", type: "NEWS", title: "E2E digest: a bakery opens in Hackney", standfirst: "A new bakery has opened its doors on a Hackney side street this week.", body: "b".repeat(400), status: "PUBLISHED", publishedAt: new Date(Date.now() - 3600_000), authorId: author.id, isSample: false } });
 await db.business.create({ data: { slug: "e2e-srch-biz", name: "E2E Srch New Bakery", summary: "A bakery for the digest.", description: "d".repeat(80), cityId: city.id, locationId: loc.id, categoryId: cat.id, isSample: false } });
 await go("/admin/newsletter"); await click("+ Build this week's digest");

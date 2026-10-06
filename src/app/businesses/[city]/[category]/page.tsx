@@ -58,7 +58,7 @@ export default async function CategoryInCityPage({ params, searchParams }: P) {
         <IntroBlock title={`About ${category.name.toLowerCase()} in ${city.name}`} text={page === 1 ? d.intro : null} />
         {areas.length > 0 && (
           <nav aria-label={`${category.name} by area`}><SectionHead title={`${category.name} by area`} />
-            <ul className="flex flex-wrap gap-3">{areas.map((a) => <li key={a.id}><Link href={`/locations/${a.slug}/${category.slug}`} className="inline-block rounded-full border-2 border-ink px-4 py-2 font-bold hover:bg-yellow">{a.name} <span className="text-grey">({a._count.businesses})</span></Link></li>)}</ul></nav>
+            <ul className="flex flex-wrap gap-3">{areas.map((a) => <li key={a.id}><Link href={`/locations/${city.slug}/${a.slug}/${category.slug}`} className="inline-block rounded-full border-2 border-ink px-4 py-2 font-bold hover:bg-yellow">{a.name} <span className="text-grey">({a._count.businesses})</span></Link></li>)}</ul></nav>
         )}
         {page === 1 && <FeaturedSlot categoryId={category.id} />}
         <section><SectionHead title={`${total} ${total === 1 ? "business" : "businesses"}`} />

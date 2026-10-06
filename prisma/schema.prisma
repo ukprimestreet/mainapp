@@ -15,15 +15,39 @@ model City {
   slug      String     @unique // "london"
   name      String
   active    Boolean    @default(true)
+  status    String     @default("LIVE") // LIVE | COMING_SOON (coming soon pages are never indexed)
+  intro     String? // original editorial intro; required before the city hub may be indexed
+  region    String? // "Greater London"
+  country   String     @default("United Kingdom")
+  timezone  String     @default("Europe/London")
+  lat       Float? // city centre, for "near me" when we have no postcode
+  lng       Float?
+  postcodePrefixes String? // JSON array of outward-code prefixes, e.g. ["E","EC","SW"] — used to detect a visitor's city
+  launchedAt DateTime?
+  sortOrder Int        @default(0)
   locations Location[]
   businesses Business[]
+  articles  Article[]
+  team      CityEditor[]
+}
+
+// Who covers a city editorially. Shown on city hubs so readers know who is behind the coverage.
+model CityEditor {
+  cityId    String
+  city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    Author   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  role      String   @default("REPORTER") // EDITOR | REPORTER | CONTRIBUTOR
+  createdAt DateTime @default(now())
+
+  @@id([cityId, authorId])
 }
 
 model Location {
   id         String     @id @default(cuid())
   lat        Float? // area centroid (approximate) for 'near me'
   lng        Float?
-  slug       String     @unique
+  slug       String // unique WITHIN a city: two cities may both have a "richmond"
   name       String
   kind       String     @default("BOROUGH") // BOROUGH | NEIGHBOURHOOD
   intro      String? // original editorial intro; required for indexing (see seo rules)
@@ -34,6 +58,9 @@ model Location {
   children   Location[] @relation("LocationTree")
   businesses Business[]
   articles   Article[]
+
+  @@unique([cityId, slug])
+  @@index([slug])
 }
 
 model Category {
@@ -117,6 +144,7 @@ model Author {
   role     String?
   bio      String?
   articles Article[]
+  cities   CityEditor[]
 }
 
 model Article {
@@ -139,6 +167,8 @@ model Article {
   seoDescription String?
   authorId    String
   author      Author    @relation(fields: [authorId], references: [id])
+  cityId      String?
+  city        City?     @relation(fields: [cityId], references: [id])
   locationId  String?
   location    Location? @relation(fields: [locationId], references: [id])
   businesses  ArticleBusiness[]
@@ -478,6 +508,7 @@ model SearchDoc {
   visible         Boolean  @default(true)  // published, not hidden
   liveFrom        DateTime @default(now()) // scheduled content becomes searchable at this time
   isSample        Boolean  @default(false)
+  citySlug        String? // lets search be scoped to one city
   sourceUpdatedAt DateTime
   indexedAt       DateTime @default(now())
 

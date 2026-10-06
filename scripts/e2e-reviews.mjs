@@ -27,7 +27,7 @@ const cleanup = async () => {
   await db.emailOutbox.deleteMany(); await db.auditLog.deleteMany({ where: { targetType: "Review" } });
 };
 await cleanup();
-const city = await db.city.findFirst(); const loc = await db.location.findUnique({ where: { slug: "hackney" } }); const cat = await db.category.findUnique({ where: { slug: "cafes" } });
+const city = await db.city.findFirst(); const loc = await db.location.findFirst({ where: { slug: "hackney" } }); const cat = await db.category.findUnique({ where: { slug: "cafes" } });
 const mkBiz = (slug, name, extra = {}) => db.business.create({ data: { slug, name, summary: "An e2e review test business.", description: "d".repeat(80), cityId: city.id, locationId: loc.id, categoryId: cat.id, isSample: false, ...extra } });
 const cafe = await mkBiz("e2e-rev-cafe", "E2E Review Cafe", { websiteHost: "e2ecafe.example" });
 const gym = await mkBiz("e2e-rev-gym", "E2E Review Gym", { claimStatus: "CLAIMED" });

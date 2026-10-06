@@ -36,7 +36,7 @@ const DAY = 86400_000;
     await db.article.deleteMany({ where: { slug: { startsWith: "cm-" } } });
   };
   await wipe();
-  const city = (await db.city.findFirst())!, hk = (await db.location.findUnique({ where: { slug: "hackney" } }))!, cm = (await db.location.findUnique({ where: { slug: "camden" } }))!;
+  const city = (await db.city.findFirst())!, hk = (await db.location.findFirst({ where: { slug: "hackney" } }))!, cm = (await db.location.findFirst({ where: { slug: "camden" } }))!;
   const cl = (await db.category.findUnique({ where: { slug: "cleaning" } }))!, cf = (await db.category.findUnique({ where: { slug: "cafes" } }))!;
   const mkb = (slug: string, o: Record<string, unknown> = {}) => db.business.create({ data: { slug: `cm-${slug}`, name: `Cm ${slug}`, summary: "s".repeat(20), description: "d".repeat(80), cityId: city.id, locationId: hk.id, categoryId: cl.id, isSample: false, ...o } });
   const [A, B, S, U] = [await mkb("a"), await mkb("b"), await mkb("sample", { isSample: true }), await mkb("unpub", { published: false })];

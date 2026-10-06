@@ -11,6 +11,8 @@ import { Container, EmptyState, PageHeader, SampleBadge, SectionHead } from "@/c
 import { lookupPostcode, normalisePostcode, validLatLng, type LatLng } from "@/lib/geo";
 import { searchAll } from "@/lib/search";
 import { FeaturedSlot } from "@/components/Sponsored";
+import { CitySwitcher } from "@/components/Cities";
+import { browsableCities, cityForPostcode, outwardLetters } from "@/lib/cities";
 
 export const dynamic = "force-dynamic";
 type SP = { searchParams: Promise<Record<string, string | undefined>> };
@@ -28,7 +30,11 @@ export default async function SearchPage({ searchParams }: SP) {
   const q = (sp.q ?? "").trim().slice(0, 120);
   const page = Math.max(1, Math.min(200, parseInt(sp.page ?? "1", 10) || 1));
   const minRating = sp.rating === "4" ? 4 : sp.rating === "3" ? 3 : undefined;
-  const filters = { category: sp.category || undefined, area: sp.area || undefined, minRating, claimed: sp.claimed === "1", openNow: sp.open === "1" };
+  const cities = await browsableCities();
+  const live = cities.filter((c) => c.status === "LIVE");
+  // One city = no scope to choose. With several, an unknown ?city is ignored rather than returning nothing.
+  const cityScope = live.length > 1 && sp.city && live.some((c) => c.slug === sp.city) ? sp.city : undefined;
+  const filters = { city: cityScope, category: sp.category || undefined, area: sp.area || undefined, minRating, claimed: sp.claimed === "1", openNow: sp.open === "1" };
 
   // location: coordinates (browser geolocation) or a UK postcode
   let near: LatLng | null = null, nearLabel = "", locError = "";
@@ -36,7 +42,14 @@ export default async function SearchPage({ searchParams }: SP) {
   if (m && validLatLng(Number(m[1]), Number(m[2]))) { near = { lat: Number(m[1]), lng: Number(m[2]) }; nearLabel = "your location"; }
   else if (sp.postcode?.trim()) {
     near = await lookupPostcode(sp.postcode);
-    if (near) nearLabel = normalisePostcode(sp.postcode) ?? sp.postcode.trim().toUpperCase(); else locError = `We couldn't find the postcode “${sp.postcode.slice(0, 12)}”.`;
+    if (near) nearLabel = normalisePostcode(sp.postcode) ?? sp.postcode.trim().toUpperCase();
+    // Which city a postcode belongs to is read from the postcode itself, so a city we have not launched can be named
+    // even when the postcode service is down. Beyond that, say plainly which of the two things went wrong:
+    // a postcode we could not find at all is not the same as a real one outside the places we cover.
+    const pcCity = cityForPostcode(sp.postcode, cities);
+    if (pcCity && pcCity.status !== "LIVE") locError = `We are not covering ${pcCity.name} yet.`;
+    else if (!near) locError = `We couldn't find the postcode “${sp.postcode.slice(0, 12)}”.`;
+    else if (!pcCity && live.length > 0) locError = `That postcode looks like it is outside ${live.map((c) => c.name).join(" and ")}, so there may be nothing nearby yet.`;
   }
   const sort = SORTS.some(([k]) => k === sp.sort) && (sp.sort !== "nearest" || near) ? (sp.sort as "relevance") : undefined;
 
@@ -58,7 +71,8 @@ export default async function SearchPage({ searchParams }: SP) {
     <>
       <PageHeader kicker="Search" title={q ? `Results for “${q}”` : near ? "Businesses near you" : "Search PrimeStreet"} intro={q || near ? undefined : "Find London businesses, stories and podcast episodes."} crumbs={[{ name: "Home", href: "/" }, { name: "Search" }]} />
       <Container className="py-8">
-        <div className="mb-8 max-w-2xl"><SearchBox id="search-main" /></div>
+        <div className="mb-4 max-w-2xl"><SearchBox id="search-main" /></div>
+        <div className="mb-8"><CitySwitcher active={cityScope ?? live[0]?.slug} hrefFor={(slug) => href({ city: slug, area: null, page: null })} /></div>
         {!hasQuery && (
           <div className="grid gap-8 md:grid-cols-2"><div><h2 className="mb-3 text-xl font-extrabold">Try searching for</h2><ul className="flex flex-wrap gap-2">{["cleaners in Hackney", "removals", "barber", "coffee", "plumber", "accountant", "yoga"].map((t) => <li key={t}><Link href={`/search?q=${encodeURIComponent(t)}`} className="inline-block rounded-full border-2 border-ink px-4 py-2 font-bold hover:bg-yellow">{t}</Link></li>)}</ul></div>
             <Suspense><NearMe /></Suspense></div>

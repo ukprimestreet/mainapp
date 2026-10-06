@@ -56,7 +56,7 @@ Featured listings, premium profiles, sponsored content with mandatory labels, ad
 **Status: complete (live payments await Stripe keys).**
 
 ## Phase 10 — London Expansion + Future Cities
-All 32 boroughs + City of London covered, `City` model already live → additional cities, multi-city routing (`/{city}/…`), per-city editorial teams.
+**Status: complete.** All 32 boroughs + City of London covered, `City` model already live → additional cities, multi-city routing (`/{city}/…`), per-city editorial teams.
 
 ---
 ### Cross-phase standards (Definition of Done)

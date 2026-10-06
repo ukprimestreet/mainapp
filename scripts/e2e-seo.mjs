@@ -21,7 +21,7 @@ const sitemapPaths = async () => { const idx = await (await fetch(BASE + "/sitem
 const robotsOf = async (p) => { const h = await (await fetch(BASE + p)).text(); return h.match(/<meta name="robots" content="([^"]*)"/)?.[1] ?? ""; };
 const titleOf = async (p) => (await (await fetch(BASE + p)).text()).match(/<title>([^<]*)<\/title>/)?.[1];
 
-const city = await db.city.findFirst(); const camden = await db.location.findUnique({ where: { slug: "camden" } }); const cat = await db.category.findUnique({ where: { slug: "cleaning" } });
+const city = await db.city.findFirst(); const camden = await db.location.findFirst({ where: { slug: "camden" } }); const cat = await db.category.findUnique({ where: { slug: "cleaning" } });
 const author = await db.author.findFirst();
 const cleanup = async () => {
   const ids = (await db.business.findMany({ where: { slug: { startsWith: "e2e-seo-" } }, select: { id: true } })).map((b) => b.id);
@@ -43,56 +43,56 @@ await go("/admin/seo");
 let tx = await text();
 t("health: lists Camden with 3 real businesses and what it needs", tx.includes("Camden") && tx.includes("Original intro of 100+ characters"));
 t("health: summary counts + threshold explained", tx.includes("Indexed landing pages") && tx.includes("3 real businesses"));
-t("Camden area page currently noindex and absent from sitemap", (await robotsOf("/locations/camden")).includes("noindex") && !(await sitemapPaths()).includes("/locations/camden"));
+t("Camden area page currently noindex and absent from sitemap", (await robotsOf("/locations/london/camden")).includes("noindex") && !(await sitemapPaths()).includes("/locations/london/camden"));
 
 // ---- write an intro → page unlocks everywhere
-await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/camden")}`);
+await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/london/camden")}`);
 await setv("#intro", "Too short.");
 await click("Save");
-t("saving a too-short intro works but doesn't unlock indexing", (await robotsOf("/locations/camden")).includes("noindex"));
+t("saving a too-short intro works but doesn't unlock indexing", (await robotsOf("/locations/london/camden")).includes("noindex"));
 const intro = "Camden mixes market-stall traders, long-established family firms and a growing cluster of creative studios around Camden Town, Chalk Farm and Kentish Town. Its independent businesses range from cleaners and caterers to repair shops and cafes.";
-await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/camden")}`);
+await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/london/camden")}`);
 t("form re-opens with the saved intro", (await page.$eval("#intro", (e) => e.value)) === "Too short.");
 await setv("#intro", intro); await click("Save");
 t("intro saved message", (await text()).includes("Saved."));
-t("Camden area now indexable (no noindex) + in sitemap", !(await robotsOf("/locations/camden")).includes("noindex") && (await sitemapPaths()).includes("/locations/camden"));
-await go("/locations/camden");
+t("Camden area now indexable (no noindex) + in sitemap", !(await robotsOf("/locations/london/camden")).includes("noindex") && (await sitemapPaths()).includes("/locations/london/camden"));
+await go("/locations/london/camden");
 t("intro is shown on the public page as editorial copy", (await text()).includes("Chalk Farm") && (await text()).includes("About Camden"));
 await go("/admin/seo");
-t("health now shows Camden as Indexed", await page.evaluate(() => { const r = [...document.querySelectorAll("tr")].find((x) => x.innerText.includes("/locations/camden") && x.innerText.includes("Area")); const u = r.innerText.toUpperCase(); return u.includes("INDEXED") && !u.includes("NOINDEX"); }));
+t("health now shows Camden as Indexed", await page.evaluate(() => { const r = [...document.querySelectorAll("tr")].find((x) => x.innerText.includes("/locations/london/camden") && x.innerText.includes("Area")); const u = r.innerText.toUpperCase(); return u.includes("INDEXED") && !u.includes("NOINDEX"); }));
 
 // ---- title / description overrides + preview + validation
-await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/camden")}`);
+await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/london/camden")}`);
 await setv("#title", "T".repeat(71)); await click("Save");
 t("validation: title over 70 chars refused", (await text()).includes("over 70 characters"));
-await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/camden")}`);
+await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/london/camden")}`);
 await setv("#title", "Camden businesses worth knowing"); await setv("#description", "A hand-written description for Camden that is long enough to be a proper snippet for search results.");
 t("live search preview updates as you type", (await text()).includes("Camden businesses worth knowing | PrimeStreet"));
 await click("Save");
-t("title + description overrides applied to the page", (await titleOf("/locations/camden")) === "Camden businesses worth knowing | PrimeStreet" && (await (await fetch(BASE + "/locations/camden")).text()).includes("A hand-written description for Camden"));
+t("title + description overrides applied to the page", (await titleOf("/locations/london/camden")) === "Camden businesses worth knowing | PrimeStreet" && (await (await fetch(BASE + "/locations/london/camden")).text()).includes("A hand-written description for Camden"));
 
 // ---- NOINDEX override beats a perfect page
-await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/camden")}`);
+await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/london/camden")}`);
 await setv("#robots", "NOINDEX"); await click("Save");
-t("NOINDEX override: page noindex and removed from sitemap", (await robotsOf("/locations/camden")).includes("noindex") && !(await sitemapPaths()).includes("/locations/camden"));
+t("NOINDEX override: page noindex and removed from sitemap", (await robotsOf("/locations/london/camden")).includes("noindex") && !(await sitemapPaths()).includes("/locations/london/camden"));
 // ---- INDEX override can't make an empty page indexable
 await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/barnet")}`);
 await setv("#intro", intro); await setv("#robots", "INDEX"); await click("Save");
 t("INDEX override cannot index an empty page (0 real businesses)", (await robotsOf("/locations/barnet")).includes("noindex") && !(await sitemapPaths()).includes("/locations/barnet"));
 // reset
-await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/camden")}`);
+await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/london/camden")}`);
 await click("Reset this page to automatic");
-t("reset removes overrides (title back to automatic)", (await titleOf("/locations/camden")).startsWith("Businesses in Camden") && (await db.seoPage.count({ where: { path: "/locations/camden" } })) === 0);
+t("reset removes overrides (title back to automatic)", (await titleOf("/locations/london/camden")).startsWith("Businesses in Camden") && (await db.seoPage.count({ where: { path: "/locations/london/camden" } })) === 0);
 
 // ---- redirect manager UI
 await go("/admin/seo/redirects");
-await setv("#from", "/e2e-seo-old"); await setv("#to", "/locations/camden"); await click("Add redirect");
+await setv("#from", "/e2e-seo-old"); await setv("#to", "/locations/london/camden"); await click("Add redirect");
 t("redirect added", (await text()).includes("Redirect saved") && (await db.redirect.count({ where: { fromPath: "/e2e-seo-old" } })) === 1);
 let r = await fetch(BASE + "/e2e-seo-old", { redirect: "manual" });
-t("redirect works: 308 to destination, hit counted", r.status === 308 && new URL(r.headers.get("location"), BASE).pathname === "/locations/camden" && (await db.redirect.findUnique({ where: { fromPath: "/e2e-seo-old" } })).hits === 1);
+t("redirect works: 308 to destination, hit counted", r.status === 308 && new URL(r.headers.get("location"), BASE).pathname === "/locations/london/camden" && (await db.redirect.findUnique({ where: { fromPath: "/e2e-seo-old" } })).hits === 1);
 await go("/admin/seo/redirects"); await setv("#from", "/e2e-seo-old"); await setv("#to", "/e2e-seo-old"); await click("Add redirect");
 t("self-redirect refused", (await text()).includes("can't redirect to itself"));
-await go("/admin/seo/redirects"); await setv("#from", "/locations/camden"); await setv("#to", "/e2e-seo-old"); await click("Add redirect");
+await go("/admin/seo/redirects"); await setv("#from", "/locations/london/camden"); await setv("#to", "/e2e-seo-old"); await click("Add redirect");
 t("loop refused", (await text()).includes("redirect loop"));
 await go("/admin/seo/redirects"); await setv("#from", "/e2e-seo-x"); await setv("#to", "https://evil.example/phish"); await click("Add redirect");
 t("external target refused", (await text()).includes("external URLs aren't allowed") && (await db.redirect.count({ where: { fromPath: "/e2e-seo-x" } })) === 0);
@@ -100,7 +100,7 @@ await go("/admin/seo/redirects"); await setv("#from", "/admin/secret"); await se
 t("reserved path refused", (await text()).includes("can't be redirected"));
 await go("/admin/seo/redirects"); await setv("#from", "/e2e-seo-older"); await setv("#to", "/e2e-seo-old"); await click("Add redirect");
 r = await fetch(BASE + "/e2e-seo-older", { redirect: "manual" });
-t("chain: old→old→camden collapses to a single 308 hop", r.status === 308 && new URL(r.headers.get("location"), BASE).pathname === "/locations/camden");
+t("chain: old→old→camden collapses to a single 308 hop", r.status === 308 && new URL(r.headers.get("location"), BASE).pathname === "/locations/london/camden");
 await go("/admin/seo/redirects"); await click("Delete", "/e2e-seo-older");
 t("delete works; path then 404s", (await db.redirect.count({ where: { fromPath: "/e2e-seo-older" } })) === 0 && (await fetch(BASE + "/e2e-seo-older", { redirect: "manual" })).status === 404);
 

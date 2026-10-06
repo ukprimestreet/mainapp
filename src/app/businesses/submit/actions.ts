@@ -28,7 +28,7 @@ export async function submitBusiness(_: SubmitState, fd: FormData): Promise<Subm
     return { ok: false, errors, values: Object.fromEntries([...fd].filter(([k]) => k !== "company_url").map(([k, v]) => [k, String(v)])) };
   }
   const d = p.data;
-  const [cat, loc] = await Promise.all([db.category.findUnique({ where: { slug: d.category } }), db.location.findUnique({ where: { slug: d.area } })]);
+  const [cat, loc] = await Promise.all([db.category.findUnique({ where: { slug: d.category } }), db.location.findFirst({ where: { slug: d.area } })]);
   if (!cat || !loc) return { ok: false, errors: { category: "Choose a valid category and area" } };
   const recent = await db.businessSubmission.count({ where: { submitterEmail: d.submitterEmail, createdAt: { gte: new Date(Date.now() - 86400_000) } } });
   if (recent >= 3) return { ok: false, message: "You've sent several suggestions today. Please try again tomorrow." };

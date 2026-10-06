@@ -43,12 +43,14 @@ export async function saveArticle(_: ArticleState, fd: FormData): Promise<Articl
   if (intent === "schedule") { status = "PUBLISHED"; publishedAt = londonToDate(input.publishedAt!)!; }
   if (intent === "unpublish") { status = "DRAFT"; publishedAt = null; }
 
+  // An article belongs to the city of the area it is about, so city hubs and city-scoped search stay correct.
+  const locCity = input.locationId ? (await db.location.findUnique({ where: { id: input.locationId }, select: { cityId: true } }))?.cityId ?? null : null;
   const data = {
     type: input.type, disclosure: input.disclosure, title: input.title, slug: input.slug, standfirst: input.standfirst, body: input.body,
     imageUrl: safeUrl(input.imageUrl), imageAlt: input.imageAlt || null, imageCredit: input.imageCredit || null,
     sponsorName: input.disclosure === "EDITORIAL" ? null : input.sponsorName || null,
     seoTitle: input.seoTitle || null, seoDescription: input.seoDescription || null,
-    authorId: input.authorId, locationId: input.locationId || null, featured: !!input.featured, status, publishedAt,
+    authorId: input.authorId, locationId: input.locationId || null, cityId: locCity, featured: !!input.featured, status, publishedAt,
   };
   const article = existing
     ? await db.article.update({ where: { id: existing.id }, data })

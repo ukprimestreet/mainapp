@@ -25,7 +25,7 @@ export async function Hub({ type, page = 1 }: { type: ArticleType; page?: number
   const where = { status: "PUBLISHED", publishedAt: { lte: new Date() }, type } as const;
   const [total, items] = await Promise.all([
     db.article.count({ where }),
-    db.article.findMany({ where, orderBy: { publishedAt: "desc" }, skip: (page - 1) * PER_PAGE, take: PER_PAGE, include: { author: true, location: true } }),
+    db.article.findMany({ where, orderBy: { publishedAt: "desc" }, skip: (page - 1) * PER_PAGE, take: PER_PAGE, include: { author: true, location: { include: { city: true } } } }),
   ]);
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
   const href = (n: number) => `/${t.path}${n > 1 ? `?page=${n}` : ""}`;
@@ -55,7 +55,7 @@ export async function Hub({ type, page = 1 }: { type: ArticleType; page?: number
 }
 
 export const articleInclude = {
-  author: true, location: true, episode: true,
+  author: true, location: { include: { city: true } }, episode: true,
   businesses: { include: { business: { include: { category: true, location: true, city: true } } } },
 } as const;
 
@@ -109,7 +109,7 @@ export async function ArticleView({ a, preview = false }: { a: Loaded; preview?:
             <p className="mt-4 text-xl text-grey">{a.standfirst}</p>
             <p className="mt-5 text-sm text-grey">
               By <Link href={`/authors/${a.author.slug}`} className="font-bold text-ink underline decoration-yellow decoration-2 underline-offset-2">{a.author.name}</Link> · <time dateTime={a.publishedAt?.toISOString()}>{fmtDate(a.publishedAt)}</time> · {readingMinutes(a.body)} min read
-              {a.location && <> · <Link className="underline" href={`/locations/${a.location.slug}`}>{a.location.name}</Link></>}
+              {a.location && <> · <Link className="underline" href={`/locations/${a.location.city.slug}/${a.location.slug}`}>{a.location.name}</Link></>}
             </p>
           </Container>
         </header>

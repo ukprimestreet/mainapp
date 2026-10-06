@@ -15,7 +15,7 @@ const get = (p, opts = {}) => fetch(BASE + p, { redirect: "manual", headers: { "
 
 // ---------------- fixture ----------------
 const city = await db.city.findFirst();
-const L = async (slug) => db.location.findUnique({ where: { slug } });
+const L = async (slug) => db.location.findFirst({ where: { slug } });
 const C = async (slug) => db.category.findUnique({ where: { slug } });
 const author = await db.author.findFirst();
 const [hackney, camden, lambeth] = [await L("hackney"), await L("camden"), await L("lambeth")];
@@ -47,7 +47,7 @@ await db.article.create({ data: { slug: "seo-fx-news", type: "NEWS", title: "A n
 await db.article.create({ data: { slug: "seo-fx-guide", type: "GUIDE", title: "How to choose a cleaner in East London", standfirst: "What to ask, what to check and what it should cost across the borough.", body: "y".repeat(400), status: "PUBLISHED", publishedAt: new Date(Date.now() - 2 * 86400000), authorId: author.id, isSample: false } });
 await db.podcastEpisode.create({ data: { slug: "seo-fx-ep-1", number: 9201, title: "Fixture episode: how a cleaning firm grew", description: "A fixture episode about how a local cleaning firm grew from one van to a team of twenty serving East London.", showNotes: "## Notes\n\n" + "Show notes text for the fixture episode. ".repeat(8), transcript: "Host: Welcome.\nGuest: Thanks. " + "Transcript text. ".repeat(20), chapters: JSON.stringify([{ t: 0, title: "Welcome" }, { t: 300, title: "The first van" }]), audioUrl: "https://cdn.example/fx.mp3", audioBytes: 4000000, durationSec: 1800, videoUrl: "https://youtu.be/dQw4w9WgXcQ", guestName: "Fixture Guest", status: "PUBLISHED", publishedAt: new Date(Date.now() - 86400000), isSample: false } });
 await db.podcastEpisode.create({ data: { slug: "seo-fx-ep-thin", number: 9202, title: "Fixture thin audio-only episode", description: "A fixture audio-only episode with no transcript and no show notes, which must stay out of the index.", audioUrl: "https://cdn.example/thin.mp3", audioBytes: 1000, durationSec: 60, status: "PUBLISHED", publishedAt: new Date(Date.now() - 86400000), isSample: false } });
-await db.redirect.create({ data: { fromPath: "/seo-fx-old-page", toPath: "/locations/hackney" } });
+await db.redirect.create({ data: { fromPath: "/seo-fx-old-page", toPath: "/locations/london/hackney" } });
 await db.redirect.create({ data: { fromPath: "/seo-fx-old-chain", toPath: "/seo-fx-old-page" } });
 
 // ---------------- crawl sitemap ----------------
@@ -68,11 +68,11 @@ const inMap = (p) => paths.includes(p);
 
 // ---------------- quality gate expectations ----------------
 const bizPath = (b, cat = "cleaning") => `/businesses/london/${cat}/${b.slug}`;
-t("gate: Hackney area (6+ real, has intro) IS in sitemap", inMap("/locations/hackney"));
-t("gate: Hackney × cleaning (6 real ≥5) IS in sitemap (no custom intro needed)", inMap("/locations/hackney/cleaning"));
-t("gate: Hackney × cafes (3 real, no intro, <5) is NOT in sitemap", !inMap("/locations/hackney/cafes"));
-t("gate: Camden area (3 real but no intro) is NOT in sitemap", !inMap("/locations/camden"));
-t("gate: Camden × cleaning (3 real, no intro) is NOT in sitemap", !inMap("/locations/camden/cleaning"));
+t("gate: Hackney area (6+ real, has intro) IS in sitemap", inMap("/locations/london/hackney"));
+t("gate: Hackney × cleaning (6 real ≥5) IS in sitemap (no custom intro needed)", inMap("/locations/london/hackney/cleaning"));
+t("gate: Hackney × cafes (3 real, no intro, <5) is NOT in sitemap", !inMap("/locations/london/hackney/cafes"));
+t("gate: Camden area (3 real but no intro) is NOT in sitemap", !inMap("/locations/london/camden"));
+t("gate: Camden × cleaning (3 real, no intro) is NOT in sitemap", !inMap("/locations/london/camden/cleaning"));
 t("gate: Lambeth × cleaning (1 real) is NOT in sitemap", !inMap("/locations/lambeth/cleaning"));
 t("gate: cleaning category (≥3 real + SeoPage intro) IS in sitemap", inMap("/businesses/london/cleaning"));
 t("gate: cafes category (3 real, no intro) is NOT in sitemap", !inMap("/businesses/london/cafes"));
@@ -85,7 +85,7 @@ t("gate: author with real articles listed", paths.some((p) => p.startsWith("/aut
 t("gate: no empty area×category page URLs or admin/owner/review URLs", !paths.some((p) => /^\/(admin|owner|review|reviews|claim\/status)/.test(p)));
 
 const robotsOf = (html) => html.match(/<meta name="robots" content="([^"]*)"/)?.[1] ?? "";
-for (const [p, label] of [["/locations/camden", "Camden area"], ["/locations/camden/cleaning", "Camden × cleaning"], ["/locations/hackney/cafes", "Hackney × cafes"], ["/businesses/london/cafes", "cafes category"], [bizPath(thin), "thin profile"], ["/businesses?q=clean", "filtered directory"], ["/locations/hackney?page=2", "paginated area page"], ["/podcast/seo-fx-ep-thin", "thin audio-only episode"], ["/podcast?format=video", "filtered podcast index"]]) {
+for (const [p, label] of [["/locations/london/camden", "Camden area"], ["/locations/london/camden/cleaning", "Camden × cleaning"], ["/locations/london/hackney/cafes", "Hackney × cafes"], ["/businesses/london/cafes", "cafes category"], [bizPath(thin), "thin profile"], ["/businesses?q=clean", "filtered directory"], ["/locations/london/hackney?page=2", "paginated area page"], ["/podcast/seo-fx-ep-thin", "thin audio-only episode"], ["/podcast?format=video", "filtered podcast index"]]) {
   const r = await get(p); const h = await r.text();
   t(`noindex consistency: ${label} is 200 + meta noindex`, r.status === 200 && robotsOf(h).includes("noindex"), `status=${r.status} robots="${robotsOf(h)}"`);
 }
@@ -156,9 +156,9 @@ t("no internal links point at the redirecting /categories/{slug} alias", aliasLi
 
 // ---------------- redirects ----------------
 let r = await get("/seo-fx-old-page");
-t("redirect: manual redirect is permanent (308)", r.status === 308 && new URL(r.headers.get("location"), BASE).pathname === "/locations/hackney");
+t("redirect: manual redirect is permanent (308)", r.status === 308 && new URL(r.headers.get("location"), BASE).pathname === "/locations/london/hackney");
 r = await get("/seo-fx-old-chain");
-t("redirect: chain resolves straight to final destination in one hop", r.status === 308 && new URL(r.headers.get("location"), BASE).pathname === "/locations/hackney");
+t("redirect: chain resolves straight to final destination in one hop", r.status === 308 && new URL(r.headers.get("location"), BASE).pathname === "/locations/london/hackney");
 r = await get("/categories/cleaning");
 t("redirect: /categories/{slug} → canonical category page (308)", r.status === 308 && new URL(r.headers.get("location"), BASE).pathname === "/businesses/london/cleaning");
 r = await get("/businesses/london/cafes/" + rated.slug);

@@ -21,7 +21,7 @@ export default async function Home() {
     latestArticles("NEWS", 4), latestArticles("STORY", 3), latestArticles("INTERVIEW", 3),
     db.article.findFirst({ where: { type: "BOTW", status: "PUBLISHED", publishedAt: { lte: new Date() } }, orderBy: { publishedAt: "desc" }, include: { businesses: { include: { business: { include: businessInclude } } } } }),
     db.business.findMany({ where: { published: true }, include: businessInclude, orderBy: [{ isFeatured: "desc" }, { name: "asc" }], take: 6 }),
-    db.location.findMany({ where: { businesses: { some: {} } }, include: { _count: { select: { businesses: true } } }, orderBy: { businesses: { _count: "desc" } }, take: 8 }),
+    db.location.findMany({ where: { businesses: { some: {} } }, include: { city: true, _count: { select: { businesses: true } } }, orderBy: { businesses: { _count: "desc" } }, take: 8 }),
     db.category.findMany({ include: { _count: { select: { businesses: true } } }, orderBy: { name: "asc" } }),
     db.podcastEpisode.findFirst({ where: { status: "PUBLISHED" }, orderBy: { number: "desc" } }),
   ]);
@@ -75,7 +75,7 @@ export default async function Home() {
       </Container>
 
       <Container className="mt-16"><SectionHead title="Explore London" href="/locations" />
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{locs.map((l) => <li key={l.id}><Link href={`/locations/${l.slug}`} className="flex items-center justify-between rounded-xl border border-line px-4 py-4 font-bold hover:border-ink hover:bg-yellow"><span>{l.name}</span><span className="text-sm text-grey">{l._count.businesses}</span></Link></li>)}</ul>
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{locs.map((l) => <li key={l.id}><Link href={`/locations/${l.city.slug}/${l.slug}`} className="flex items-center justify-between rounded-xl border border-line px-4 py-4 font-bold hover:border-ink hover:bg-yellow"><span>{l.name}</span><span className="text-sm text-grey">{l._count.businesses}</span></Link></li>)}</ul>
       </Container>
 
       {ep && (

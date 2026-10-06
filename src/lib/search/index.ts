@@ -2,7 +2,8 @@ import { ARTICLE_TYPES, type ArticleType } from "../constants";
 import { db } from "../db";
 import { AREA_CENTROIDS, businessPoint, haversineKm, isOpenNow, type LatLng } from "../geo";
 import { businessInclude, parseJson } from "../queries";
-import { ensureFts, ftsClear, ftsCount, ftsDelete, ftsQuery, ftsTexts, ftsUpsert } from "./fts";
+import { DEFAULT_CITY, areaPath } from "../cities";
+import { ensureFts, ftsClear, ftsCount, ftsDelete, ftsPrune, ftsQuery, ftsTexts, ftsUpsert } from "./fts";
 import { buildMatch, contentTokens, loggableQuery, spellSuggest, stripMarkdown, tokenize } from "./text";
 
 // ===================================================================== indexing
@@ -21,13 +22,13 @@ async function reindexBatch(kind: "BUSINESS" | "ARTICLE" | "EPISODE", ids: strin
   for (let i = 0; i < ids.length; i += 100) {
     const chunk = ids.slice(i, i + 100);
     if (kind === "BUSINESS") {
-      for (const b of await db.business.findMany({ where: { id: { in: chunk } }, include: { category: true, location: true } })) {
-        n += await put("BUSINESS", b.id, b.updatedAt, b.createdAt, b.isSample, businessDoc(b), existing);
+      for (const b of await db.business.findMany({ where: { id: { in: chunk } }, include: { category: true, location: true, city: true } })) {
+        n += await put("BUSINESS", b.id, b.updatedAt, b.createdAt, b.isSample, businessDoc(b), existing, b.city.slug);
       }
     } else if (kind === "ARTICLE") {
-      for (const a of await db.article.findMany({ where: { id: { in: chunk } }, include: { location: true, businesses: { include: { business: { select: { name: true } } } } } })) {
+      for (const a of await db.article.findMany({ where: { id: { in: chunk } }, include: { location: true, city: true, businesses: { include: { business: { select: { name: true } } } } } })) {
         const t = ARTICLE_TYPES[a.type as ArticleType]?.label ?? "";
-        n += await put("ARTICLE", a.id, a.updatedAt, a.publishedAt ?? a.updatedAt, a.isSample, { title: a.title, tags: join(t, a.location?.name, a.businesses.map((x) => x.business.name).join(" ")), body: join(a.standfirst, stripMarkdown(a.body)) }, existing);
+        n += await put("ARTICLE", a.id, a.updatedAt, a.publishedAt ?? a.updatedAt, a.isSample, { title: a.title, tags: join(t, a.location?.name, a.businesses.map((x) => x.business.name).join(" ")), body: join(a.standfirst, stripMarkdown(a.body)) }, existing, a.city?.slug ?? null);
       }
     } else {
       for (const e of await db.podcastEpisode.findMany({ where: { id: { in: chunk } }, include: { business: { select: { name: true } } } })) {
@@ -37,8 +38,8 @@ async function reindexBatch(kind: "BUSINESS" | "ARTICLE" | "EPISODE", ids: strin
   }
   return n;
 }
-async function put(kind: string, refId: string, updatedAt: Date, liveFrom: Date, isSample: boolean, doc: Doc, existing: Map<string, { rid: number }>) {
-  const row = await db.searchDoc.upsert({ where: { kind_refId: { kind, refId } }, create: { kind, refId, visible: true, liveFrom, isSample, sourceUpdatedAt: updatedAt }, update: { visible: true, liveFrom, isSample, sourceUpdatedAt: updatedAt, indexedAt: new Date() } });
+async function put(kind: string, refId: string, updatedAt: Date, liveFrom: Date, isSample: boolean, doc: Doc, existing: Map<string, { rid: number }>, citySlug: string | null = null) {
+  const row = await db.searchDoc.upsert({ where: { kind_refId: { kind, refId } }, create: { kind, refId, visible: true, liveFrom, isSample, citySlug, sourceUpdatedAt: updatedAt }, update: { visible: true, liveFrom, isSample, citySlug, sourceUpdatedAt: updatedAt, indexedAt: new Date() } });
   await ftsUpsert(row.rid, doc.title, doc.tags, doc.body);
   existing.set(`${kind}:${refId}`, { rid: row.rid });
   return 1;
@@ -56,7 +57,8 @@ export async function syncIndex(opts: { force?: boolean; fresh?: boolean } = {})
     await ensureFts();
     if (opts.force) { await ftsClear(); await db.searchDoc.deleteMany(); }
     const docs = await db.searchDoc.findMany();
-    if ((await ftsCount()) < docs.length) { await ftsClear(); await db.searchDoc.deleteMany(); docs.length = 0; } // index drifted (e.g. FTS table dropped): rebuild
+    await ftsPrune(); // rows whose document was deleted straight from the database would otherwise crowd out real hits
+    if ((await ftsCount()) !== docs.length) { await ftsClear(); await db.searchDoc.deleteMany(); docs.length = 0; } // index drifted (e.g. FTS table dropped): rebuild
     const existing = new Map(docs.map((d) => [`${d.kind}:${d.refId}`, d]));
     const seen = new Set<string>();
     const stale = (kind: string, id: string, updatedAt: Date, liveFrom: Date) => {
@@ -116,7 +118,7 @@ async function rank(q: string, kinds: string[], limit: number): Promise<{ by: Re
   return { by: out, relaxed };
 }
 
-export type Filters = { category?: string; area?: string; minRating?: number; claimed?: boolean; openNow?: boolean };
+export type Filters = { city?: string; category?: string; area?: string; minRating?: number; claimed?: boolean; openNow?: boolean };
 export type SearchOpts = { q: string; filters?: Filters; sort?: "relevance" | "rating" | "reviews" | "name" | "nearest"; page?: number; perPage?: number; near?: LatLng | null; withContent?: boolean; log?: boolean };
 type Biz = Awaited<ReturnType<typeof loadBusinesses>>[number];
 export type BizResult = Biz & { score: number; distanceKm: number | null; approx: boolean; open: boolean | null };
@@ -128,6 +130,7 @@ async function loadBusinesses(ids: string[]) {
 }
 
 function matches(b: BizResult, f: Filters, skip?: keyof Filters) {
+  if (f.city && b.city.slug !== f.city) return false; // city is a scope, not a facet: it never relaxes
   if (skip !== "category" && f.category && b.category.slug !== f.category) return false;
   if (skip !== "area" && f.area && b.location.slug !== f.area) return false;
   if (skip !== "minRating" && f.minRating && !(b.ratingAvg != null && b.ratingAvg >= f.minRating)) return false;
@@ -200,9 +203,10 @@ export async function searchAll(o: SearchOpts) {
 
   // browse chips: areas / categories whose names match the query
   const toks = contentTokens(q);
-  const [cats, locs] = toks.length ? await Promise.all([db.category.findMany(), db.location.findMany()]) : [[], []];
+  const [cats, locs] = toks.length ? await Promise.all([db.category.findMany(), db.location.findMany({ include: { city: true } })]) : [[], []];
   const hit = (name: string) => { const n = name.toLowerCase(); return toks.some((t) => t.length >= 3 && (n.split(/[^a-z0-9]+/).some((w) => w.startsWith(t)) || (t.length >= 4 && n.includes(t)))); };
-  const matchedCategories = cats.filter((c) => hit(c.name)).slice(0, 4), matchedAreas = locs.filter((l) => hit(l.name)).slice(0, 4);
+  const matchedCategories = cats.filter((c) => hit(c.name)).slice(0, 4);
+  const matchedAreas = locs.filter((l) => hit(l.name) && (!o.filters?.city || l.city.slug === o.filters.city)).slice(0, 4);
 
   if (q && o.log !== false) await logSearch(q, total + articles.length + episodes.length);
   return { q, total, items, page, perPage, pages: Math.max(1, Math.ceil(total / perPage)), facets, sort, relaxed: ranked.relaxed, suggestion, articles, episodes, matchedCategories, matchedAreas };
@@ -215,10 +219,11 @@ export async function suggest(q: string): Promise<Suggestion[]> {
   if (!toks.length || q.trim().length < 2) return [];
   await syncIndex();
   const out: Suggestion[] = [];
-  const [cats, locs] = await Promise.all([db.category.findMany(), db.location.findMany()]);
+  const [cats, locs] = await Promise.all([db.category.findMany(), db.location.findMany({ include: { city: true } })]);
   const starts = (n: string) => n.toLowerCase().split(/[^a-z0-9]+/).some((w) => w.startsWith(toks[toks.length - 1]));
-  for (const c of cats.filter((c) => starts(c.name)).slice(0, 2)) out.push({ type: "category", label: c.name, sub: "Category", href: `/businesses/london/${c.slug}` });
-  for (const l of locs.filter((l) => starts(l.name)).slice(0, 2)) out.push({ type: "area", label: l.name, sub: "Area", href: `/locations/${l.slug}` });
+  const home = (await db.city.findFirst({ where: { active: true, status: "LIVE" }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }))?.slug ?? DEFAULT_CITY;
+  for (const c of cats.filter((c) => starts(c.name)).slice(0, 2)) out.push({ type: "category", label: c.name, sub: "Category", href: `/businesses/${home}/${c.slug}` });
+  for (const l of locs.filter((l) => starts(l.name)).slice(0, 2)) out.push({ type: "area", label: l.name, sub: `Area in ${l.city.name}`, href: areaPath(l.city.slug, l.slug) });
   const { by } = await rank(q, ["BUSINESS", "ARTICLE", "EPISODE"], 8);
   const bs = await loadBusinesses(by.BUSINESS.slice(0, 4).map((r) => r.refId));
   for (const r of by.BUSINESS.slice(0, 4)) { const b = bs.find((x) => x.id === r.refId); if (b) out.push({ type: "business", label: b.name, sub: `${b.category.name} · ${b.location.name}`, href: `/businesses/${b.city.slug}/${b.category.slug}/${b.slug}` }); }

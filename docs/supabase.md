@@ -15,3 +15,8 @@
 2. Create the production schema, `prisma db push`, `npm run db:harden`, load real data (no sample seed).
 3. Use the transaction pooler (port 6543, `?pgbouncer=true`) for `DATABASE_URL` on serverless hosts; keep `DIRECT_URL` on 5432.
 4. Turn on Supabase backups / point-in-time recovery.
+
+## Raw SQL and the transaction pooler
+Through pgbouncer in transaction mode a connection is **not guaranteed** to keep the `search_path` from the connection string. Raw SQL that names a table unqualified can therefore create and query a second copy of it in another schema, and search starts losing rows at random. Every raw statement in `src/lib/search/fts.ts` names its schema explicitly (taken from `DATABASE_URL`), and `ftsPrune()` removes index rows whose document has gone. Prisma's own queries are unaffected.
+
+Dev and tests run against the pooler on port 6543 (`pgbouncer=true&connection_limit=5`). Occasional "Server has closed the connection" errors are the pooler reaping idle connections; re-run the suite.

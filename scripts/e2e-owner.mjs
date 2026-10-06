@@ -40,7 +40,7 @@ const cleanup = async () => {
 };
 await cleanup();
 
-const city = await db.city.findFirst(), loc = await db.location.findUnique({ where: { slug: "hackney" } }), cat = await db.category.findUnique({ where: { slug: "cafes" } });
+const city = await db.city.findFirst(), loc = await db.location.findFirst({ where: { slug: "hackney" } }), cat = await db.category.findUnique({ where: { slug: "cafes" } });
 const mk = (slug, name, extra = {}) => db.business.create({ data: { slug, name, summary: "An e2e ownership test business.", description: "An original e2e description that is certainly long enough to be valid here.", cityId: city.id, locationId: loc.id, categoryId: cat.id, isSample: false, ...extra } });
 const alpha = await mk("e2e-own-alpha", "E2E Own Alpha", { website: "https://alpha.example", websiteHost: "alpha.example", phone: "020 7946 0100" });
 const beta = await mk("e2e-own-beta", "E2E Own Beta", { phone: "020 7946 0200", summary: "Beta original summary text." });

@@ -40,6 +40,39 @@ type B = {
   n: string; cat: string; loc: string; sum: string; desc: string; svc: string[]; year?: number;
   featured?: boolean; hours?: string;
 };
+
+// Greater London, with the outward-code prefixes we use to work out which city a visitor's postcode is in.
+const LONDON = {
+  intro:
+    "London is nine million people and roughly a million businesses, from century-old markets to software firms three months old. " +
+    "PrimeStreet covers it borough by borough: who is opening, who is hiring, who is closing, and who is quietly very good at what they do.",
+  region: "Greater London",
+  lat: 51.5072,
+  lng: -0.1276,
+  prefixes: ["E", "EC", "N", "NW", "SE", "SW", "W", "WC", "BR", "CR", "DA", "EN", "HA", "IG", "KT", "RM", "SM", "TW", "UB", "WD"],
+};
+
+// Real, well-known London neighbourhoods and the borough each sits in. Geography, not invented content:
+// a neighbourhood page stays out of the index until an editor writes an original intro for it (see seo-engine).
+const NEIGHBOURHOODS: [string, string][] = [
+  ["Shoreditch", "Hackney"], ["Dalston", "Hackney"], ["Stoke Newington", "Hackney"], ["Hackney Wick", "Hackney"],
+  ["Camden Town", "Camden"], ["Kentish Town", "Camden"], ["Bloomsbury", "Camden"], ["Hampstead", "Camden"],
+  ["Soho", "Westminster"], ["Mayfair", "Westminster"], ["Marylebone", "Westminster"], ["Pimlico", "Westminster"],
+  ["Brixton", "Lambeth"], ["Clapham", "Lambeth"], ["Streatham", "Lambeth"], ["Waterloo", "Lambeth"],
+  ["Peckham", "Southwark"], ["Bermondsey", "Southwark"], ["Dulwich", "Southwark"], ["Borough", "Southwark"],
+  ["Shepherd's Bush", "Hammersmith and Fulham"], ["Fulham", "Hammersmith and Fulham"],
+  ["Notting Hill", "Kensington and Chelsea"], ["Chelsea", "Kensington and Chelsea"],
+  ["Angel", "Islington"], ["Holloway", "Islington"], ["Finsbury Park", "Islington"],
+  ["Canary Wharf", "Tower Hamlets"], ["Whitechapel", "Tower Hamlets"], ["Bethnal Green", "Tower Hamlets"], ["Bow", "Tower Hamlets"],
+  ["Stratford", "Newham"], ["East Ham", "Newham"],
+  ["Walthamstow", "Waltham Forest"], ["Leyton", "Waltham Forest"],
+  ["Tooting", "Wandsworth"], ["Battersea", "Wandsworth"], ["Putney", "Wandsworth"],
+  ["Crouch End", "Haringey"], ["Tottenham", "Haringey"], ["Wood Green", "Haringey"],
+  ["Greenwich Town", "Greenwich"], ["Woolwich", "Greenwich"],
+  ["Wimbledon", "Merton"], ["Ealing Broadway", "Ealing"], ["Acton", "Ealing"], ["Richmond Town", "Richmond upon Thames"],
+  ["Croydon Town", "Croydon"], ["Bromley Town", "Bromley"], ["Barnet Town", "Barnet"],
+];
+
 const H = "09:00-17:30";
 const BUSINESSES: B[] = [
   { n: "Brightwell Cleaning Co", cat: "Cleaning", loc: "Hackney", sum: "Office and home cleaning team serving East London.", desc: "A sample profile illustrating how a cleaning company would appear on PrimeStreet, with services, areas served and a claim prompt.", svc: ["Office cleaning", "End of tenancy", "Deep cleans"], year: 2016, featured: true },
@@ -103,12 +136,19 @@ async function main() {
   await db.articleBusiness.deleteMany(); await db.article.deleteMany(); await db.author.deleteMany();
   await db.business.deleteMany(); await db.category.deleteMany(); await db.location.deleteMany(); await db.city.deleteMany();
 
-  const city = await db.city.create({ data: { slug: "london", name: "London" } });
+  await db.cityEditor.deleteMany();
+  const city = await db.city.create({ data: {
+    slug: "london", name: "London", status: "LIVE", intro: LONDON.intro, region: LONDON.region,
+    lat: LONDON.lat, lng: LONDON.lng, postcodePrefixes: JSON.stringify(LONDON.prefixes), launchedAt: new Date(), sortOrder: 0,
+  } });
   const locs: Record<string, string> = {};
   for (const b of BOROUGHS) {
     const c = AREA_CENTROIDS[slugify(b)];
-    const l = await db.location.create({ data: { slug: slugify(b), name: b, cityId: city.id, lat: c?.[0], lng: c?.[1] } });
+    const l = await db.location.create({ data: { slug: slugify(b), name: b, cityId: city.id, kind: "BOROUGH", lat: c?.[0], lng: c?.[1] } });
     locs[b] = l.id;
+  }
+  for (const [n, parent] of NEIGHBOURHOODS) {
+    await db.location.create({ data: { slug: slugify(n), name: n, cityId: city.id, kind: "NEIGHBOURHOOD", parentId: locs[parent] } });
   }
   const cats: Record<string, { id: string; slug: string }> = {};
   for (const [n, intro] of CATEGORIES) {
@@ -129,13 +169,14 @@ async function main() {
     bizIds[b.n] = r.id;
   }
   const author = await db.author.create({ data: { slug: "primestreet-editorial", name: "PrimeStreet Editorial", role: "Editorial team", bio: "The PrimeStreet editorial team." } });
+  await db.cityEditor.create({ data: { cityId: city.id, authorId: author.id, role: "EDITOR" } });
   const created: Record<string, string> = {};
   for (const a of ARTICLES) {
     const r = await db.article.create({
       data: {
         slug: slugify(a.title), type: a.type, title: a.title, standfirst: a.stand, body: a.body,
         status: "PUBLISHED", isSample: true, featured: !!a.feat, authorId: author.id,
-        locationId: a.loc ? locs[a.loc] : null, disclosure: a.disclosure ?? "EDITORIAL",
+        locationId: a.loc ? locs[a.loc] : null, cityId: a.loc ? city.id : null, disclosure: a.disclosure ?? "EDITORIAL",
         publishedAt: new Date(Date.now() - a.days * 86400000),
         businesses: { create: (a.biz ?? []).map((n) => ({ businessId: bizIds[n] })) },
       },
@@ -158,6 +199,6 @@ async function main() {
     { key: "featured_30d", kind: "FEATURED", name: "Featured placement — 30 days", description: "A labelled Sponsored slot on relevant category and area pages for 30 days.", interval: "ONE_OFF", durationDays: 30, sortOrder: 4 },
   ];
   for (const p of PRODUCTS) await db.product.upsert({ where: { key: p.key }, create: { ...p, pricePence: 0, active: false }, update: {} });
-  console.log(`Seeded: ${BOROUGHS.length} locations, ${CATEGORIES.length} categories, ${BUSINESSES.length} businesses, ${ARTICLES.length} articles.`);
+  console.log(`Seeded: ${BOROUGHS.length} boroughs, ${NEIGHBOURHOODS.length} neighbourhoods, ${CATEGORIES.length} categories, ${BUSINESSES.length} businesses, ${ARTICLES.length} articles.`);
 }
 main().finally(() => db.$disconnect());
