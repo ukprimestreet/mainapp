@@ -11,6 +11,7 @@ import { AdSlot } from "./Sponsored";
 import { relatedArticles } from "@/lib/related";
 import { ArticleCard, BusinessCard, fmtDate } from "./Cards";
 import { Prose } from "./Prose";
+import { Avatar, SocialLinks } from "./Social";
 import { Breadcrumbs, Button, Container, DisclosureBadge, EmptyState, JsonLd, Label, PageHeader, SampleBadge, SectionHead } from "./ui";
 
 const PER_PAGE = 18;
@@ -107,10 +108,19 @@ export async function ArticleView({ a, preview = false }: { a: Loaded; preview?:
             <div className="mt-6 flex flex-wrap items-center gap-2"><Label>{t.label}</Label><DisclosureBadge kind={a.disclosure} />{a.isSample && <SampleBadge />}</div>
             <h1 className="mt-4 text-4xl font-extrabold leading-[1.05] sm:text-5xl">{a.title}</h1>
             <p className="mt-4 text-xl text-grey">{a.standfirst}</p>
-            <p className="mt-5 text-sm text-grey">
-              By <Link href={`/authors/${a.author.slug}`} className="font-bold text-ink underline decoration-yellow decoration-2 underline-offset-2">{a.author.name}</Link> · <time dateTime={a.publishedAt?.toISOString()}>{fmtDate(a.publishedAt)}</time> · {readingMinutes(a.body)} min read
-              {a.location && <> · <Link className="underline" href={`/locations/${a.location.city.slug}/${a.location.slug}`}>{a.location.name}</Link></>}
-            </p>
+            <div className="mt-6 flex items-center gap-3">
+              <Link href={`/authors/${a.author.slug}`} aria-label={`${a.author.name}'s profile`} className="shrink-0">
+                <Avatar src={a.author.imageUrl} name={a.author.name} size={48} />
+              </Link>
+              <p className="text-sm text-grey">
+                By <Link href={`/authors/${a.author.slug}`} className="font-bold text-ink underline decoration-yellow decoration-2 underline-offset-2">{a.author.name}</Link>
+                {a.author.role ? <span className="text-grey">, {a.author.role}</span> : null}
+                <br className="sm:hidden" />
+                <span className="max-sm:hidden"> · </span>
+                <time dateTime={a.publishedAt?.toISOString()}>{fmtDate(a.publishedAt)}</time> · {readingMinutes(a.body)} min read
+                {a.location && <> · <Link className="underline" href={`/locations/${a.location.city.slug}/${a.location.slug}`}>{a.location.name}</Link></>}
+              </p>
+            </div>
           </Container>
         </header>
         {a.imageUrl && (
@@ -134,6 +144,28 @@ export async function ArticleView({ a, preview = false }: { a: Loaded; preview?:
           )}
         </Container>
       </article>
+      {/* Who wrote this: portrait, biography and only the social links the author has given. */}
+      <Container className="mt-12 max-w-3xl">
+        <aside aria-labelledby="about-author" className="rounded-3xl border-2 border-ink p-6 sm:p-8">
+          <h2 id="about-author" className="sr-only">About the author</h2>
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+            <Link href={`/authors/${a.author.slug}`} aria-label={`${a.author.name}'s profile`} className="shrink-0">
+              <Avatar src={a.author.imageUrl} name={a.author.name} size={88} />
+            </Link>
+            <div className="min-w-0">
+              <p className="font-display text-xl font-extrabold">
+                <Link href={`/authors/${a.author.slug}`} className="hover:underline">{a.author.name}</Link>
+              </p>
+              {a.author.role && <p className="text-sm font-bold uppercase tracking-wider text-grey">{a.author.role}</p>}
+              {a.author.bio && <p className="mt-3 text-grey [overflow-wrap:anywhere]">{a.author.bio}</p>}
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Link href={`/authors/${a.author.slug}`} className="font-bold underline decoration-yellow decoration-2 underline-offset-2">All articles by {a.author.name.split(" ")[0]} →</Link>
+                <SocialLinks author={a.author} size={38} />
+              </div>
+            </div>
+          </div>
+        </aside>
+      </Container>
       {biz.length > 0 && (
         <Container className="mt-6"><SectionHead title="Businesses in this story" />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{biz.map((b) => <BusinessCard key={b.id} b={b} />)}</div>

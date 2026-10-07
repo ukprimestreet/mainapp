@@ -141,10 +141,56 @@ model Author {
   id       String    @id @default(cuid())
   slug     String    @unique
   name     String
-  role     String?
+  role     String? // job title shown under the name
   bio      String?
-  articles Article[]
-  cities   CityEditor[]
+  email    String?  @unique // the author's own account: identity + passwordless sign-in
+  imageUrl String? // portrait shown on the profile and as a byline avatar
+  // Social links. Each is optional and its icon only appears when a link is present.
+  website   String?
+  x         String?
+  facebook  String?
+  instagram String?
+  linkedin  String?
+  youtube   String?
+  tiktok    String?
+  threads   String?
+  bluesky   String?
+  mastodon  String?
+  active          Boolean  @default(true)
+  emailVerifiedAt DateTime?
+  sessionVersion  Int      @default(1) // bump to sign the author out everywhere
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt @default(now())
+  articles    Article[]
+  cities      CityEditor[]
+  loginTokens AuthorLoginToken[]
+}
+
+// Single-use emailed sign-in link for an author (same pattern as business owners: no passwords stored).
+model AuthorLoginToken {
+  id        String   @id @default(cuid())
+  authorId  String
+  author    Author   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  purpose   String   @default("LOGIN") // LOGIN | VERIFY_EMAIL
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([authorId])
+}
+
+// An admin's decision on a submitted article, with the feedback the author reads.
+model ArticleReview {
+  id        String   @id @default(cuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  decision  String // APPROVED | CHANGES_REQUESTED
+  note      String // always required: an author never gets a verdict without a reason
+  reviewer  String // admin email
+  createdAt DateTime @default(now())
+
+  @@index([articleId])
 }
 
 model Article {
@@ -159,7 +205,8 @@ model Article {
   imageAlt    String?
   imageCredit String?
   sponsorName String? // required when disclosure is not EDITORIAL
-  status      String    @default("DRAFT") // DRAFT | PUBLISHED
+  status      String    @default("DRAFT") // DRAFT | SUBMITTED | PUBLISHED (SUBMITTED = author sent it for review)
+  submittedAt DateTime? // when the author asked for review
   isSample    Boolean   @default(false)
   featured    Boolean   @default(false)
   publishedAt DateTime?
@@ -167,6 +214,7 @@ model Article {
   seoDescription String?
   authorId    String
   author      Author    @relation(fields: [authorId], references: [id])
+  reviews     ArticleReview[]
   cityId      String?
   city        City?     @relation(fields: [cityId], references: [id])
   locationId  String?
