@@ -68,10 +68,10 @@ export async function issueAuthorLink(authorId: string, email: string, purpose: 
   await db.authorLoginToken.create({ data: { authorId, tokenHash: sha256(raw), purpose, expiresAt: new Date(Date.now() + LOGIN_LINK_MS) } });
   const link = siteLink(`/write/login/${raw}`);
   const verifying = purpose === "VERIFY_EMAIL";
-  await sendMail({
-    to: email,
-    subject: verifying ? "Confirm your PrimeStreet writer account" : "Your PrimeStreet sign-in link",
-    body: [
+  await sendMail(
+    email,
+    verifying ? "Confirm your PrimeStreet writer account" : "Your PrimeStreet sign-in link",
+    [
       verifying ? "Welcome to PrimeStreet." : "Here is your sign-in link.",
       "",
       link,
@@ -79,7 +79,7 @@ export async function issueAuthorLink(authorId: string, email: string, purpose: 
       `The link works once and expires in ${Math.round(LOGIN_LINK_MS / 60000)} minutes.`,
       "If you didn't ask for this, you can ignore this email — nothing has changed.",
     ].join("\n"),
-  });
+  );
 }
 
 export async function authorTokenState(token: string): Promise<"ok" | "expired" | "used" | "invalid"> {
