@@ -11,6 +11,8 @@ import { AdSlot } from "./Sponsored";
 import { relatedArticles } from "@/lib/related";
 import { ArticleCard, BusinessCard, fmtDate } from "./Cards";
 import { Prose } from "./Prose";
+import { Blocks } from "./Blocks";
+import { parseBlocks } from "@/lib/blocks";
 import { Avatar, SocialLinks } from "./Social";
 import { Breadcrumbs, Button, Container, DisclosureBadge, EmptyState, JsonLd, Label, PageHeader, SampleBadge, SectionHead } from "./ui";
 
@@ -137,7 +139,7 @@ export async function ArticleView({ a, preview = false }: { a: Loaded; preview?:
               Disclosure: a business featured here is owned by PrimeStreet&apos;s founder.
             </p>
           )}
-          <Prose text={a.body} />
+          <Blocks text={a.body} blocks={parseBlocks(a.blocks)} />
           {!preview && a.disclosure === "EDITORIAL" && <div className="mt-10"><AdSlot placement="ARTICLE" /></div>}
           {a.episode && a.episode.status === "PUBLISHED" && !!a.episode.publishedAt && a.episode.publishedAt.getTime() <= Date.now() && (
             <p className="mt-8 rounded-xl bg-ink p-5 text-white">Also a podcast episode: <Link className="font-bold text-yellow underline" href={`/podcast/${a.episode.slug}`}>{a.episode.title}</Link></p>

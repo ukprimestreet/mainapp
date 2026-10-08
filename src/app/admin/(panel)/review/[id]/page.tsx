@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Cell, Chip, DashTable, Notice, Panel, Progress, Row, Stat, StatRow, area, btn, labelCls } from "@/components/Dash";
 import { Avatar } from "@/components/Social";
-import { Prose } from "@/components/Prose";
+import { Blocks } from "@/components/Blocks";
+import { parseBlocks } from "@/lib/blocks";
 import { fmtDate } from "@/components/Cards";
 import { ARTICLE_TYPES, DISCLOSURE, type ArticleType, type Disclosure } from "@/lib/constants";
 import { MIN_TO_SUBMIT, completeness } from "@/lib/author-profile";
@@ -89,7 +90,7 @@ export default async function ReviewOne({ params, searchParams }: P) {
         <div className="min-w-0">
           <Panel title="The piece">
             {a.imageUrl && <img src={a.imageUrl} alt={a.imageAlt ?? ""} className="mb-6 aspect-[16/9] w-full rounded-2xl object-cover" />}
-            <div className="max-w-none"><Prose text={a.body} /></div>
+            <div className="max-w-none"><Blocks text={a.body} blocks={parseBlocks(a.blocks)} /></div>
           </Panel>
         </div>
 

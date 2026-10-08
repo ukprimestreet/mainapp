@@ -214,7 +214,9 @@ model Article {
   disclosure  String    @default("EDITORIAL") // EDITORIAL | SPONSORED | PARTNER | ADVERTORIAL
   title       String
   standfirst  String
-  body        String // markdown-lite (paragraphs, ## headings, > quotes, - lists)
+  body        String // markdown-lite: the canonical TEXT of the piece. When `blocks` is set this is derived from it,
+                     // so search, reading time and the link audit keep working the same way for both kinds of article.
+  blocks      String? // JSON block document from the visual editor; null for pieces written as plain markdown
   imageUrl    String?
   imageAlt    String?
   imageCredit String?
