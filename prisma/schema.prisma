@@ -156,7 +156,21 @@ model Author {
   threads   String?
   bluesky   String?
   mastodon  String?
+  // Profile completeness gate: an author cannot submit work until these are filled in (see lib/author-profile.ts).
+  phone      String?
+  basedIn    String? // the London area or city they work from
+  experience String? // previous writing or professional experience
+  cvUrl      String? // uploaded CV (PDF or document)
+  expertise  String? // JSON string[] of the subjects they cover
+  portfolio  String? // JSON string[] of links to published work elsewhere
+  // Account state
   active          Boolean  @default(true)
+  passwordHash    String? // set by the author from the invitation link; null until then
+  invitedAt       DateTime?
+  invitedBy       String? // the admin who registered them
+  acceptedTermsAt DateTime?
+  welcomedAt      DateTime? // the welcome email has gone out
+  lastLoginAt     DateTime?
   emailVerifiedAt DateTime?
   sessionVersion  Int      @default(1) // bump to sign the author out everywhere
   createdAt       DateTime @default(now())
@@ -172,7 +186,7 @@ model AuthorLoginToken {
   authorId  String
   author    Author   @relation(fields: [authorId], references: [id], onDelete: Cascade)
   tokenHash String   @unique
-  purpose   String   @default("LOGIN") // LOGIN | VERIFY_EMAIL
+  purpose   String   @default("LOGIN") // INVITE | RESET | LOGIN
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime @default(now())

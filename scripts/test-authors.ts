@@ -5,6 +5,9 @@ import { classify, extractLinks, linkSummary } from "../src/lib/links";
 import { SITE } from "../src/lib/constants";
 import { ARTICLE_STATUS, DECISIONS, readyToSubmit } from "../src/lib/editorial-flow";
 import { makeAuthorToken, readAuthorToken } from "../src/lib/author-auth";
+import { checkPassword, hashPassword, verifyPassword } from "../src/lib/author-password";
+import { MIN_TO_SUBMIT, canSubmit, completeness, validateExtras } from "../src/lib/author-profile";
+import { BUCKETS, checkFile, parseStorageRef, storagePath, storageRef } from "../src/lib/storage";
 
 const db = new PrismaClient();
 let fail = 0;
@@ -106,6 +109,76 @@ async function main() {
   t("a tampered author cookie is rejected",
     readAuthorToken(tok.slice(0, -2) + "xx") === null && readAuthorToken("nonsense") === null && readAuthorToken(undefined) === null);
   t("an expired author cookie is rejected", readAuthorToken(makeAuthorToken("a", 1, Date.now() - 40 * 86400_000)) === null);
+
+
+  // ---------------- passwords ----------------
+  t("password is hashed with a per-password salt (never stored in the clear)", (() => {
+    const a = hashPassword("corre¢t-horse-99"), b = hashPassword("corre¢t-horse-99");
+    return a !== b && a.startsWith("scrypt$") && !a.includes("corre") && verifyPassword("corre¢t-horse-99", a) && verifyPassword("corre¢t-horse-99", b);
+  })());
+  t("wrong password, empty and malformed hashes all fail closed",
+    !verifyPassword("nope", hashPassword("corre¢t-horse-99")) && !verifyPassword("x", null) && !verifyPassword("x", "garbage") && !verifyPassword("x", "scrypt$1$2$3$4"));
+  t("length is enforced and confirmation must match",
+    !!checkPassword("short", "short") && !!checkPassword("abcdefghij1", "different1") && checkPassword("a-long-enough-one", "a-long-enough-one") === null);
+  t("obvious passwords and ones containing the email name are refused",
+    !!checkPassword("password123", "password123") && !!checkPassword("aaaaaaaaaaaa", "aaaaaaaaaaaa") && !!checkPassword("adawriter-99", "adawriter-99", "adawriter@example.com"));
+  t("leading or trailing spaces refused", !!checkPassword(" spacey-password", " spacey-password"));
+
+  // ---------------- the 90% gate ----------------
+  const bare = { name: "Ada Writer", email: "ada@example.com" };
+  t("a brand new account cannot file", canSubmit(bare).ok === false && completeness(bare).percent < MIN_TO_SUBMIT);
+  const full = {
+    ...bare, role: "Reporter", bio: "x".repeat(130), phone: "020 7946 0000", basedIn: "Hackney",
+    experience: "y".repeat(130), imageUrl: "https://img.example/a.jpg", cvUrl: "storage:author-docs/a/cv.pdf",
+    expertise: JSON.stringify(["Retail"]), portfolio: JSON.stringify(["https://example.com/p"]), facebook: "https://facebook.com/ada",
+  };
+  t("a complete profile reaches 100%", completeness(full).percent === 100);
+  t("even at 100%, the terms must be accepted before filing",
+    canSubmit(full).ok === false && canSubmit({ ...full, acceptedTermsAt: new Date() }).ok === true);
+  t("dropping below the threshold blocks filing again", (() => {
+    const partial = { ...full, acceptedTermsAt: new Date(), imageUrl: null, cvUrl: null };
+    const r = canSubmit(partial);
+    return completeness(partial).percent < MIN_TO_SUBMIT && r.ok === false && r.reason.includes(String(MIN_TO_SUBMIT));
+  })());
+  t("the block message names what is still missing", (() => {
+    const r = canSubmit({ ...full, acceptedTermsAt: new Date(), imageUrl: null, cvUrl: null });
+    return r.ok === false && /portrait|cv/i.test(r.reason) && r.missing.length === 2;
+  })());
+  t("a short bio or experience does not count as done",
+    !completeness({ ...full, bio: "too short" }).checks.find((c) => c.key === "bio")!.done
+    && !completeness({ ...full, experience: "too short" }).checks.find((c) => c.key === "experience")!.done);
+  t("weights add up to 100", completeness(bare).checks.reduce((n, c) => n + c.weight, 0) === 100);
+
+  // ---------------- profile extras ----------------
+  t("phone accepts real formats and refuses junk",
+    validateExtras({ phone: "+44 20 7946 0000" }).ok && validateExtras({ phone: "020 7946 0000" }).ok && !validateExtras({ phone: "call me" }).ok);
+  const NL = String.fromCharCode(10);
+  t("portfolio links must be https, and are capped",
+    !validateExtras({ portfolio: "http://x.com/a" }).ok
+    && validateExtras({ portfolio: ["https://a.com/1", "https://b.com/2"].join(NL) }).ok
+    && !validateExtras({ portfolio: Array.from({ length: 9 }, (_, i) => "https://x.com/" + i).join(NL) }).ok);
+  t("expertise is split, de-duplicated and capped", (() => {
+    const v = validateExtras({ expertise: "Retail, Retail , Planning" });
+    return v.ok && JSON.parse(v.value.expertise!).length === 2;
+  })());
+  t("CV accepts a private storage reference or an https link, nothing else",
+    validateExtras({ cvUrl: "storage:author-docs/a/cv.pdf" }).ok && validateExtras({ cvUrl: "https://x.com/cv.pdf" }).ok && !validateExtras({ cvUrl: "/etc/passwd" }).ok);
+  t("HTML in past experience refused", !validateExtras({ experience: "<script>x</script>" }).ok);
+
+  // ---------------- private file storage ----------------
+  t("a CV goes to the private bucket, a portrait to a public one", BUCKETS["author-docs"].public === false && BUCKETS["author-media"].public === true);
+  t("storage references round-trip and refuse traversal", (() => {
+    const ref = storageRef("author-docs", "abc/cv.pdf");
+    return parseStorageRef(ref)?.bucket === "author-docs" && parseStorageRef("storage:author-docs/../../etc/passwd") === null && parseStorageRef("https://x/y") === null;
+  })());
+  t("upload paths are namespaced by owner and unguessable", (() => {
+    const p1 = storagePath("author-1", "image/jpeg"), p2 = storagePath("author-1", "image/jpeg");
+    return p1.startsWith("author-1/") && p1.endsWith(".jpg") && p1 !== p2;
+  })());
+  t("a hostile owner id cannot escape its folder", storagePath("../../root", "image/png").startsWith("root/"));
+  t("file type and size are both enforced",
+    !!checkFile("author-media", "application/pdf", 1000) && !!checkFile("author-docs", "image/png", 1000)
+    && !!checkFile("author-media", "image/png", 99 * 1024 * 1024) && checkFile("author-media", "image/png", 50_000) === null);
 
   // ---------------- real data ----------------
   const owner = await db.author.findUnique({ where: { email: "cc@primestreet.uk" } });
