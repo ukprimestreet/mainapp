@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
 import { Header, Footer } from "@/components/Shell";
@@ -18,14 +19,19 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { themeColor: "#FFD400", width: "device-width", initialScale: 1 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+/** The signed-in dashboards are their own product: they get no marketing header or footer. */
+const DASH = ["/admin", "/owner", "/write"];
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const path = (await headers()).get("x-ps-path") ?? "/";
+  const isDash = DASH.some((p) => path === p || path.startsWith(p + "/"));
   return (
     <html lang="en-GB" className={`${display.variable} ${body.variable}`}>
       <body className="flex min-h-screen flex-col">
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-yellow focus:px-4 focus:py-2 focus:font-bold">Skip to content</a>
-        <Header />
+        {!isDash && <Header />}
         <main id="main" className="flex-1">{children}</main>
-        <Footer />
+        {!isDash && <Footer />}
         <JsonLd data={{ "@context": "https://schema.org", "@type": "Organization", name: SITE.name, url: SITE.url, logo: `${SITE.url}/icons/ps-512.png`, description: SITE.description }} />
       </body>
     </html>

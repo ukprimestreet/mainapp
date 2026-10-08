@@ -86,9 +86,12 @@ async function main() {
     && health.filter((r) => r.path.startsWith("/locations/test-city-unit")).every((r) => !r.verdict.index));
   // the gate needs REAL (non-sample) businesses, so prove it with real rows rather than asserting against sample data
   const cat = (await db.category.findFirst())!, hackney = (await db.location.findFirst({ where: { cityId: london.id, slug: "hackney" } }))!;
+  // The unlaunched test city has no real businesses, so it proves the rule without depending on how much
+  // real content London happens to have in this database.
   const bareSet = await collectIndexable();
-  t("sitemap: a city hub with no real businesses is NOT listed (sample data never counts)",
-    !bareSet.cities.some((e) => e.path === "/locations/london"));
+  t("sitemap: a city with no real businesses is NOT listed (sample data never counts)",
+    !bareSet.cities.some((e) => e.path.includes("test-city-unit")));
+  const londonRealBefore = await db.business.count({ where: { cityId: london.id, published: true, isSample: false } });
   const realIds: string[] = [];
   for (let i = 1; i <= 3; i++) {
     const b = await db.business.create({ data: {
@@ -108,7 +111,7 @@ async function main() {
   const cov = await cityCoverage();
   t("coverage dashboard counts areas, REAL businesses (samples excluded) and team per city", (() => {
     const l = cov.find((c) => c.city.slug === "london")!, o = cov.find((c) => c.city.slug === "test-city-unit")!;
-    return l.boroughs === 33 && l.neighbourhoods >= 40 && l.team >= 1 && l.businesses === realIds.length && o.boroughs === 1 && o.team === 0;
+    return l.boroughs === 33 && l.neighbourhoods >= 40 && l.team >= 1 && l.businesses === londonRealBefore + realIds.length && o.boroughs === 1 && o.team === 0;
   })(), JSON.stringify(cov.map((c) => [c.city.slug, c.boroughs, c.businesses, c.team])));
   t("editor roles are a closed set", Object.keys(EDITOR_ROLES).length === 3 && "EDITOR" in EDITOR_ROLES);
 

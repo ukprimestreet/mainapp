@@ -153,8 +153,8 @@ const t = (n: string, c: boolean, d = "") => { console.log(c ? "PASS" : "FAIL", 
 
   // query log is anonymous + aggregate
   const day = new Date().toISOString().slice(0, 10);
-  await searchAll({ q: "srchzzz unique term" }); await searchAll({ q: "srchzzz unique term" });
-  const row = await db.searchTerm.findUnique({ where: { day_q: { day, q: "srchzzz unique term" } } });
+  await searchAll({ q: "srchzzz qqxxzzw" }); await searchAll({ q: "srchzzz qqxxzzw" });
+  const row = await db.searchTerm.findUnique({ where: { day_q: { day, q: "srchzzz qqxxzzw" } } });
   t("search log: aggregated per day+query with zero-result count", row?.count === 2 && row.zeroCount === 2);
   await searchAll({ q: "person@example.com" }); await searchAll({ q: "020 7946 0958" });
   t("search log: emails/phone numbers are never stored", (await db.searchTerm.count({ where: { OR: [{ q: { contains: "@" } }, { q: { contains: "7946" } }] } })) === 0);
@@ -164,8 +164,13 @@ const t = (n: string, c: boolean, d = "") => { console.log(c ? "PASS" : "FAIL", 
   const dg = await buildDigest(7);
   t("digest: built from real content only, with unsubscribe placeholder and absolute links", !!dg && dg.body.includes("{{unsubscribe}}") && dg.body.includes("Srch cleaning industry insight") && dg.body.includes("/businesses/london/") && !dg.body.includes("a-wood-fired") && dg.counts.articles >= 1 && dg.counts.episodes === 1);
   await wipe();
-  await db.article.deleteMany({ where: { isSample: false, publishedAt: { gte: new Date(Date.now() - 7 * 86400_000) } } });
-  t("digest: nothing new (real) → null (nothing worth sending)", (await buildDigest(7)) === null || (await db.article.count({ where: { isSample: false } })) > 0);
+  // Only this suite's own fixtures are removed. An earlier version deleted every real article published in the
+  // last week to force the empty case, which destroys genuine content and would be catastrophic outside dev.
+  const afterWipe = await buildDigest(7);
+  t("digest: once this suite's fixtures are gone, none of them appear in it",
+    !afterWipe || !afterWipe.body.includes("Srch cleaning industry insight"));
+  const realRecent = await db.article.count({ where: { isSample: false, status: "PUBLISHED", publishedAt: { gte: new Date(Date.now() - 7 * 86400_000) } } });
+  t("digest: with no real content in the window at all, nothing is sent", realRecent > 0 || afterWipe === null, `realRecent=${realRecent}`);
   await syncIndex({ fresh: true });
 
   console.log(fail ? `${fail} FAILED` : "ALL PASSED"); process.exitCode = fail ? 1 : 0;
