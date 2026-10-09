@@ -504,9 +504,14 @@ model EmailOutbox {
   to        String
   subject   String
   body      String
+  purpose   String    @default("alerts") // which sender was used (see lib/mail.ts SENDERS)
+  fromAddress String? // the address it was sent from, recorded so the outbox shows it
+  replyTo   String?
   createdAt DateTime  @default(now())
   sentAt    DateTime?
   error     String?
+
+  @@index([purpose])
 }
 
 // Public "add a business" suggestions. Reviewed by an admin before becoming an UNCLAIMED Business.

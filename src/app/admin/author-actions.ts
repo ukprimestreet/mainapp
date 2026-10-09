@@ -61,7 +61,13 @@ export async function messageAuthor(form: FormData) {
   const a = await db.author.findUnique({ where: { id } });
   if (!a?.email) back("That writer has no email address.");
   if (note.length < 5) back("Write a message first.");
-  await sendMail(a!.email!, "A message from the PrimeStreet editors", `${a!.name},\n\n${note}\n\nPrimeStreet`);
+  // A real person wrote this, so it comes from the monitored inbox and invites a reply.
+  await sendMail(
+    a!.email!,
+    "A message from the PrimeStreet editors",
+    [`${a!.name},`, "", note, "", "PrimeStreet"].join("\n"),
+    { purpose: "hello" },
+  );
   await audit("Author messaged", id, note.slice(0, 120));
   back(`Message sent to ${a!.name}.`);
 }

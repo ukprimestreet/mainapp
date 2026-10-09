@@ -25,7 +25,7 @@ export async function moderateReview(fd: FormData) {
     if (note.length < 5) return back("Add a short reason when rejecting", tab);
     await db.review.update({ where: { id }, data: { status: "REJECTED", moderatedAt: new Date(), moderationNote: note } });
     await db.reviewReport.updateMany({ where: { reviewId: id, status: "OPEN" }, data: { status: "ACTIONED" } });
-    await sendMail(r.authorEmail, `About your review of ${r.business.name}`, `We couldn't publish your review of ${r.business.name}.\n\nReason: ${note}\n\nOur review guidelines are on ${siteLink("/about#standards")}.`);
+    await sendMail(r.authorEmail, `About your review of ${r.business.name}`, `We couldn't publish your review of ${r.business.name}.\n\nReason: ${note}\n\nOur review guidelines are on ${siteLink("/about#standards")}.`, { purpose: "reviews" });
   } else if (decision === "HOLD") {
     await db.review.update({ where: { id }, data: { status: "HELD", moderatedAt: new Date(), moderationNote: note || null } });
   } else if (decision === "VERIFY_EMAIL") {

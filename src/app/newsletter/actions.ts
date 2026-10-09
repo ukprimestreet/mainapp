@@ -29,7 +29,7 @@ export async function subscribe(_: NlState, fd: FormData): Promise<NlState> {
     ? await db.newsletterSubscriber.update({ where: { id: existing.id }, data: { status: "PENDING", confirmHash: sha256(token), unsubscribedAt: null } }) // re-subscribe or re-send confirmation
     : await db.newsletterSubscriber.create({ data: { email, status: "PENDING", confirmHash: sha256(token), source: String(fd.get("source") ?? "").slice(0, 40) || null, ipHash: ip } });
   void row;
-  await sendMail(email, "Confirm your PrimeStreet subscription", `Thanks for subscribing to the PrimeStreet weekly digest.\n\nConfirm your email address:\n\n${siteLink(`/newsletter/confirm/${token}`)}\n\nIf you didn't sign up, ignore this email and you won't hear from us again.`);
+  await sendMail(email, "Confirm your PrimeStreet subscription", `Thanks for subscribing to the PrimeStreet weekly digest.\n\nConfirm your email address:\n\n${siteLink(`/newsletter/confirm/${token}`)}\n\nIf you didn't sign up, ignore this email and you won't hear from us again.`, { purpose: "accounts" });
   return same;
 }
 

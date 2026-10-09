@@ -32,7 +32,7 @@ export async function requestProduct(_: CState, fd: FormData): Promise<CState> {
   if ((await db.salesEnquiry.count({ where: { email: owner.email, businessId: business.id, createdAt: { gte: new Date(Date.now() - 86400_000) } } })) >= 2) return { ok: true, message: "We already have your request and will be in touch." };
   const row = await db.salesEnquiry.create({ data: { name: owner.name, email: owner.email, interest: product.kind === "PREMIUM" ? "premium" : "featured", message: `Owner of ${business.name} requested “${product.name}”.`, businessId: business.id } });
   const admin = (process.env.ADMIN_EMAIL ?? "").trim();
-  if (admin) await sendMail(admin, `Product request: ${product.name} for ${business.name}`, `${owner.name} <${owner.email}> asked for “${product.name}” for ${business.name}.\n(Enquiry ${row.id})`);
+  if (admin) await sendMail(admin, `Product request: ${product.name} for ${business.name}`, `${owner.name} <${owner.email}> asked for “${product.name}” for ${business.name}.\n(Enquiry ${row.id})`, { purpose: "alerts" });
   return { ok: true, message: "Thanks — we'll send you an invoice or payment link shortly." };
 }
 

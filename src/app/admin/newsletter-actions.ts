@@ -38,7 +38,7 @@ export async function sendTest(fd: FormData) {
   if (!issue) redirect("/admin/newsletter");
   const to = (process.env.ADMIN_EMAIL ?? "").trim();
   if (!to) return back(id, "ADMIN_EMAIL is not configured");
-  await sendMail(to, `[TEST] ${issue.subject}`, renderForRecipient(issue.body, "test-subscriber"));
+  await sendMail(to, `[TEST] ${issue.subject}`, renderForRecipient(issue.body, "test-subscriber"), { purpose: "digest" });
   back(id, `Test sent to ${to} (see Admin → Outbox if no email provider is configured)`);
 }
 
@@ -54,7 +54,7 @@ export async function sendIssue(fd: FormData) {
   const claimed = await db.newsletterIssue.updateMany({ where: { id, sentAt: null }, data: { sentAt: new Date() } });
   if (claimed.count !== 1) return back(id, "Already sent");
   const subs = await db.newsletterSubscriber.findMany({ where: { status: "ACTIVE" }, orderBy: { confirmedAt: "asc" }, take: SEND_LIMIT });
-  for (const sub of subs) await sendMail(sub.email, issue.subject, renderForRecipient(issue.body, sub.id), { headers: { "List-Unsubscribe": `<${unsubUrl(sub.id).replace("/newsletter/unsubscribe/", "/api/newsletter/unsubscribe/")}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } });
+  for (const sub of subs) await sendMail(sub.email, issue.subject, renderForRecipient(issue.body, sub.id), { purpose: "digest", headers: { "List-Unsubscribe": `<${unsubUrl(sub.id).replace("/newsletter/unsubscribe/", "/api/newsletter/unsubscribe/")}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } });
   await db.newsletterIssue.update({ where: { id }, data: { recipients: subs.length } });
   await audit("NEWSLETTER_SENT", id, `${subs.length} recipients`);
   back(id, `Sent to ${subs.length} subscriber${subs.length === 1 ? "" : "s"}`);

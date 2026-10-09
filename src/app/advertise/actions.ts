@@ -29,6 +29,6 @@ export async function submitEnquiry(_: EnqState, fd: FormData): Promise<EnqState
   const businessId = String(fd.get("business") ?? "") || null;
   const row = await db.salesEnquiry.create({ data: { name: d.name, email: d.email, company: d.company ?? null, interest: d.interest, message: d.message, businessId } });
   const admin = (process.env.ADMIN_EMAIL ?? "").trim();
-  if (admin) await sendMail(admin, `New ${d.interest} enquiry from ${d.name}`, `${d.name} <${d.email}>${d.company ? `\n${d.company}` : ""}\n\n${d.message}\n\n(Enquiry ${row.id})`);
+  if (admin) await sendMail(admin, `New ${d.interest} enquiry from ${d.name}`, `${d.name} <${d.email}>${d.company ? `\n${d.company}` : ""}\n\n${d.message}\n\n(Enquiry ${row.id})`, { purpose: "alerts" });
   return { ok: true, message: "Thanks — we'll be in touch within two working days." };
 }

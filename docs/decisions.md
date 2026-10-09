@@ -59,4 +59,6 @@
 52. **Neighbourhoods ship as geography, not as pages.** Real London neighbourhoods are seeded with no intro, so the existing gate keeps them out of search until an editor writes something original.
 53. **Articles belong to a city** (derived from the area they are about), so city hubs and city-scoped search stay correct without a second taxonomy.
 54. **Raw SQL names its schema explicitly.** Through a transaction pooler the `search_path` is not reliable, so the search index was silently created in two schemas and lost rows. `fts.ts` qualifies every statement and prunes orphaned index rows; the drift check now rebuilds on any count mismatch, not just a shortfall.
+55. **One sending address per purpose, one monitored inbox.** Readers can filter mail by what it is about, and only hello@ is read by a person. Send-only mail says so in plain words and still sets Reply-To to hello@, so a reply that ignores the note is not lost.
+56. **A forwarded customer enquiry replies to the customer.** The single most useful Reply-To in the system: a business owner hits reply and reaches the person who wrote to them, not us.
 

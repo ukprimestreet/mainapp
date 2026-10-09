@@ -30,7 +30,7 @@ async function sendStatusLink(to: string, businessName: string, token: string, k
   await sendMail(to, kind === "CLAIM" ? `Confirm your claim of ${businessName}` : `Your ownership report about ${businessName}`,
     kind === "CLAIM"
       ? `Thanks for claiming ${businessName} on PrimeStreet.\n\nConfirm your email address and follow your request's progress here:\n\n${link}\n\nWe review every claim by hand and may ask for more information. If you didn't make this request, ignore this email.`
-      : `We've received your report about the ownership of ${businessName}. Follow it here:\n\n${link}`);
+      : `We've received your report about the ownership of ${businessName}. Follow it here:\n\n${link}`, { purpose: "claims" });
 }
 
 export async function submitClaim(_prev: ClaimState, fd: FormData): Promise<ClaimState> {

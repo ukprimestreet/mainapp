@@ -35,7 +35,7 @@ export async function submitReview(_: ReviewState, fd: FormData): Promise<Review
   if (existing) {
     // One review per person per business. Respond identically (no account enumeration) and re-send the manage link.
     await db.review.update({ where: { id: existing.id }, data: { tokenHash: sha256(token) } });
-    await sendMail(d.email, `Your PrimeStreet review of ${business.name}`, `You already have a review of ${business.name}. Manage or edit it here:\n\n${manageUrl}\n\nIf this wasn't you, ignore this email.`);
+    await sendMail(d.email, `Your PrimeStreet review of ${business.name}`, `You already have a review of ${business.name}. Manage or edit it here:\n\n${manageUrl}\n\nIf this wasn't you, ignore this email.`, { purpose: "reviews" });
     return { ok: true };
   }
   const flags = await computeFlags({ body: d.body, title: d.title, email: d.email, businessId: business.id, ipHash: ip });
@@ -45,6 +45,6 @@ export async function submitReview(_: ReviewState, fd: FormData): Promise<Review
       status: "UNVERIFIED", flags: flags.join(",") || null, ipHash: ip, bodyHash: bodyHash(d.body), tokenHash: sha256(token),
     },
   });
-  await sendMail(d.email, `Confirm your PrimeStreet review of ${business.name}`, `Thanks for reviewing ${business.name}.\n\nConfirm your email to send your review for moderation:\n\n${manageUrl}\n\nYour review won't be public until a PrimeStreet moderator approves it. You can edit or delete it at the same link at any time.\n\nIf you didn't write this review, ignore this email and it will never be published.`);
+  await sendMail(d.email, `Confirm your PrimeStreet review of ${business.name}`, `Thanks for reviewing ${business.name}.\n\nConfirm your email to send your review for moderation:\n\n${manageUrl}\n\nYour review won't be public until a PrimeStreet moderator approves it. You can edit or delete it at the same link at any time.\n\nIf you didn't write this review, ignore this email and it will never be published.`, { purpose: "reviews" });
   return { ok: true };
 }

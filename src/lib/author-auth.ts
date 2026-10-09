@@ -106,6 +106,7 @@ export async function inviteAuthor(nameRaw: string, emailRaw: string, invitedBy:
       "",
       "PrimeStreet",
     ].join("\n"),
+    { purpose: "accounts" },
   );
   return { ok: true as const, author };
 }
@@ -185,6 +186,7 @@ export async function sendWelcome(authorId: string) {
       "",
       "PrimeStreet",
     ].join("\n"),
+    { purpose: "editorial" },
   );
   await db.author.update({ where: { id: authorId }, data: { welcomedAt: new Date() } });
   return true;
@@ -233,6 +235,7 @@ export async function requestReset(emailRaw: string) {
       `The link works once and expires in ${Math.round(RESET_MS / 60000)} minutes.`,
       "If you didn't ask for this, you can ignore this email — nothing has changed.",
     ].join("\n"),
+    { purpose: "accounts" },
   );
 }
 

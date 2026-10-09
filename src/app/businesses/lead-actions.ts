@@ -38,8 +38,25 @@ export async function submitLead(_: LeadState, fd: FormData): Promise<LeadState>
 
   const lead = await db.lead.create({ data: { businessId: business.id, name: d.name, email: d.email, phone: d.phone ?? null, message: d.message, ipHash: ip } });
   for (const o of business.owners) {
-    await sendMail(o.owner.email, `New enquiry for ${business.name} via PrimeStreet`,
-      `${d.name} sent you an enquiry through your PrimeStreet profile.\n\nFrom: ${d.name} <${d.email}>${d.phone ? `\nPhone: ${d.phone}` : ""}\n\n${d.message}\n\n— Reply directly to ${d.email}. All leads are also in your dashboard.\n(Lead ${lead.id})`);
+    // Reply-To is the customer, so the owner can simply hit reply and reach them. No do-not-reply footer here.
+    // Reply-To is the customer, so the owner can just hit reply and reach them. No do-not-reply footer here.
+    await sendMail(
+      o.owner.email,
+      `New enquiry for ${business.name} via PrimeStreet`,
+      [
+        `${d.name} sent you an enquiry through your PrimeStreet profile.`,
+        "",
+        `From: ${d.name} <${d.email}>`,
+        ...(d.phone ? [`Phone: ${d.phone}`] : []),
+        "",
+        d.message,
+        "",
+        `Just reply to this email and it goes straight to ${d.name} at ${d.email}.`,
+        "Every enquiry is also saved in your PrimeStreet dashboard.",
+        `(Enquiry ${lead.id})`,
+      ].join("\n"),
+      { purpose: "enquiries", replyTo: d.email, noFooter: true },
+    );
   }
   return { ok: true, message: "Thanks — your enquiry has been sent. The business will reply directly to your email." };
 }

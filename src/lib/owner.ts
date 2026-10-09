@@ -67,7 +67,7 @@ export async function requireBusiness(businessId: string) {
 export async function issueLoginLink(ownerId: string, email: string, ipHash: string) {
   const token = newToken();
   await db.ownerLoginToken.create({ data: { ownerId, tokenHash: sha256(token), ipHash, expiresAt: new Date(Date.now() + LOGIN_LINK_MS) } });
-  await sendMail(email, "Your PrimeStreet sign-in link", `Use this link to sign in to your PrimeStreet owner dashboard (valid for 20 minutes, one use):\n\n${siteLink(`/owner/login/${token}`)}\n\nIf you didn't ask for this, ignore this email — nobody can sign in without it.`);
+  await sendMail(email, "Your PrimeStreet sign-in link", `Use this link to sign in to your PrimeStreet owner dashboard (valid for 20 minutes, one use):\n\n${siteLink(`/owner/login/${token}`)}\n\nIf you didn't ask for this, ignore this email — nobody can sign in without it.`, { purpose: "accounts" });
 }
 
 export async function loginTokenState(token: string): Promise<"ok" | "expired" | "used" | "invalid"> {

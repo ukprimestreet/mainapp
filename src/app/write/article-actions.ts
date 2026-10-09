@@ -92,6 +92,7 @@ export async function submitArticle(form: FormData) {
       adminEmail,
       `For review: ${article.title}`,
       [`${author.name} has submitted "${article.title}" for review.`, "", siteLink(`/admin/review/${id}`), "", "PrimeStreet"].join("\n"),
+      { purpose: "alerts" },
     );
   }
   redirect("/write/articles?msg=" + encodeURIComponent("Sent for review. An editor will come back to you with a decision and a reason."));

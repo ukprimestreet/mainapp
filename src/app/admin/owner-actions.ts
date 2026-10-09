@@ -19,7 +19,7 @@ export async function resolveChangeRequest(fd: FormData) {
   if (decision === "DECLINED" && note.length < 5) return back("Say why you're declining");
   await db.profileChangeRequest.update({ where: { id }, data: { status: decision, adminNote: note || null } });
   const owner = await db.owner.findUnique({ where: { id: r.ownerId } });
-  if (owner) await sendMail(owner.email, `Your change request for ${r.business.name}`, decision === "DONE" ? `We've made the change you asked for on ${r.business.name}.${note ? `\n\n${note}` : ""}` : `We couldn't make that change to ${r.business.name}.\n\n${note}`);
+  if (owner) await sendMail(owner.email, `Your change request for ${r.business.name}`, decision === "DONE" ? `We've made the change you asked for on ${r.business.name}.${note ? `\n\n${note}` : ""}` : `We couldn't make that change to ${r.business.name}.\n\n${note}`, { purpose: "claims" });
   await audit(`CHANGE_REQUEST_${decision}`, "ProfileChangeRequest", id, note);
   back(decision === "DONE" ? "Marked done — owner emailed" : "Declined — owner emailed");
 }

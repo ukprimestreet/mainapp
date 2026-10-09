@@ -56,6 +56,7 @@ export async function decide(form: FormData) {
       article!.author.email,
       approved ? `Published: ${article!.title}` : `Changes requested: ${article!.title}`,
       lines.join("\n"),
+      { purpose: "editorial" },
     );
   }
   redirect(`/admin/review?msg=${encodeURIComponent(approved ? `Published "${article!.title}".` : `Sent "${article!.title}" back with feedback.`)}`);
