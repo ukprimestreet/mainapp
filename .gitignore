@@ -10,3 +10,4 @@ tsconfig.tsbuildinfo
 
 .vercel
 .env*
+out/

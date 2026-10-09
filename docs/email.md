@@ -44,3 +44,23 @@ Every address above must be an accepted sender on the verified domain in Resend.
 
 ## Tests
 `scripts/test-mail.ts` — the address scheme, the do-not-reply rule, the two exceptions, and that nothing is lost when no provider is configured.
+
+## Templates
+Every email is built from one layout (`src/lib/email/layout.ts`) and a catalogue entry (`src/lib/email/templates.ts`). The layout owns the brand: the **PrimeStreet** wordmark very bold at the top in white and brand yellow on black, the yellow rule beneath it, the footer, and the do-not-reply line. A template only supplies a subject and a list of blocks, so the brand cannot drift apart across emails.
+
+Blocks available: heading, lead, paragraph, button, secondary link, list, numbered steps, facts table, pull quote, note (info / good / bad / warn), code, big stat, divider, spacer.
+
+### Email-client rules this layout follows
+- Tables and inline styles only; no flexbox, grid or external stylesheets. Outlook renders through Word.
+- 600px maximum, `width:100%` so it still fits a 360px phone, with a media query tightening the padding.
+- **The wordmark is text, not an image**, so it still appears when a client blocks images — which many do by default.
+- A plain-text alternative is always sent alongside the HTML.
+- A hidden preheader gives the inbox preview line.
+- All interpolated values are HTML-escaped, so no email can be injected into.
+
+### Previewing
+- `npm run emails` renders every template to `out/emails/` with an index page.
+- `/admin/outbox/templates` previews them in the dashboard, grouped by who receives them.
+
+### Tests
+`scripts/test-email-templates.ts` checks the wordmark, the one-yellow rule, that no off-brand colour appears, responsiveness, escaping, the plain-text alternative, and that only the newsletter carries an unsubscribe link.

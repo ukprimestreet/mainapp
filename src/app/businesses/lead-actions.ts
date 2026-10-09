@@ -3,7 +3,7 @@ import { z } from "zod";
 import { checkFormToken, ipHash, isDisposableEmail } from "@/lib/antispam";
 import { isPremium } from "@/lib/commerce";
 import { db } from "@/lib/db";
-import { sendMail } from "@/lib/mail";
+import { sendTemplate } from "@/lib/email/send";
 
 export type LeadState = { ok?: boolean; message?: string; errors?: Record<string, string> };
 
@@ -40,23 +40,10 @@ export async function submitLead(_: LeadState, fd: FormData): Promise<LeadState>
   for (const o of business.owners) {
     // Reply-To is the customer, so the owner can simply hit reply and reach them. No do-not-reply footer here.
     // Reply-To is the customer, so the owner can just hit reply and reach them. No do-not-reply footer here.
-    await sendMail(
-      o.owner.email,
-      `New enquiry for ${business.name} via PrimeStreet`,
-      [
-        `${d.name} sent you an enquiry through your PrimeStreet profile.`,
-        "",
-        `From: ${d.name} <${d.email}>`,
-        ...(d.phone ? [`Phone: ${d.phone}`] : []),
-        "",
-        d.message,
-        "",
-        `Just reply to this email and it goes straight to ${d.name} at ${d.email}.`,
-        "Every enquiry is also saved in your PrimeStreet dashboard.",
-        `(Enquiry ${lead.id})`,
-      ].join("\n"),
-      { purpose: "enquiries", replyTo: d.email, noFooter: true },
-    );
+    // Reply-To is the customer, so the owner can just hit reply and reach them.
+    await sendTemplate("new-enquiry", o.owner.email, {
+      business: business.name, customer: d.name, email: d.email, phone: d.phone || undefined, message: d.message,
+    }, { replyTo: d.email });
   }
   return { ok: true, message: "Thanks — your enquiry has been sent. The business will reply directly to your email." };
 }

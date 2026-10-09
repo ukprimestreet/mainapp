@@ -44,7 +44,7 @@ export default async function Outbox({ searchParams }: { searchParams: Promise<{
         <Stat label="Recorded, not sent" value={pending} hint={configured ? "Queued or provider was down" : "No provider configured"} />
       </StatRow>
 
-      <Panel title="Senders" description="One address per purpose, so recipients can tell at a glance what an email is about.">
+      <Panel title="Senders" action={<a href="/admin/outbox/templates" className="font-bold underline">Browse all templates</a>} description="One address per purpose, so recipients can tell at a glance what an email is about.">
         <DashTable head={["Purpose", "Sends from", "Inbox", "Used for", "Sent"]}>
           {(Object.keys(SENDERS) as MailPurpose[]).map((p) => (
             <Row key={p}>

@@ -3,7 +3,8 @@ import { cookies, headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { newToken, sha256 } from "./antispam";
 import { db } from "./db";
-import { sendMail, siteLink } from "./mail";
+import { siteLink } from "./mail";
+import { sendTemplate } from "./email/send";
 import { freeSlug, normaliseEmail } from "./authors";
 import { hashPassword, verifyPassword } from "./author-password";
 
@@ -90,24 +91,7 @@ export async function inviteAuthor(nameRaw: string, emailRaw: string, invitedBy:
     : await db.author.create({ data: { email, name, slug: await freeSlug(name), invitedAt: new Date(), invitedBy } });
 
   const { link } = await issueLink(author.id, "INVITE");
-  await sendMail(
-    email,
-    "Finish setting up your PrimeStreet writer account",
-    [
-      `Hello ${name},`,
-      "",
-      "An editor has created a PrimeStreet writer account for you. To finish registering, follow this link and choose a password:",
-      "",
-      link,
-      "",
-      `The link works once and expires in ${Math.round(INVITE_MS / 86400_000)} days. If it expires, ask an editor to send another.`,
-      "",
-      "After that you will sign in with your email address and the password you choose.",
-      "",
-      "PrimeStreet",
-    ].join("\n"),
-    { purpose: "accounts" },
-  );
+  await sendTemplate("writer-invite", email, { name, link, days: Math.round(INVITE_MS / 86400_000) });
   return { ok: true as const, author };
 }
 
@@ -153,41 +137,7 @@ export async function setPasswordFromToken(token: string, password: string, purp
 export async function sendWelcome(authorId: string) {
   const a = await db.author.findUnique({ where: { id: authorId } });
   if (!a?.email || a.welcomedAt) return false;
-  await sendMail(
-    a.email,
-    "Welcome to PrimeStreet — what happens next",
-    [
-      `Hello ${a.name},`,
-      "",
-      "Your writer account is ready. Here is how PrimeStreet works.",
-      "",
-      "1. Complete your profile first.",
-      "   Readers should be able to see who wrote a piece and why they are worth reading, so your profile must be",
-      "   at least 90% complete before you can send anything for review. That means a portrait, a job title, an",
-      "   'about you' section, a phone number, where you are based, your past experience, a CV, the subjects you",
-      "   cover, at least one social link and at least one link to work published elsewhere.",
-      "",
-      "2. Write in your own words, from sources you can name.",
-      "   We do not publish invented facts, invented quotes, or descriptions and reviews copied from other",
-      "   directories. Cite the primary source for anything factual and say when you checked it.",
-      "",
-      "3. Label anything paid for.",
-      "   Sponsored, partner and advertorial pieces must name the sponsor. Editorial independence is the product.",
-      "",
-      "4. Submit, then an editor reviews.",
-      "   You keep drafts for as long as you like. When you submit, an editor either publishes the piece or sends",
-      "   it back with feedback you will see on your dashboard. Every decision comes with a reason.",
-      "",
-      "The full author terms are here (sign in first):",
-      siteLink("/write/terms"),
-      "",
-      "Your dashboard:",
-      siteLink("/write"),
-      "",
-      "PrimeStreet",
-    ].join("\n"),
-    { purpose: "editorial" },
-  );
+  await sendTemplate("writer-welcome", a.email, { name: a.name.split(" ")[0], termsUrl: siteLink("/write/terms"), dashboardUrl: siteLink("/write") });
   await db.author.update({ where: { id: authorId }, data: { welcomedAt: new Date() } });
   return true;
 }
@@ -226,17 +176,7 @@ export async function requestReset(emailRaw: string) {
   const a = await db.author.findUnique({ where: { email: normaliseEmail(emailRaw) } });
   if (!a?.email || !a.active) return;
   const { link } = await issueLink(a.id, "RESET");
-  await sendMail(
-    a.email,
-    "Reset your PrimeStreet password",
-    [
-      `Hello ${a.name},`, "",
-      "Follow this link to choose a new password:", "", link, "",
-      `The link works once and expires in ${Math.round(RESET_MS / 60000)} minutes.`,
-      "If you didn't ask for this, you can ignore this email — nothing has changed.",
-    ].join("\n"),
-    { purpose: "accounts" },
-  );
+  await sendTemplate("password-reset", a.email, { name: a.name.split(" ")[0], link, minutes: Math.round(RESET_MS / 60000) });
 }
 
 /** The author account that admin posts are filed under, so the owner can keep editing them in their own panel. */

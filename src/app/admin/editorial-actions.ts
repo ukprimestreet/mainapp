@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { DECISIONS, type Decision } from "@/lib/editorial-flow";
-import { sendMail, siteLink } from "@/lib/mail";
+import { siteLink } from "@/lib/mail";
+import { sendTemplate } from "@/lib/email/send";
 import { ARTICLE_TYPES, type ArticleType } from "@/lib/constants";
 
 const s = (f: FormData, k: string) => ((f.get(k) as string | null) ?? "").toString();
@@ -44,20 +45,12 @@ export async function decide(form: FormData) {
 
   if (article!.author.email) {
     const path = ARTICLE_TYPES[article!.type as ArticleType]?.path ?? "news";
-    const lines = [
-      `${article!.author.name},`, "",
-      approved
-        ? `Your piece "${article!.title}" has been approved and is now live:`
-        : `An editor has read "${article!.title}" and asked for some changes before it goes live.`,
-      approved ? siteLink(`/${path}/${article!.slug}`) : `Your draft is waiting here: ${siteLink(`/write/articles/${id}`)}`,
-      "", "Editor's note:", note, "", "PrimeStreet",
-    ];
-    await sendMail(
-      article!.author.email,
-      approved ? `Published: ${article!.title}` : `Changes requested: ${article!.title}`,
-      lines.join("\n"),
-      { purpose: "editorial" },
-    );
+    await sendTemplate(approved ? "article-approved" : "article-changes", article!.author.email, {
+      name: article!.author.name.split(" ")[0],
+      title: article!.title,
+      url: approved ? siteLink(`/${path}/${article!.slug}`) : siteLink(`/write/articles/${id}`),
+      note,
+    });
   }
   redirect(`/admin/review?msg=${encodeURIComponent(approved ? `Published "${article!.title}".` : `Sent "${article!.title}" back with feedback.`)}`);
 }

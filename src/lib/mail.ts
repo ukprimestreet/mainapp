@@ -50,6 +50,8 @@ const NO_REPLY_NOTE = (support: string) =>
   ].join("\n");
 
 export type MailOptions = {
+  /** Branded HTML body. The plain-text body is always sent too, for clients that prefer it. */
+  html?: string;
   purpose?: MailPurpose;
   /** Overrides Reply-To. Used for customer enquiries, where a business should be able to reply to the customer. */
   replyTo?: string;
@@ -79,6 +81,7 @@ export async function sendMail(to: string, subject: string, bodyIn: string, opts
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         from, to, subject, text: body,
+        ...(opts.html ? { html: opts.html } : {}),
         reply_to: replyTo,
         ...(opts.headers ? { headers: opts.headers } : {}),
       }),
