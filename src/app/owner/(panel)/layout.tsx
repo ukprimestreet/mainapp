@@ -1,38 +1,53 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import type { Metadata } from "next";
-import { Wordmark } from "@/components/Brand";
-import { DashNav } from "@/components/Dash";
+import { AccountBlock, DashLayout, type NavGroup } from "@/components/Dash";
 import { requireOwner } from "@/lib/owner";
 import { db } from "@/lib/db";
 import { logoutEverywhere, logoutOwner } from "../actions";
 
-export const metadata: Metadata = { title: "Owner dashboard", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Your business — PrimeStreet", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 export default async function OwnerLayout({ children }: { children: React.ReactNode }) {
   const owner = await requireOwner();
-  const leads = await db.lead.count({ where: { business: { owners: { some: { ownerId: owner.id } } }, status: "NEW" } });
+  const [links, leads, unanswered] = await Promise.all([
+    db.businessOwner.findMany({ where: { ownerId: owner.id }, include: { business: { select: { id: true, name: true } } } }),
+    db.lead.count({ where: { business: { owners: { some: { ownerId: owner.id } } }, status: "NEW" } }),
+    db.review.count({ where: { business: { owners: { some: { ownerId: owner.id } } }, status: "PUBLISHED", response: null } }),
+  ]);
+
+  const groups: NavGroup[] = [
+    { title: "Overview", items: [{ href: "/owner", label: "Dashboard", icon: "home", exact: true }] },
+    ...(links.length
+      ? [{
+          title: links.length === 1 ? "Your business" : "Your businesses",
+          items: links.flatMap((l) => [
+            { href: `/owner/business/${l.business.id}`, label: l.business.name, icon: "shop" as const },
+            { href: `/owner/business/${l.business.id}/leads`, label: "Enquiries", icon: "inbox" as const, badge: leads || undefined },
+            { href: `/owner/business/${l.business.id}/reviews`, label: "Reviews", icon: "star" as const, badge: unanswered || undefined },
+            { href: `/owner/business/${l.business.id}/promote`, label: "Promote", icon: "bolt" as const },
+          ]).slice(0, links.length === 1 ? 4 : 12),
+        }]
+      : []),
+  ];
+
+  const active = (await headers()).get("x-ps-path") ?? "/owner";
 
   return (
-    <div className="min-h-screen bg-mist">
-      <DashNav
-        active="/owner"
-        brand={<Link href="/" aria-label="PrimeStreet home"><Wordmark variant="on-black" className="text-xl" /></Link>}
-        items={[
-          { href: "/owner", label: "My businesses" },
-          ...(leads ? [{ href: "/owner", label: "Enquiries", badge: leads }] : []),
-        ]}
-        right={
-          <div className="flex items-center gap-3">
-            <span className="max-sm:hidden text-white/60">{owner.email}</span>
-            <form action={logoutOwner}><button className="font-bold text-white/70 hover:text-yellow">Sign out</button></form>
-            <form action={logoutEverywhere}>
-              <button className="max-sm:hidden font-bold text-white/50 hover:text-yellow" title="Ends every signed-in session on every device">Everywhere</button>
-            </form>
-          </div>
-        }
-      />
-      <main className="mx-auto w-full max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">{children}</main>
-    </div>
+    <DashLayout
+      title="Your business"
+      active={active}
+      groups={groups}
+      account={
+        <AccountBlock name={owner.name} sub={owner.email}>
+          <Link href="/" className="hover:text-yellow">View site</Link>
+          <form action={logoutOwner}><button className="hover:text-yellow">Sign out</button></form>
+          <form action={logoutEverywhere}><button className="hover:text-yellow" title="Ends every signed-in session on every device">Everywhere</button></form>
+        </AccountBlock>
+      }
+    >
+      {children}
+    </DashLayout>
   );
 }
