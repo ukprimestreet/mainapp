@@ -61,4 +61,6 @@
 54. **Raw SQL names its schema explicitly.** Through a transaction pooler the `search_path` is not reliable, so the search index was silently created in two schemas and lost rows. `fts.ts` qualifies every statement and prunes orphaned index rows; the drift check now rebuilds on any count mismatch, not just a shortfall.
 55. **One sending address per purpose, one monitored inbox.** Readers can filter mail by what it is about, and only hello@ is read by a person. Send-only mail says so in plain words and still sets Reply-To to hello@, so a reply that ignores the note is not lost.
 56. **A forwarded customer enquiry replies to the customer.** The single most useful Reply-To in the system: a business owner hits reply and reaches the person who wrote to them, not us.
+57. **Marketing to businesses needs a recorded opt-in, not a B2B assumption.** Under PECR a sole trader or partnership is an individual, and most listings here are exactly that. One gate (`lib/email/consent.ts`) decides service vs lifecycle vs marketing, and a fortnightly cap stops the programme shouting.
+58. **Every selling email states what paying does NOT do.** A test fails the build if a pitch drops the line, or if any email anywhere promises better ranking, more reviews or editorial coverage for money. The rule is the product.
 

@@ -1,6 +1,7 @@
 // Every email template: brand, the bold wordmark, safety, and the do-not-reply rule.
 import { TEMPLATES } from "../src/lib/email/templates";
-import { previewTemplate } from "../src/lib/email/send";
+import { BUSINESS_TEMPLATES } from "../src/lib/email/business-templates";
+import { previewBusinessTemplate, previewTemplate } from "../src/lib/email/send";
 import { C, renderEmail } from "../src/lib/email/layout";
 import { SENDERS } from "../src/lib/mail";
 
@@ -10,7 +11,10 @@ const t = (n: string, c: boolean, d = "") => { console.log(c ? "PASS" : "FAIL", 
 process.env.MAIL_DOMAIN = "primestreet.uk";
 process.env.MAIL_SUPPORT = "hello@primestreet.uk";
 
-const all = TEMPLATES.map((x) => ({ ...previewTemplate(x.id)!, tpl: x }));
+const all = [
+  ...TEMPLATES.map((x) => ({ ...previewTemplate(x.id)!, tpl: x as unknown as { id: string; purpose: string; to: string } })),
+  ...BUSINESS_TEMPLATES.map((x) => ({ ...previewBusinessTemplate(x.id)!, tpl: x as unknown as { id: string; purpose: string; to: string } })),
+];
 
 t(`catalogue has templates (${TEMPLATES.length})`, TEMPLATES.length >= 20);
 t("template ids are unique", new Set(TEMPLATES.map((x) => x.id)).size === TEMPLATES.length);
@@ -52,15 +56,21 @@ t("user-supplied text is HTML-escaped, so an email cannot be injected into", (()
 })());
 
 // --- the reply rule ---
-const monitored = all.filter((a) => a.tpl.purpose === "hello" || /New enquiry/.test(a.subject));
-t("send-only emails tell the reader not to reply and name hello@",
-  all.filter((a) => !monitored.includes(a)).every((a) => /don&rsquo;t reply to it/.test(a.html) && a.html.includes("hello@primestreet.uk")));
+const invitesReply = (h: string) => h.includes("You can reply to this email");
+t("every email either invites a reply or tells the reader not to bother — never neither",
+  all.every((a) => invitesReply(a.html) !== /don&rsquo;t reply to it/.test(a.html)));
+t("send-only emails name hello@ as the way to reach a person",
+  all.filter((a) => !invitesReply(a.html)).every((a) => a.html.includes("hello@primestreet.uk")));
 t("the enquiry email invites a reply instead, because replying is the point",
   all.find((a) => a.tpl.id === "new-enquiry")!.html.includes("You can reply to this email"));
 t("an editor's message invites a reply too",
   all.find((a) => a.tpl.id === "editor-message")!.html.includes("You can reply to this email"));
-t("only the newsletter carries an unsubscribe link",
-  all.filter((a) => a.html.includes(">Unsubscribe<")).every((a) => a.tpl.id === "newsletter-digest"));
+t("unsubscribe appears on the newsletter and on non-essential business mail, and nowhere else", (() => {
+  const allowed = new Set(["newsletter-digest", ...BUSINESS_TEMPLATES.filter((b) => b.kind !== "service").map((b) => b.id)]);
+  return all.filter((a) => a.html.includes(">Unsubscribe<")).every((a) => allowed.has(a.tpl.id));
+})());
+t("service email never offers to unsubscribe, because it would break the account",
+  BUSINESS_TEMPLATES.filter((b) => b.kind === "service").every((b) => !previewBusinessTemplate(b.id)!.html.includes(">Unsubscribe<")));
 
 // --- plain text ---
 t("every email has a readable plain-text alternative",
@@ -73,5 +83,32 @@ for (const who of ["writer", "owner", "reviewer", "reader", "team"] as const) {
   t(`there are templates for ${who}s`, TEMPLATES.some((x) => x.to === who));
 }
 
+// ---------------- the business programme ----------------
+t(`the business programme has templates (${BUSINESS_TEMPLATES.length})`, BUSINESS_TEMPLATES.length >= 18);
+t("every business template declares a trigger and a commercial goal",
+  BUSINESS_TEMPLATES.every((b) => b.trigger.length > 15 && b.goal.length > 15));
+t("every business template declares which kind of mail it is",
+  BUSINESS_TEMPLATES.every((b) => ["service", "lifecycle", "marketing"].includes(b.kind)));
+t("the programme covers the whole funnel: acquisition, onboarding, engagement, conversion, retention, win-back",
+  ["biz-claim-invite", "biz-profile-incomplete", "biz-monthly-report", "biz-premium-offer", "biz-payment-final", "biz-winback"]
+    .every((id) => BUSINESS_TEMPLATES.some((b) => b.id === id)));
+
+// INTEGRITY: the rule the whole brand rests on
+t("every email that PITCHES a product spells out that paying changes nothing about rank, ratings or coverage",
+  ["biz-premium-offer", "biz-featured-offer"].every((id) =>
+    /never changes your rating, your reviews, where you appear in search/i.test(previewBusinessTemplate(id)!.html)));
+t("no email anywhere promises better ranking, more reviews or editorial coverage for money", (() => {
+  const banned = /(boost|improve|rise|climb|higher|top of|better) (your )?(ranking|rank|rating|position|reviews)|guaranteed (coverage|placement|results)|we will write about you/i;
+  return all.every((a) => !banned.test(a.html));
+})());
+t("marketing emails carry an unsubscribe link; service emails do not",
+  BUSINESS_TEMPLATES.every((b) => {
+    const h = previewBusinessTemplate(b.id)!.html;
+    return b.kind === "service" ? !h.includes(">Unsubscribe<") : h.includes(">Unsubscribe<");
+  }));
+t("chasing emails promise to stop chasing",
+  ["biz-claim-reminder", "biz-winback"].every((id) => /last email|only email|not chase/i.test(previewBusinessTemplate(id)!.html)));
+t("the quiet-month email refuses to blame it on not paying us",
+  /not going to pretend paying us fixes this/i.test(previewBusinessTemplate("biz-quiet-month")!.html));
 console.log(fail ? `${fail} FAILED` : "ALL PASSED");
 process.exit(fail ? 1 : 0);

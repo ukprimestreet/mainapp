@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Cell, Chip, DashTable, Notice, Panel, Row, Stat, StatRow } from "@/components/Dash";
 import { TEMPLATES } from "@/lib/email/templates";
-import { previewTemplate } from "@/lib/email/send";
+import { BUSINESS_TEMPLATES } from "@/lib/email/business-templates";
+import { previewBusinessTemplate, previewTemplate } from "@/lib/email/send";
 import { SENDERS } from "@/lib/mail";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ const AUDIENCE = { writer: "Writers", owner: "Business owners", reviewer: "Revie
 
 export default async function Templates({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   const { id } = await searchParams;
-  const shown = id ? previewTemplate(id) : null;
+  const shown = id ? (previewTemplate(id) ?? previewBusinessTemplate(id)) : null;
 
   return (
     <>
@@ -21,7 +22,7 @@ export default async function Templates({ searchParams }: { searchParams: Promis
       </div>
 
       <StatRow cols={3}>
-        <Stat label="Templates" value={TEMPLATES.length} tone="accent" />
+        <Stat label="Templates" value={TEMPLATES.length + BUSINESS_TEMPLATES.length} tone="accent" hint={`${BUSINESS_TEMPLATES.length} in the business programme`} />
         <Stat label="Senders" value={Object.keys(SENDERS).length} hint="One address per purpose" />
         <Stat label="Audiences" value={new Set(TEMPLATES.map((t) => t.to)).size} hint="Writers, owners, reviewers, readers, team" />
       </StatRow>
@@ -38,6 +39,20 @@ export default async function Templates({ searchParams }: { searchParams: Promis
           </details>
         </Panel>
       )}
+
+      <Panel title="Business lifecycle programme" description="What fires each one, and what it is for commercially. Service mail always sends; lifecycle stops on unsubscribe; marketing needs an opt-in.">
+        <DashTable head={["Email", "Kind", "Trigger", "Commercial goal", ""]}>
+          {BUSINESS_TEMPLATES.map((b) => (
+            <Row key={b.id}>
+              <Cell className="font-bold">{b.name}</Cell>
+              <Cell><Chip tone={b.kind === "marketing" ? "review" : b.kind === "service" ? "live" : "quiet"}>{b.kind}</Chip></Cell>
+              <Cell className="text-grey">{b.trigger}</Cell>
+              <Cell className="text-grey">{b.goal}</Cell>
+              <Cell><Link href={`/admin/outbox/templates?id=${b.id}`} className="font-bold underline">Preview</Link></Cell>
+            </Row>
+          ))}
+        </DashTable>
+      </Panel>
 
       {(Object.keys(AUDIENCE) as (keyof typeof AUDIENCE)[]).map((who) => {
         const list = TEMPLATES.filter((t) => t.to === who);

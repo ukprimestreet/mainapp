@@ -32,6 +32,7 @@ Database, search engine, security and storage on Supabase: see docs/supabase.md.
 Deployment (Vercel + Supabase): see docs/deploy.md.
 Cities, areas and multi-city routing: see docs/cities.md.
 Email senders and the no-reply policy: see docs/email.md.
+The business email programme and how it makes money: see docs/lifecycle.md.
 Advertising, premium profiles, Stripe and sponsorships: see docs/commerce.md.
 
 Docs: `phases.md` (roadmap), `projecttodolist.md`, `docs/decisions.md`, `docs/brand.md`, `docs/analytics.md`. Brand guide page: `/brand` (noindex).

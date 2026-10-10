@@ -378,6 +378,13 @@ model Owner {
   sessionVersion Int      @default(0) // bump to sign out every device
   createdAt      DateTime @default(now())
   lastLoginAt    DateTime?
+  // Marketing consent is separate from the account. Service emails (sign-in, claims, enquiries, receipts) always
+  // send; anything promotional needs marketingOptIn and stops the moment unsubscribedAt is set. Under PECR a sole
+  // trader or partnership counts as an individual, so we ask rather than assume.
+  marketingOptIn  Boolean   @default(false)
+  unsubscribedAt  DateTime?
+  lastMarketingAt DateTime? // frequency cap: no more than one promotional email a fortnight
+  unsubToken      String?   @unique // one-click unsubscribe without signing in
   businesses     BusinessOwner[]
   loginTokens    OwnerLoginToken[]
 }
