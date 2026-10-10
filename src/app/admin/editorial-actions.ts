@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { DECISIONS, type Decision } from "@/lib/editorial-flow";
 import { siteLink } from "@/lib/mail";
 import { sendTemplate } from "@/lib/email/send";
+import { notify } from "@/lib/notify";
 import { ARTICLE_TYPES, type ArticleType } from "@/lib/constants";
 
 const s = (f: FormData, k: string) => ((f.get(k) as string | null) ?? "").toString();
@@ -43,8 +44,8 @@ export async function decide(form: FormData) {
     }),
   ]);
 
+  const path = ARTICLE_TYPES[article!.type as ArticleType]?.path ?? "news";
   if (article!.author.email) {
-    const path = ARTICLE_TYPES[article!.type as ArticleType]?.path ?? "news";
     await sendTemplate(approved ? "article-approved" : "article-changes", article!.author.email, {
       name: article!.author.name.split(" ")[0],
       title: article!.title,
@@ -52,5 +53,12 @@ export async function decide(form: FormData) {
       note,
     });
   }
+  await notify(
+    "AUTHOR", article!.authorId, "DECISION",
+    approved ? `Published: ${article!.title}` : `Changes requested: ${article!.title}`,
+    note,
+    approved ? `/${path}/${article!.slug}` : `/write/articles/${id}`,
+  );
+
   redirect(`/admin/review?msg=${encodeURIComponent(approved ? `Published "${article!.title}".` : `Sent "${article!.title}" back with feedback.`)}`);
 }
