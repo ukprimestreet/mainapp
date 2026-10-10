@@ -28,24 +28,28 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       { href: "/admin/articles", label: "Articles", icon: "file" },
       { href: "/admin/authors", label: "Writers", icon: "users" },
       { href: "/admin/podcast", label: "Podcast", icon: "mic" },
+      { href: "/admin/corrections", label: "Corrections", icon: "shield" },
     ] },
     { title: "Directory", items: [
+      { href: "/admin/moderation", label: "Moderation", icon: "inbox", badge: ratings + claims + subs + inbox },
       { href: "/admin/businesses", label: "Businesses", icon: "shop" },
-      { href: "/admin/reviews", label: "Ratings", icon: "star", badge: ratings },
-      { href: "/admin/claims", label: "Claims", icon: "shield", badge: claims },
-      { href: "/admin/submissions", label: "Submissions", icon: "inbox", badge: subs },
       { href: "/admin/cities", label: "Cities", icon: "map" },
       { href: "/admin/import", label: "Import", icon: "upload" },
     ] },
     { title: "Revenue", items: [
+      { href: "/admin/money", label: "Money", icon: "chart" },
       { href: "/admin/commerce", label: "Commerce", icon: "card", badge: enquiries },
-      { href: "/admin/owner-inbox", label: "Owner inbox", icon: "inbox", badge: inbox },
+      { href: "/admin/automations", label: "Automations", icon: "bolt" },
     ] },
     { title: "Reach", items: [
       { href: "/admin/search", label: "Search", icon: "search" },
       { href: "/admin/newsletter", label: "Newsletter", icon: "mail" },
       { href: "/admin/outbox", label: "Email", icon: "mail" },
       { href: "/admin/seo", label: "SEO", icon: "chart" },
+    ] },
+    { title: "System", items: [
+      { href: "/admin/audit", label: "Audit log", icon: "shield" },
+      { href: "/admin/settings", label: "Settings", icon: "cog" },
     ] },
   ];
 

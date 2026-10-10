@@ -135,6 +135,8 @@ model Business {
 
   @@index([locationId])
   @@index([categoryId])
+  teamInvites  TeamInvite[]
+  specialHours SpecialHours[]
 }
 
 model Author {
@@ -178,6 +180,8 @@ model Author {
   articles    Article[]
   cities      CityEditor[]
   loginTokens AuthorLoginToken[]
+  commissions Commission[]
+  payments    WriterPayment[]
 }
 
 // Single-use emailed sign-in link for an author (same pattern as business owners: no passwords stored).
@@ -241,6 +245,8 @@ model Article {
   updatedAt   DateTime  @updatedAt
 
   @@index([type, status, publishedAt])
+  corrections Correction[]
+  stats       ArticleStat[]
 }
 
 model ArticleBusiness {
@@ -776,4 +782,159 @@ model SalesEnquiry {
   businessId String?
   status     String   @default("NEW") // NEW | CONTACTED | WON | LOST
   createdAt  DateTime @default(now())
+}
+
+// ============================================================================
+// Operations, editorial accountability, writer management and owner tooling.
+// Appended to schema.prisma by scripts/apply-additions.mjs.
+// ============================================================================
+
+/// One automated email rule. The programme in docs/lifecycle.md is defined in code; this row is the switch,
+/// the record of what it has done, and the audit trail for turning it off.
+model Automation {
+  key         String   @id // matches a template id, e.g. "biz-claim-invite"
+  enabled     Boolean  @default(false) // off until a human turns it on, so nothing surprises anyone
+  lastRunAt   DateTime?
+  lastSent    Int      @default(0)
+  totalSent   Int      @default(0)
+  totalSkipped Int     @default(0)
+  lastError   String?
+  dailyCap    Int      @default(50) // never send more than this in one run
+  updatedAt   DateTime @updatedAt @default(now())
+  runs        AutomationRun[]
+}
+
+model AutomationRun {
+  id        String   @id @default(cuid())
+  key       String
+  automation Automation @relation(fields: [key], references: [key], onDelete: Cascade)
+  sent      Int      @default(0)
+  skipped   Int      @default(0)
+  error     String?
+  dryRun    Boolean  @default(false)
+  startedAt DateTime @default(now())
+  byAdmin   String?
+
+  @@index([key, startedAt])
+}
+
+/// A published correction. Keeping these in public is the cheapest credibility a news title can buy.
+model Correction {
+  id          String   @id @default(cuid())
+  articleId   String
+  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  summary     String // what was wrong, in plain words
+  detail      String? // the fuller explanation, when one is warranted
+  kind        String   @default("CORRECTION") // CORRECTION | CLARIFICATION | UPDATE
+  isPublic    Boolean  @default(true)
+  raisedBy    String? // who spotted it
+  correctedBy String // which editor made the change
+  createdAt   DateTime @default(now())
+
+  @@index([articleId])
+}
+
+/// Work an editor has asked a writer to do.
+model Commission {
+  id          String   @id @default(cuid())
+  authorId    String
+  author      Author   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title       String
+  brief       String
+  type        String   @default("NEWS")
+  feePence    Int? // agreed in writing before the work starts
+  dueAt       DateTime?
+  status      String   @default("OFFERED") // OFFERED | ACCEPTED | DECLINED | DELIVERED | CANCELLED
+  articleId   String? // filled in once the writer starts the piece
+  commissionedBy String
+  respondedAt DateTime?
+  note        String? // the writer's reply when declining
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
+
+  @@index([authorId, status])
+}
+
+/// What a writer is owed and whether it has been paid.
+model WriterPayment {
+  id          String   @id @default(cuid())
+  authorId    String
+  author      Author   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  amountPence Int
+  description String
+  articleId   String?
+  status      String   @default("DUE") // DUE | SUBMITTED | APPROVED | PAID
+  reference   String? // the writer's own invoice number
+  periodMonth String? // YYYY-MM
+  approvedBy  String?
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
+
+  @@index([authorId, status])
+}
+
+/// In-app notifications, so a decision is not lost when an email is.
+model Notification {
+  id        String   @id @default(cuid())
+  audience  String // AUTHOR | OWNER | ADMIN
+  subjectId String // author id, owner id, or "admin"
+  kind      String // DECISION | COMMISSION | ENQUIRY | REVIEW | PAYMENT | SYSTEM
+  title     String
+  body      String?
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([audience, subjectId, readAt])
+}
+
+/// Per-article daily reads, so a writer can be told whether anyone read the piece.
+model ArticleStat {
+  articleId String
+  day       String // YYYY-MM-DD
+  views     Int     @default(0)
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, day])
+  @@index([day])
+}
+
+/// Settings an admin can change without a deploy. Secrets stay in the environment.
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @default(now())
+  updatedBy String?
+}
+
+/// An invitation for a colleague to help manage a business listing.
+model TeamInvite {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  email      String
+  invitedBy  String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([businessId])
+}
+
+/// Holiday and one-off opening hours, which are the thing customers actually get wrong.
+model SpecialHours {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  day        String // YYYY-MM-DD
+  closed     Boolean  @default(false)
+  opens      String? // HH:MM
+  closes     String?
+  note       String? // "Christmas Day", "Staff training"
+  createdAt  DateTime @default(now())
+
+  @@unique([businessId, day])
+  @@index([businessId, day])
 }
