@@ -35,14 +35,39 @@ export function londonNow(now = new Date()): { day: (typeof DAY_KEYS)[number]; m
   const wd = p.find((x) => x.type === "weekday")!.value.toLowerCase().slice(0, 3) as (typeof DAY_KEYS)[number];
   return { day: wd, minutes: (Number(p.find((x) => x.type === "hour")!.value) % 24) * 60 + Number(p.find((x) => x.type === "minute")!.value) };
 }
-/** true/false when hours are known, null when the business hasn't published hours. */
-export function isOpenNow(hoursJson: string | null | undefined, now = new Date()): boolean | null {
+/** Today's date in London as YYYY-MM-DD, which is how special hours are keyed. */
+export function londonDay(now = new Date()): string {
+  const p = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
+  const g = (t: string) => p.find((x) => x.type === t)!.value;
+  return `${g("year")}-${g("month")}-${g("day")}`;
+}
+
+/** A one-off override for a particular date: a bank holiday, or shutting early for a funeral. */
+export type SpecialDay = { day: string; closed: boolean; opens: string | null; closes: string | null; note?: string | null };
+/**
+ * true/false when hours are known, null when the business hasn't published hours.
+ *
+ * A special day for today overrides the weekly pattern completely — that is the whole point of setting one.
+ * Without this, a shop that has told us it is shut on Christmas Day still shows as "Open now", and a customer
+ * makes a wasted journey on the strength of it.
+ */
+export function isOpenNow(hoursJson: string | null | undefined, now = new Date(), special: SpecialDay[] = []): boolean | null {
+  const today = special.find((s) => s.day === londonDay(now));
+  const { day, minutes } = londonNow(now);
+  if (today) {
+    if (today.closed) return false;
+    if (!today.opens || !today.closes) return false;
+    return withinWindow(`${today.opens}-${today.closes}`, minutes);
+  }
   if (!hoursJson) return null;
   let h: Record<string, string>;
   try { h = JSON.parse(hoursJson); } catch { return null; }
   if (!h || typeof h !== "object" || !Object.keys(h).length) return null;
-  const { day, minutes } = londonNow(now);
-  const r = h[day]?.match(/^(\d\d):(\d\d)-(\d\d):(\d\d)$/);
+  return withinWindow(h[day], minutes);
+}
+
+function withinWindow(window: string | undefined, minutes: number): boolean {
+  const r = window?.match(/^(\d\d):(\d\d)-(\d\d):(\d\d)$/);
   if (!r) return false;
   return minutes >= Number(r[1]) * 60 + Number(r[2]) && minutes < Number(r[3]) * 60 + Number(r[4]);
 }

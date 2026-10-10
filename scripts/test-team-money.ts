@@ -6,6 +6,7 @@ import { sha256 } from "../src/lib/antispam";
 import { inviteState } from "../src/lib/team-invite";
 import { countArticleView, articleViews, dayKey } from "../src/lib/analytics";
 import { isBotUA } from "../src/lib/owner";
+import { isOpenNow, londonDay, londonNow } from "../src/lib/geo";
 
 const db = new PrismaClient();
 let fail = 0;
@@ -94,6 +95,22 @@ async function main() {
   const series = await articleViews(article.id, 30);
   t("the reads series totals the counted views", series.total === 2, `got ${series.total}`);
   t("the series is dense — one point per day", series.points.length === 30, `got ${series.points.length}`);
+
+  // ------------------------------------------------ special hours beat the weekly pattern
+  const weekly = JSON.stringify({ mon: "09:00-17:00", tue: "09:00-17:00", wed: "09:00-17:00", thu: "09:00-17:00", fri: "09:00-17:00", sat: "09:00-17:00", sun: "09:00-17:00" });
+  const noon = new Date(`${londonDay()}T12:00:00Z`);
+  t("open during the weekly pattern", isOpenNow(weekly, noon) === true);
+  t("a special CLOSED day overrides the weekly pattern", isOpenNow(weekly, noon, [{ day: londonDay(noon), closed: true, opens: null, closes: null }]) === false);
+  t("a special day whose window has passed reports closed",
+    isOpenNow(weekly, noon, [{ day: londonDay(noon), closed: false, opens: "00:05", closes: "00:30" }]) === false);
+  // Built from London's own clock, so the test cannot break when the clocks change.
+  const hhmm = (mins: number) => `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+  const nowMins = londonNow(noon).minutes;
+  t("…and reports open inside those shorter hours",
+    isOpenNow(weekly, noon, [{ day: londonDay(noon), closed: false, opens: hhmm(nowMins - 60), closes: hhmm(nowMins + 60) }]) === true);
+  t("a special day for ANOTHER date does not affect today", isOpenNow(weekly, noon, [{ day: "1999-12-25", closed: true, opens: null, closes: null }]) === true);
+  t("no hours at all is still unknown, not closed", isOpenNow(null, noon) === null);
+  t("a special day works even with no weekly hours published", isOpenNow(null, noon, [{ day: londonDay(noon), closed: true, opens: null, closes: null }]) === false);
 
   // ------------------------------------------------ money rules
   const commission = await db.commission.create({

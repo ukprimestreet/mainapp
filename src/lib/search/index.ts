@@ -1,6 +1,6 @@
 import { ARTICLE_TYPES, type ArticleType } from "../constants";
 import { db } from "../db";
-import { AREA_CENTROIDS, businessPoint, haversineKm, isOpenNow, type LatLng } from "../geo";
+import { AREA_CENTROIDS, businessPoint, haversineKm, isOpenNow, londonDay, type LatLng } from "../geo";
 import { businessInclude, parseJson } from "../queries";
 import { DEFAULT_CITY, areaPath } from "../cities";
 import { ensureFts, ftsClear, ftsCount, ftsDelete, ftsPrune, ftsQuery, ftsTexts, ftsUpsert } from "./fts";
@@ -158,10 +158,14 @@ export async function searchAll(o: SearchOpts) {
     businesses = await db.business.findMany({ where: { published: true }, include: businessInclude, orderBy: { createdAt: "desc" }, take: 2000 });
   }
   const now = new Date();
+  // Today's one-off hours, in one small query keyed by date rather than by business, so "Open now" respects a
+  // bank holiday instead of reading off the weekly pattern.
+  const todaysSpecials = await db.specialHours.findMany({ where: { day: londonDay(now) } });
+  const specialFor = new Map(todaysSpecials.map((sh) => [sh.businessId, [sh]]));
   const all: BizResult[] = businesses.map((b) => {
     const p = businessPoint(b);
     const bonus = 1 + (b.claimStatus === "CLAIMED" || b.claimStatus === "VERIFIED" ? 0.05 : 0) + (b.ratingAvg ? b.ratingAvg * 0.01 : 0);
-    return { ...b, score: (score.get(b.id) ?? 0) * bonus, distanceKm: o.near && p ? haversineKm(o.near, p.point) : null, approx: p?.approx ?? false, open: isOpenNow(b.openingHours, now) };
+    return { ...b, score: (score.get(b.id) ?? 0) * bonus, distanceKm: o.near && p ? haversineKm(o.near, p.point) : null, approx: p?.approx ?? false, open: isOpenNow(b.openingHours, now, specialFor.get(b.id) ?? []) };
   });
   const filtered = all.filter((b) => matches(b, f));
   const sort = o.sort ?? (o.near && !contentTokens(q).length ? "nearest" : "relevance");

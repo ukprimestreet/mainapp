@@ -14,17 +14,28 @@ export default async function Insights({ params }: { params: Promise<{ id: strin
     businessViews(id, 30), businessClicks(id, 30), businessEnquiries(id, 30),
     getEntitlements(id), clicks30(id),
     db.review.aggregate({ where: { businessId: id, status: "PUBLISHED" }, _avg: { rating: true }, _count: true }),
-    // The category average, so a number has something to be compared against.
+    // The category average, so a number has something to be compared against. This business is excluded from
+    // it: comparing yourself against a set that contains you flattens the difference and is not what the
+    // sentence underneath claims to be measuring.
     db.businessStat.groupBy({
       by: ["businessId"],
-      where: { day: { gte: dayKey(daysAgo(29)) }, business: { categoryId: business.categoryId, locationId: business.locationId, published: true } },
+      where: {
+        day: { gte: dayKey(daysAgo(29)) },
+        businessId: { not: id },
+        business: { categoryId: business.categoryId, locationId: business.locationId, published: true },
+      },
       _sum: { views: true },
     }),
     db.searchTerm.findMany({ where: { day: { gte: dayKey(daysAgo(29)) }, zeroCount: 0 }, orderBy: { count: "desc" }, take: 8 }),
   ]);
 
   const peerTotals = peers.map((p) => p._sum.views ?? 0).filter((n) => n > 0);
-  const peerAvg = peerTotals.length ? Math.round(peerTotals.reduce((a, b) => a + b, 0) / peerTotals.length) : 0;
+  // An average over one or two businesses is not an average: the owner knows exactly who the other cleaner in
+  // their area is, so showing it would hand them a named competitor's traffic. We promise on this very card
+  // never to do that, so the comparison only appears once the figure genuinely hides the individuals in it.
+  const MIN_COHORT = 5;
+  const enoughPeers = peerTotals.length >= MIN_COHORT;
+  const peerAvg = enoughPeers ? Math.round(peerTotals.reduce((a, b) => a + b, 0) / peerTotals.length) : 0;
   const vsPeers = peerAvg > 0 ? Math.round(((views.total - peerAvg) / peerAvg) * 100) : null;
   const totalClicks = clicks.website + clicks.phone + clicks.directions;
   const convert = views.total > 0 ? ((totalClicks / views.total) * 100).toFixed(1) : "0.0";
@@ -79,17 +90,22 @@ export default async function Insights({ params }: { params: Promise<{ id: strin
         <div className="min-w-0">
           <Card title="Against similar businesses" description={`Others in ${business.category.name} in ${business.location.name}.`}>
             {peerAvg === 0 ? (
-              <p className="text-[14px] text-grey">Not enough comparable businesses yet to be worth showing.</p>
+              <p className="text-[14px] text-grey">
+                {peerTotals.length === 0
+                  ? "No other business in this category and area has had any views yet, so there is nothing honest to compare you against."
+                  : `There are only ${peerTotals.length} other comparable businesses with any views, and an average of that few would effectively tell you one competitor's figures. We will show this once there are at least ${MIN_COHORT}.`}
+              </p>
             ) : (
               <>
-                <Metric label="Their average views" value={peerAvg.toLocaleString()} hint="Last 30 days" />
+                <Metric label="Their average views" value={peerAvg.toLocaleString()} hint={`Last 30 days, across ${peerTotals.length} businesses`} />
                 <p className="mt-3 text-[15px]">
                   {vsPeers === null ? null : vsPeers >= 0
                     ? <>You are getting <strong>{vsPeers}% more</strong> views than the typical {business.category.name.toLowerCase()} business in {business.location.name}.</>
                     : <>You are getting <strong>{Math.abs(vsPeers)}% fewer</strong> views than the typical {business.category.name.toLowerCase()} business in {business.location.name}.</>}
                 </p>
                 <p className="mt-2 text-[13px] text-grey">
-                  An average, not a league table. We will never name another business or tell them about you.
+                  An average across {peerTotals.length} businesses, not a league table — and never shown at all when there are
+                  too few for the figure to hide who is in it. We never name another business or tell them about you.
                 </p>
               </>
             )}

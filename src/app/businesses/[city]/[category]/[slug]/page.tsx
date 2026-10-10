@@ -18,6 +18,7 @@ import { decideBusiness, getSeoPage } from "@/lib/seo-engine";
 import { redirectIfMoved } from "@/lib/redirects";
 import { relatedBusinesses } from "@/lib/related";
 import { SaveButton, TrackView } from "@/components/SaveButton";
+import { londonDay } from "@/lib/geo";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,13 @@ type P = { params: Promise<{ city: string; category: string; slug: string }> };
 const load = (slug: string) =>
   db.business.findFirst({
     where: { slug, published: true },
-    include: { ...businessInclude, articles: { include: { article: { include: { location: true } } } }, episodes: { where: { status: "PUBLISHED", publishedAt: { lte: new Date() } }, orderBy: { number: "desc" } } },
+    include: {
+      ...businessInclude,
+      articles: { include: { article: { include: { location: true } } } },
+      episodes: { where: { status: "PUBLISHED", publishedAt: { lte: new Date() } }, orderBy: { number: "desc" } },
+      // One-off hours from today onwards. Past overrides are history and would only clutter the page.
+      specialHours: { where: { day: { gte: londonDay() } }, orderBy: { day: "asc" }, take: 8 },
+    },
   });
 
 export async function generateMetadata({ params }: P): Promise<Metadata> {
@@ -43,6 +50,16 @@ export async function generateMetadata({ params }: P): Promise<Metadata> {
     openGraph: { title, description, url: abs(path), siteName: "PrimeStreet", type: "website", locale: "en_GB", images: [b.imageUrl ?? abs(`${path}/opengraph-image`)] },
     twitter: { card: "summary_large_image", title, description },
   };
+}
+
+
+/** "Today", "Tomorrow", else "Fri 25 December" — a date alone makes a reader work out whether it matters. */
+function specialDayLabel(day: string): string {
+  const today = londonDay();
+  if (day === today) return "Today";
+  const t = new Date(`${today}T12:00:00Z`);
+  if (day === new Date(t.getTime() + 86400_000).toISOString().slice(0, 10)) return "Tomorrow";
+  return new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "long", timeZone: "Europe/London" }).format(new Date(`${day}T12:00:00Z`));
 }
 
 export default async function BusinessPage({ params }: P) {
@@ -73,7 +90,17 @@ export default async function BusinessPage({ params }: P) {
       ...(b.founded ? { foundingDate: String(b.founded) } : {}),
       ...([b.website, b.instagram, b.facebook, b.linkedin].filter(Boolean).length ? { sameAs: [b.website, b.instagram, b.facebook, b.linkedin].filter(Boolean) } : {}),
       areaServed: { "@type": "AdministrativeArea", name: b.areasServed || b.location.name },
-      ...(Object.keys(hours).length ? { openingHoursSpecification: Object.entries(hours).filter(([, v]) => /^dd:dd-dd:dd$/.test(v)).map(([d, v]) => ({ "@type": "OpeningHoursSpecification", dayOfWeek: dayName[d as keyof typeof dayName], opens: v.split("-")[0], closes: v.split("-")[1] })) } : {}),
+      ...(Object.keys(hours).length ? { openingHoursSpecification: Object.entries(hours).filter(([, v]) => /^\d\d:\d\d-\d\d:\d\d$/.test(v)).map(([d, v]) => ({ "@type": "OpeningHoursSpecification", dayOfWeek: dayName[d as keyof typeof dayName], opens: v.split("-")[0], closes: v.split("-")[1] })) } : {}),
+      ...(b.specialHours.length
+        ? {
+            specialOpeningHoursSpecification: b.specialHours.map((sh) => ({
+              "@type": "OpeningHoursSpecification",
+              validFrom: sh.day,
+              validThrough: sh.day,
+              ...(sh.closed || !sh.opens || !sh.closes ? { opens: "00:00", closes: "00:00" } : { opens: sh.opens, closes: sh.closes }),
+            })),
+          }
+        : {}),
       address: { "@type": "PostalAddress", addressLocality: b.location.name, addressRegion: "London", addressCountry: "GB", ...(b.postcode ? { postalCode: b.postcode } : {}), ...(b.address ? { streetAddress: b.address } : {}) },
       // aggregateRating only from real, published, moderated reviews that are visible on this page.
       ...(b.ratingCount > 0 && b.ratingAvg ? { aggregateRating: { "@type": "AggregateRating", ratingValue: b.ratingAvg, reviewCount: b.ratingCount, bestRating: 5, worstRating: 1 } } : {}),
@@ -137,10 +164,25 @@ export default async function BusinessPage({ params }: P) {
           {ent.premium && !b.isSample && (
             <div data-premium="enquiry" className="rounded-2xl border-2 border-ink p-6"><h2 className="mb-3 font-display text-lg font-extrabold">Send an enquiry</h2><LeadForm businessId={b.id} businessName={b.name} formToken={formToken()} /></div>
           )}
-          {Object.keys(hours).length > 0 && (
+          {(Object.keys(hours).length > 0 || b.specialHours.length > 0) && (
             <div className="rounded-2xl border border-line p-6">
               <h2 className="mb-3 font-display text-lg font-extrabold">Opening hours</h2>
-              <dl className="space-y-1 text-sm">{DAYS.map((d) => <div key={d} className="flex justify-between"><dt className="font-bold">{dayName[d]}</dt><dd>{hours[d] ?? "Closed"}</dd></div>)}</dl>
+              {b.specialHours.length > 0 && (
+                <div className="mb-4 rounded-xl border-2 border-ink bg-yellow-soft p-3">
+                  <p className="text-xs font-bold uppercase tracking-wide">Different on these days</p>
+                  <dl className="mt-1.5 space-y-1 text-sm">
+                    {b.specialHours.map((sh) => (
+                      <div key={sh.day} className="flex flex-wrap justify-between gap-2">
+                        <dt className="font-bold">{specialDayLabel(sh.day)}{sh.note ? <span className="font-normal text-grey"> · {sh.note}</span> : null}</dt>
+                        <dd className="font-bold">{sh.closed || !sh.opens || !sh.closes ? "Closed" : `${sh.opens}–${sh.closes}`}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+              {Object.keys(hours).length > 0 && (
+                <dl className="space-y-1 text-sm">{DAYS.map((d) => <div key={d} className="flex justify-between"><dt className="font-bold">{dayName[d]}</dt><dd>{hours[d] ?? "Closed"}</dd></div>)}</dl>
+              )}
               {b.isSample && <p className="mt-3 text-xs text-grey">Sample hours.</p>}
             </div>
           )}

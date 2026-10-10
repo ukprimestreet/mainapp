@@ -24,8 +24,9 @@ export default async function AcceptInvite({ params }: { params: Promise<{ token
             </p>
             <p className="mt-4 text-[15px] text-grey">
               Accepting creates your account at <strong>{invite.email}</strong> and signs you in. You'll be able to edit the
-              profile, reply to reviews and see enquiries from customers. You will not be able to see billing details you did
-              not set up, and we never charge you for accepting.
+              profile, reply to reviews, see enquiries from customers and view the billing page — everyone who manages a
+              listing has the same access, so only accept if that is what they intended. Accepting never charges you
+              anything.
             </p>
             <div className="mt-6">
               <Accept token={token} business={invite.business.name} />

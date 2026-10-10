@@ -19,7 +19,7 @@ export default async function Team({ params, searchParams }: { params: Promise<{
     <>
       <PageHead
         title="Who can manage this"
-        subtitle="Add a colleague so the listing does not depend on one person. Everyone here can edit the profile, reply to reviews and see enquiries."
+        subtitle="Add a colleague so the listing does not depend on one person. There are no part-permissions yet: everyone here can edit the profile, reply to reviews, see enquiries and view billing. Only invite people you would trust with all of that."
         back={{ href: `/owner/business/${id}`, label: business.name }}
       />
       {msg && <Notice tone="info" title="Done">{msg}</Notice>}
