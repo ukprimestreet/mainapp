@@ -11,13 +11,15 @@ export const metadata: Metadata = { title: "Admin", robots: { index: false, foll
 export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [review, ratings, claims, inbox, subs, enquiries] = await Promise.all([
+  const [review, ratings, claims, inbox, subs, enquiries, offered, invoices] = await Promise.all([
     queueCount(),
     db.review.count({ where: { status: "PENDING" } }),
     db.claimRequest.count({ where: { status: { in: ["PENDING", "NEEDS_INFO"] } } }),
     db.profileChangeRequest.count({ where: { status: "OPEN" } }),
     db.businessSubmission.count({ where: { status: "PENDING" } }),
     db.salesEnquiry.count({ where: { status: "NEW" } }),
+    db.commission.count({ where: { status: "OFFERED" } }),
+    db.writerPayment.count({ where: { status: { in: ["SUBMITTED", "APPROVED"] } } }),
   ]);
 
   const groups: NavGroup[] = [
@@ -27,6 +29,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       { href: "/admin/review", label: "Review queue", icon: "check", badge: review },
       { href: "/admin/articles", label: "Articles", icon: "file" },
       { href: "/admin/authors", label: "Writers", icon: "users" },
+      { href: "/admin/commissions", label: "Commissions", icon: "inbox", badge: offered },
       { href: "/admin/podcast", label: "Podcast", icon: "mic" },
       { href: "/admin/corrections", label: "Corrections", icon: "shield" },
     ] },
@@ -38,6 +41,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ] },
     { title: "Revenue", items: [
       { href: "/admin/money", label: "Money", icon: "chart" },
+      { href: "/admin/payments", label: "Writer payments", icon: "card", badge: invoices },
       { href: "/admin/commerce", label: "Commerce", icon: "card", badge: enquiries },
       { href: "/admin/automations", label: "Automations", icon: "bolt" },
     ] },

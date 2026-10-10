@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ARTICLE_TYPES, DISCLOSURE, SITE, type ArticleType, type Disclosure } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { readingMinutes } from "@/lib/editorial";
+import { countArticleView } from "@/lib/analytics";
+import { isAdmin } from "@/lib/auth";
 import { articlePath, latestArticles } from "@/lib/queries";
 import { abs, breadcrumbLd, meta } from "@/lib/seo";
 import { redirectIfMoved } from "@/lib/redirects";
@@ -75,6 +78,7 @@ export async function articleMetadata(type: ArticleType, slug: string): Promise<
 export async function ArticlePage({ type, slug }: { type: ArticleType; slug: string }) {
   const a = await load(type, slug);
   if (!a) { await redirectIfMoved(`/${ARTICLE_TYPES[type].path}/${slug}`); notFound(); }
+  if (!(await isAdmin())) await countArticleView(a.id, (await headers()).get("user-agent")); // human reads only, never admins
   return <ArticleView a={a} />;
 }
 

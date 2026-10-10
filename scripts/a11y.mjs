@@ -44,14 +44,20 @@ await db.episodeClip.create({ data: { episodeId: epx.id, kind: "QUOTE", quote: "
 await db.episodeClip.create({ data: { episodeId: epx.id, kind: "CLIP", title: "The first van", startSec: 310, endSec: 365, note: "Vertical" } });
 const nlIssue = await db.newsletterIssue.create({ data: { subject: "A11y issue: weekly digest", body: "Hello,\n\nSome news.\n\n{{unsubscribe}}" } });
 await db.newsletterSubscriber.create({ data: { email: "reader@a11y.example", status: "ACTIVE", confirmedAt: new Date(), source: "footer" } });
+const inviteTok = randomBytes(12).toString("base64url");
+await db.teamInvite.deleteMany({ where: { email: "mate@a11y.example" } });
+await db.teamInvite.create({ data: { businessId: fx.id, email: "mate@a11y.example", invitedBy: "owner@a11y.example", tokenHash: sh(inviteTok), expiresAt: new Date(Date.now() + 7 * 86400_000) } });
 const linkTok = randomBytes(12).toString("base64url");
 await db.ownerLoginToken.create({ data: { ownerId: owner.id, tokenHash: sh(linkTok), expiresAt: new Date(Date.now() + 3600_000) } });
 
 const pub = ["/", "/businesses", "/businesses/submit", "/businesses/london", "/businesses/london/cleaning/brightwell-cleaning-co", "/locations", "/locations/hackney", "/categories", "/news", "/news/a-wood-fired-restaurant-opens-its-doors-on-a-hackney-side-street", "/stories", "/podcast", "/podcast/inside-the-business-removals-newham", "/claim", "/about", "/brand", "/admin/login", "/authors/primestreet-editorial",
   `/businesses/london/${cat.slug}/a11y-fixture`, "/review/a11y-fixture", "/reviews/manage/tok3", "/businesses?rating=4&sort=rating",
-  "/claim/status/a11y-claim-tok", "/claim/status/a11y-disp-tok", "/claim/dispute?business=a11y-fixture", "/owner/login", `/owner/login/${linkTok}`, "/locations/hackney/cleaning", "/businesses/london/cleaning", "/podcast/a11y-ep", "/podcast?format=video", "/search", "/search?q=cleaning", "/search?q=claening", "/search?q=zzzqqq", "/search?postcode=E8%203AA", "/saved", "/privacy", "/newsletter/confirm/sometoken", "/newsletter/unsubscribe/some.token"];
-const admin = ["/admin", "/admin/articles", "/admin/articles/new", `/admin/articles/${firstArticle.id}`, `/admin/articles/${firstArticle.id}/preview`, "/admin/authors", "/admin/authors/new", "/admin/claims", "/admin/claims?show=all", "/admin/owner-inbox", `/admin/businesses/${fx.id}`, "/admin/submissions", "/admin/businesses", "/admin/import", "/admin/reviews?tab=pending", "/admin/reviews?tab=published", "/admin/reviews?tab=reported", "/admin/reviews?tab=held", "/admin/outbox", "/admin/seo", "/admin/seo?status=noindex", `/admin/seo/edit?path=${encodeURIComponent("/locations/hackney")}`, "/admin/seo/redirects", "/admin/podcast", "/admin/podcast/new", `/admin/podcast/${epx.id}`, "/admin/podcast/show", "/admin/search", "/admin/newsletter", `/admin/newsletter/${nlIssue.id}`];
-const ownerPages = ["/owner", `/owner/business/${fx.id}`, `/owner/business/${fx.id}/reviews`, `/owner/business/${fx.id}/coverage`];
+  "/claim/status/a11y-claim-tok", "/claim/status/a11y-disp-tok", "/claim/dispute?business=a11y-fixture", "/owner/login", `/owner/login/${linkTok}`, "/locations/hackney/cleaning", "/businesses/london/cleaning", "/podcast/a11y-ep", "/podcast?format=video", "/search", "/search?q=cleaning", "/search?q=claening", "/search?q=zzzqqq", "/search?postcode=E8%203AA", "/saved", "/privacy", "/newsletter/confirm/sometoken", "/newsletter/unsubscribe/some.token", `/owner/team/${inviteTok}`, "/owner/team/not-a-real-token"];
+const admin = ["/admin", "/admin/articles", "/admin/articles/new", `/admin/articles/${firstArticle.id}`, `/admin/articles/${firstArticle.id}/preview`, "/admin/authors", "/admin/authors/new", "/admin/claims", "/admin/claims?show=all", "/admin/owner-inbox", `/admin/businesses/${fx.id}`, "/admin/submissions", "/admin/businesses", "/admin/import", "/admin/reviews?tab=pending", "/admin/reviews?tab=published", "/admin/reviews?tab=reported", "/admin/reviews?tab=held", "/admin/outbox", "/admin/seo", "/admin/seo?status=noindex", `/admin/seo/edit?path=${encodeURIComponent("/locations/hackney")}`, "/admin/seo/redirects", "/admin/podcast", "/admin/podcast/new", `/admin/podcast/${epx.id}`, "/admin/podcast/show", "/admin/search", "/admin/newsletter", `/admin/newsletter/${nlIssue.id}`,
+  "/admin/automations", "/admin/money", "/admin/corrections", "/admin/audit", "/admin/moderation", "/admin/settings", "/admin/commissions", "/admin/payments"];
+const ownerPages = ["/owner", `/owner/business/${fx.id}`, `/owner/business/${fx.id}/reviews`, `/owner/business/${fx.id}/coverage`,
+  `/owner/business/${fx.id}/insights`, `/owner/business/${fx.id}/photos`, `/owner/business/${fx.id}/offers`, `/owner/business/${fx.id}/billing`,
+  `/owner/business/${fx.id}/team`, `/owner/business/${fx.id}/hours`, "/owner/help"];
 
 const browser = await puppeteer.launch({ executablePath: "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", headless: true });
 let bad = 0;
@@ -68,7 +74,16 @@ for (const w of [375, 768, 1280]) {
   await page.waitForFunction(() => location.pathname === "/owner", { timeout: 8000 });
   for (const path of [...pub, ...admin, ...ownerPages]) {
     await page.goto(BASE + path, { waitUntil: "networkidle0" });
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    // Does the PAGE actually scroll sideways? documentElement.scrollWidth is inflated by any wide child inside a
+    // horizontally scrollable container (a responsive table is meant to scroll), which reports overflow that no
+    // user can see. Attempting the scroll and reading scrollX is the real test.
+    const overflow = await page.evaluate(() => {
+      const cw = document.documentElement.clientWidth;
+      window.scrollTo(9999, 0);
+      const x = window.scrollX;
+      window.scrollTo(0, 0);
+      return Math.max(x, document.body.scrollWidth - cw);
+    });
     if (overflow > 1) {
       bad++;
       const who = await page.evaluate((cw) => { const out = []; const wk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n; while ((n = wk.nextNode())) { const r = document.createRange(); r.selectNodeContents(n); for (const q of r.getClientRects()) if (q.right > cw + 1) { out.push(`${n.parentElement.tagName}.${String(n.parentElement.className).slice(0, 40)}:"${n.textContent.trim().slice(0, 30)}"`); break; } } return out.slice(0, 3); }, w);

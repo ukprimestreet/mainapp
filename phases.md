@@ -58,6 +58,17 @@ Featured listings, premium profiles, sponsored content with mandatory labels, ad
 ## Phase 10 — London Expansion + Future Cities
 **Status: complete.** All 32 boroughs + City of London covered, `City` model already live → additional cities, multi-city routing (`/{city}/…`), per-city editorial teams.
 
+## Phase 11 — The three dashboards, and the operations behind them
+**Status: complete.** One dashboard system serving admin, writers and business owners, built to the standard of a modern banking app: grouped dark navigation, server-computed inline-SVG charts, dense comparable series, and axe-core clean at 375px and 1280px.
+
+Admin gained the automations control panel, money, one moderation queue in place of four, corrections, the audit log, settings, and the commissioning and payment screens that make the writer dashboards work. Writers gained commissions, performance, payments, in-app notifications and the style guide. Owners gained insights, photos, offers, billing, team, opening hours and help, behind a business switcher.
+
+The money rules are enforced in code rather than stated in a policy: a fee is agreed before the work and never moved afterwards, delivering a commission is the only thing that creates money owed, approving is not paying, and every decision is in the audit log.
+
+A daily job at `/api/cron` runs the enabled automations and prunes orphaned search rows. It refuses to run without `CRON_SECRET` and answers 404 whether the secret is wrong or simply unset, because an endpoint that can trigger a marketing send must never fall back to being open.
+
+**Acceptance:** every page clean under axe at both widths, 15 unit suites green, and nothing sends without an admin having switched it on.
+
 ---
 ### Cross-phase standards (Definition of Done)
 Implemented · works · tested · edge/empty/error states · usable on mobile · fits architecture · docs updated · `projecttodolist.md` updated.

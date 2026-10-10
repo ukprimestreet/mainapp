@@ -30,7 +30,7 @@ export default async function Unsubscribe({ params, searchParams }: { params: Pr
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-ink px-4 py-12 text-white">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-ink px-4 py-12 text-white">
       <Link href="/" aria-label="PrimeStreet home" className="mb-8"><Wordmark variant="on-black" className="text-3xl" /></Link>
       <div className="w-full max-w-lg rounded-3xl bg-white p-8 text-ink">
         {!owner ? (
@@ -67,6 +67,6 @@ export default async function Unsubscribe({ params, searchParams }: { params: Pr
           </>
         )}
       </div>
-    </main>
+    </div>
   );
 }

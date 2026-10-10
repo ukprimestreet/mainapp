@@ -17,6 +17,9 @@ export default async function Automations({ searchParams }: { searchParams: Prom
     db.automation.aggregate({ _sum: { totalSent: true } }),
   ]);
   const live = rows.filter((r) => r.enabled);
+  // Whether anything actually runs on a schedule, rather than only when an admin presses a button.
+  const cronReady = (process.env.CRON_SECRET ?? "").length >= 16;
+  const lastCron = await db.auditLog.findFirst({ where: { action: "Daily job ran" }, orderBy: { createdAt: "desc" } });
   // A dry run on demand, so the admin can see the actual recipients before switching anything on.
   const previewed = preview ? await runAutomation(preview, { dryRun: true }) : null;
 
@@ -33,6 +36,24 @@ export default async function Automations({ searchParams }: { searchParams: Prom
         <Notice tone="warn" title="Nothing can send yet">
           Email is not configured, so even an enabled automation will only record to the outbox.{" "}
           <Link href="/admin/outbox" className="font-bold underline">See why</Link>.
+        </Notice>
+      )}
+
+      {!cronReady && (
+        <Notice tone="warn" title="Nothing runs on its own yet">
+          The daily job at <strong>/api/cron</strong> refuses to run until <strong>CRON_SECRET</strong> is set (32 characters or
+          more) in the environment. Until then an enabled automation only sends when you press <em>Run now</em> here. That is a
+          deliberate refusal: an unprotected endpoint would let anyone on the internet trigger a send.
+        </Notice>
+      )}
+      {cronReady && lastCron && (
+        <Notice tone="good" title="The daily job is running">
+          Last run {lastCron.createdAt.toLocaleString("en-GB")} — {lastCron.detail}
+        </Notice>
+      )}
+      {cronReady && !lastCron && (
+        <Notice tone="info" title="The daily job is configured but has not run yet">
+          It is scheduled for 09:30 UTC. Nothing will send before then unless you run a rule by hand.
         </Notice>
       )}
 

@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { isBotUA } from "./owner";
 
 /**
  * Numbers for the dashboards. Everything here is counted from real rows — there is no sampling, no modelling
@@ -128,4 +129,26 @@ export async function queueAge() {
     oldestHours: ages.length ? Math.round(Math.max(...ages) / 3600_000) : 0,
     medianHours: ages.length ? Math.round([...ages].sort((a, b) => a - b)[Math.floor(ages.length / 2)] / 3600_000) : 0,
   };
+}
+
+/**
+ * Records one read of an article. Bots are excluded on the same rule as business views, and previews are not
+ * counted — a writer re-reading their own draft must never show up as readership.
+ */
+export async function countArticleView(articleId: string, ua: string | null) {
+  if (isBotUA(ua)) return;
+  const day = dayKey(new Date());
+  await db.articleStat
+    .upsert({ where: { articleId_day: { articleId, day } }, create: { articleId, day, views: 1 }, update: { views: { increment: 1 } } })
+    .catch(() => {}); // a stats write must never take a page down
+}
+
+/** Reads of one article, for the editorial dashboards. */
+export async function articleViews(articleId: string, days = 30): Promise<Series> {
+  const since = dayKey(daysAgo(days - 1));
+  const [rows, prev] = await Promise.all([
+    db.articleStat.findMany({ where: { articleId, day: { gte: since } } }),
+    db.articleStat.aggregate({ where: { articleId, day: { gte: dayKey(daysAgo(days * 2 - 1)), lt: since } }, _sum: { views: true } }),
+  ]);
+  return buildSeries(rows.map((r) => ({ day: r.day, value: r.views })), days, prev._sum.views ?? 0);
 }

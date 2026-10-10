@@ -558,3 +558,50 @@ Legend: `[x]` done · `[ ]` open · `(blocked)` needs info/credentials. See `pha
 - [x] All unit + e2e suites pass on Supabase (`dev` schema)
 - [ ] Production schema + real data load; rotate shared keys/passwords; set MAIL_FROM (verified Resend domain) so email sends
 - [ ] Owner photo upload UI using the storage bucket
+
+## Dashboards rebuilt to a modern-banking standard (complete)
+- [x] One dashboard system (`src/components/dash/`) behind the old component names, so 22 existing pages upgraded without being rewritten
+- [x] Dark grouped sidebar; mobile drawer is a `<details>` element, so it works before hydration
+- [x] Inline-SVG charts computed server-side (no charting library, no third-party script), each with `role="img"` and a descriptive label
+- [x] Dense daily series with deltas against the equally long previous window (`src/lib/analytics.ts`)
+- [x] axe-core clean (WCAG 2.1 AA + best practice) at 375px and 1280px across all three dashboards
+- [x] Four real a11y bugs found and fixed: duplicate `<main>`, a link nested in a `<summary>`, two contrast failures, a scroll region unreachable by keyboard
+- [x] Overflow check rewritten to ask whether the page actually scrolls sideways, instead of a measure inflated by scrollable tables
+
+### Admin
+- [x] `/admin/automations` — lifecycle control panel: off by default, per-run cap, dry run listing real recipients, run now, run history, stop everything
+- [x] `/admin/money` — MRR, at-risk, churn, failed and abandoned checkouts, owed to writers
+- [x] `/admin/moderation` — one queue replacing four, oldest first, stale flagged
+- [x] `/admin/corrections`, `/admin/audit`, `/admin/settings`
+- [x] `/admin/commissions` — commission a writer (same 90% gate they face), cancel with a reason, mark delivered
+- [x] `/admin/payments` — approve or query invoices by batch, mark paid, add a fee outside a commission
+- [x] Nav regrouped: Overview / Editorial / Directory / Revenue / Reach / System
+
+### Writers
+- [x] `/write/commissions`, `/write/performance`, `/write/payments`, `/write/notifications`, `/write/style`
+- [x] In-app notifications (`src/lib/notify.ts`): every editorial decision lands in the app as well as in email
+- [x] `ArticleStat` is now written by `countArticleView()` on article pages (bots and admins excluded), so Performance shows real reads
+
+### Business owners
+- [x] `/owner/business/[id]/insights` — views, clicks, enquiries, conversion, category-average comparison, search terms
+- [x] `photos` (drag *and* keyboard reorder), `offers`, `billing`, `team`, `hours`, `/owner/help`
+- [x] Business switcher instead of repeating every link for every listing
+- [x] Team invitations: `/owner/team/[token]` accept page, single-use, 7-day expiry, POST-to-accept so link scanners cannot burn it
+- [x] Removing the last manager is refused — a listing nobody can update is the worse outcome
+
+### Money rules enforced in code
+- [x] Fee agreed before the work, never adjusted by readership; no delivery without a fee set
+- [x] Delivering a commission is the only thing that creates money owed
+- [x] Approving is not paying: separate states, an unapproved invoice cannot be marked paid
+- [x] Cancelling needs a reason; an accepted commission gets an explicit offer to pay for work done
+- [x] A queried invoice returns to the writer rather than being written off; every action is in the audit log
+
+### Scheduling
+- [x] `/api/cron` daily job (enabled automations + search pruning), scheduled 09:30 UTC in `vercel.json`
+- [x] Refuses to run without `CRON_SECRET`; answers 404 whether the secret is wrong or unset, never falling back to open
+- [x] The automations page states plainly whether the job is actually wired up
+- [ ] Set `CRON_SECRET` on Vercel production (blocked: needs a login to the `ukprimestreet-6381` account)
+- [ ] Set `MAIL_DOMAIN` and `MAIL_SUPPORT` on Vercel production — until then production records email but sends nothing (same blocker)
+- [ ] SPF, DKIM and DMARC records for primestreet.uk (user action)
+- [x] Tests: `scripts/test-team-money.ts` (20 checks); all 15 unit suites pass
+- [x] Docs: `docs/dashboards.md`

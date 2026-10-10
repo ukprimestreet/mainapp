@@ -14,7 +14,7 @@ export default async function Welcome({ params }: { params: Promise<{ token: str
   const state = await tokenState(token, "INVITE");
   const row = state === "ok" ? await db.authorLoginToken.findUnique({ where: { tokenHash: sha256(token) }, include: { author: true } }) : null;
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-ink px-4 py-12 text-white">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-ink px-4 py-12 text-white">
       <Link href="/" aria-label="PrimeStreet home" className="mb-8"><Wordmark variant="on-black" className="text-3xl" /></Link>
       <div className="w-full max-w-md rounded-3xl bg-white p-7 text-ink sm:p-9">
         {state === "ok" && row ? (
@@ -35,6 +35,6 @@ export default async function Welcome({ params }: { params: Promise<{ token: str
           </>
         )}
       </div>
-    </main>
+    </div>
   );
 }

@@ -12,7 +12,7 @@ export default async function WriterLogin({ searchParams }: { searchParams: Prom
   if (await getAuthorSession()) redirect("/write");
   const { set } = await searchParams;
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-ink px-4 py-12 text-white">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-ink px-4 py-12 text-white">
       <Link href="/" aria-label="PrimeStreet home" className="mb-8"><Wordmark variant="on-black" className="text-3xl" /></Link>
       <div className="w-full max-w-md rounded-3xl bg-white p-7 text-ink sm:p-9">
         <h1 className="font-display text-2xl font-extrabold">Writers&apos; desk</h1>
@@ -28,6 +28,6 @@ export default async function WriterLogin({ searchParams }: { searchParams: Prom
           Don&apos;t have an account? Accounts are created by a PrimeStreet editor — <Link href="/about" className="font-bold text-ink underline">get in touch</Link> if you would like to write for us.
         </p>
       </div>
-    </main>
+    </div>
   );
 }
