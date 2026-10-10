@@ -3,6 +3,8 @@ import { fmtDate } from "@/components/Cards";
 import { requireAuthor } from "@/lib/author-auth";
 import { gbp } from "@/lib/commerce";
 import { db } from "@/lib/db";
+import Link from "next/link";
+import { payeeState } from "@/lib/payee";
 import { submitInvoice } from "../../writer-actions";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +23,7 @@ export default async function Payments({ searchParams }: { searchParams: Promise
   const due = rows.filter((r) => r.status === "DUE");
   const outstanding = rows.filter((r) => r.status !== "PAID").reduce((n, r) => n + r.amountPence, 0);
   const paid = rows.filter((r) => r.status === "PAID").reduce((n, r) => n + r.amountPence, 0);
+  const payee = payeeState(me);
 
   return (
     <>
@@ -29,6 +32,19 @@ export default async function Payments({ searchParams }: { searchParams: Promise
         subtitle="What you are owed, what you have invoiced, and what has been paid. Fees are always agreed in writing before the work starts."
       />
       {msg && <Notice tone="info" title="Done">{msg}</Notice>}
+
+      {payee.payable ? (
+        <Notice tone="good" title="We can pay you">
+          Paying into the account ending <strong>{payee.masked?.replace(/•/g, "")}</strong>.{" "}
+          <Link href="/write/payments/details" className="font-bold underline">Change your payment details</Link>.
+        </Notice>
+      ) : (
+        <Notice tone="warn" title="We have no way to pay you yet">
+          Still needed: {payee.missing.join(", ")}.{" "}
+          <Link href="/write/payments/details" className="font-bold underline">Add your payment details</Link> — it takes a
+          minute, and nothing is lost in the meantime: anything owed stays owed.
+        </Notice>
+      )}
 
       <MetricRow cols={3}>
         <Metric label="Ready to invoice" value={gbp(due.reduce((n, r) => n + r.amountPence, 0))} icon="card" tone={due.length ? "accent" : "plain"} hint={`${due.length} ${due.length === 1 ? "item" : "items"}`} />

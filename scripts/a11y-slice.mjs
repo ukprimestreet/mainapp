@@ -45,7 +45,7 @@ const writer = await db.author.upsert({
 const paths = [
   "/admin/commissions", "/admin/payments", "/admin/automations", "/admin/money",
   "/admin/corrections", "/admin/audit", "/admin/moderation", "/admin/settings",
-  "/write/commissions", "/write/payments", "/write/performance", "/write/notifications", "/write/style",
+  "/write/commissions", "/write/payments", "/write/payments/details", "/write/performance", "/write/notifications", "/write/style",
   `/owner/business/${fx.id}/insights`, `/owner/business/${fx.id}/photos`, `/owner/business/${fx.id}/offers`,
   `/owner/business/${fx.id}/billing`, `/owner/business/${fx.id}/team`, `/owner/business/${fx.id}/hours`, "/owner/help",
   `/owner/team/${inviteTok}`, "/owner/team/not-a-real-token",

@@ -2,7 +2,9 @@ import { Card, Cell, Chip, Empty, Metric, MetricRow, Notice, PageHead, Row, Tabl
 import { fmtDate } from "@/components/Cards";
 import { gbp } from "@/lib/commerce";
 import { db } from "@/lib/db";
-import { addPayment, approvePayments, markPaid, queryInvoice } from "../../editorial-money-actions";
+import { addPayment, approvePayments, markPaid, queryInvoice, revealBankDetails } from "../../editorial-money-actions";
+import { payeeState, readBank, unpayableWithMoneyDue } from "@/lib/payee";
+import { formatSortCode } from "@/lib/secretbox";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Writer payments — Admin", robots: { index: false, follow: false } };
@@ -16,12 +18,17 @@ const STATUS = {
 
 const waitingDays = (d: Date) => Math.floor((Date.now() - d.getTime()) / 86400_000);
 
-export default async function Payments({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
-  const { msg } = await searchParams;
-  const [rows, writers] = await Promise.all([
+export default async function Payments({ searchParams }: { searchParams: Promise<{ msg?: string; reveal?: string }> }) {
+  const { msg, reveal } = await searchParams;
+  const [rows, writers, unpayable] = await Promise.all([
     db.writerPayment.findMany({ include: { author: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "desc" }, take: 300 }),
     db.author.findMany({ where: { active: true, email: { not: null } }, orderBy: { name: "asc" }, select: { id: true, name: true, email: true } }),
+    unpayableWithMoneyDue(),
   ]);
+
+  // A reveal is one writer at a time, off the back of a form post that has already been logged.
+  const revealed = reveal ? await db.author.findUnique({ where: { id: reveal } }) : null;
+  const revealedBank = revealed ? readBank(revealed) : null;
 
   const submitted = rows.filter((r) => r.status === "SUBMITTED");
   const approved = rows.filter((r) => r.status === "APPROVED");
@@ -56,6 +63,45 @@ export default async function Payments({ searchParams }: { searchParams: Promise
         <Notice tone="warn" title={`${stale.length} ${stale.length === 1 ? "invoice has" : "invoices have"} been waiting a week or more`}>
           Freelancers are not a credit line. Approve or query these today.
         </Notice>
+      )}
+
+      {unpayable.length > 0 && (
+        <Notice tone="warn" title={`${unpayable.length} ${unpayable.length === 1 ? "writer is" : "writers are"} owed money we cannot send`}>
+          <ul className="mt-1 space-y-1">
+            {unpayable.map((u) => (
+              <li key={u.authorId}>
+                <strong>{u.name}</strong> — {gbp(u.pence)} outstanding, missing {u.state.missing.join(", ")}.
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2">
+            They have been prompted in their own dashboard. Approving an invoice we then cannot pay is worse than
+            telling them straight away, so chase this before the next run.
+          </p>
+        </Notice>
+      )}
+
+      {revealed && (
+        <Card title={`Payment details — ${revealed.name}`} description="This view has been recorded in the audit log. Close the page when you are done.">
+          {revealedBank ? (
+            <dl className="grid gap-3 text-[15px] sm:grid-cols-2">
+              <div><dt className="font-bold">Pay to</dt><dd>{revealed.payeeName ?? revealedBank.accountName}</dd></div>
+              <div><dt className="font-bold">Account name</dt><dd>{revealedBank.accountName}</dd></div>
+              <div><dt className="font-bold">Sort code</dt><dd className="font-mono">{formatSortCode(revealedBank.sortCode)}</dd></div>
+              <div><dt className="font-bold">Account number</dt><dd className="font-mono">{revealedBank.accountNumber}</dd></div>
+              {revealedBank.iban && <div><dt className="font-bold">IBAN</dt><dd className="font-mono [overflow-wrap:anywhere]">{revealedBank.iban}</dd></div>}
+              {revealedBank.swift && <div><dt className="font-bold">SWIFT/BIC</dt><dd className="font-mono">{revealedBank.swift}</dd></div>}
+              <div className="sm:col-span-2"><dt className="font-bold">Invoice address</dt><dd className="whitespace-pre-line">{revealed.payeeAddress ?? "—"}</dd></div>
+              <div><dt className="font-bold">VAT</dt><dd>{revealed.vatRegistered ? (revealed.vatNumber ?? "registered, number missing") : "Not registered"}</dd></div>
+            </dl>
+          ) : (
+            <p className="text-[15px] text-grey">
+              {revealed.bankEnc
+                ? "We hold an account for this writer but it cannot be decrypted — the encryption key has changed since it was saved. Ask them to re-enter it; do not guess."
+                : "This writer has not added any bank details yet."}
+            </p>
+          )}
+        </Card>
       )}
 
       <Card title="Invoices awaiting approval" description="Grouped by writer and invoice reference, as they were submitted.">
@@ -95,6 +141,10 @@ export default async function Payments({ searchParams }: { searchParams: Promise
                     <form action={approvePayments}>
                       {items.map((r) => <input key={r.id} type="hidden" name="payment" value={r.id} />)}
                       <button className={btn()}>Approve {gbp(total)}</button>
+                    </form>
+                    <form action={revealBankDetails}>
+                      <input type="hidden" name="authorId" value={first.author.id} />
+                      <button className={btn("ghost")}>Show bank details</button>
                     </form>
                   </div>
 

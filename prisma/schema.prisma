@@ -165,6 +165,17 @@ model Author {
   cvUrl      String? // uploaded CV (PDF or document)
   expertise  String? // JSON string[] of the subjects they cover
   portfolio  String? // JSON string[] of links to published work elsewhere
+  // How we pay them. The bank details and UTR are encrypted at rest (lib/secretbox.ts); the key lives in
+  // FIELD_KEY, never in this database. bankLast4 is deliberately plain text so an admin can confirm an
+  // account against a remittance without anything being decrypted.
+  payeeName     String? // who the money is paid to, which is not always their byline
+  payeeAddress  String? // needed on an invoice, and by us for our own records
+  vatRegistered Boolean @default(false)
+  vatNumber     String?
+  utrEnc        String? // self-assessment reference, encrypted
+  bankEnc       String? // { accountName, sortCode, accountNumber, iban?, swift? }, encrypted
+  bankLast4     String?
+  bankUpdatedAt DateTime?
   // Account state
   active          Boolean  @default(true)
   passwordHash    String? // set by the author from the invitation link; null until then

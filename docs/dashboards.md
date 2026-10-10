@@ -76,3 +76,21 @@ It refuses to run unless `CRON_SECRET` is set and matches the bearer token, and 
 - `scripts/a11y.mjs` — axe-core (WCAG 2.1 AA + best practice) at 375px and 1280px across every dashboard page, plus a responsive overflow check.
 
 The overflow check asks whether the page **actually** scrolls sideways (attempt the scroll, read `scrollX`) rather than comparing `documentElement.scrollWidth` to the viewport. The latter is inflated by any wide child inside a horizontally scrollable container — a responsive table is *meant* to scroll — and reported overflow that no user could ever see. A check that cries wolf gets ignored, which is worse than not having it.
+
+## Paying writers: the data we hold
+
+`src/lib/secretbox.ts` is AES-256-GCM with a random 96-bit IV per value and the auth tag stored alongside, so a tampered ciphertext fails to decrypt rather than returning something plausible. Node's crypto only — no dependency to audit. Encrypted at rest: the **bank account** (`bankEnc`) and the **UTR** (`utrEnc`).
+
+The key lives in `FIELD_KEY` (32 bytes, base64 or hex) and never in the database, so a stolen dump is not enough on its own. **Without the key we refuse to save.** Storing bank details in plain text because the environment was misconfigured is the one outcome worse than not storing them, so the form disables itself and says so. `FIELD_KEY_OLD` is tried on decrypt only: to rotate, move the current key there, set a new `FIELD_KEY`, re-save the affected rows, then drop it.
+
+Decisions worth keeping:
+
+- **Payment details are not part of the 90% profile gate.** They are a condition of being *paid*, not of being allowed to write. Asking a writer for their bank details before they have been commissioned is how a scam behaves, so the nav only prompts once money is actually due.
+- **The account is never rendered back into the page.** Only the masked last four. Prefilling it would put the number in the page source on every visit — browser cache, screen share, over a shoulder — for no benefit, since recognising your own account needs four digits and changing it means typing it again. It also means a blank bank field reliably means "leave it alone", so an address change cannot re-write the stored account or falsely bump the date.
+- **`bankLast4` is deliberately plain text,** so an admin can match a remittance to an account without anything being decrypted.
+- **An admin reveal is a form post that is logged first.** The audit log records who looked and when — never what they saw. The same applies to a writer's own changes: the entry says the bank account changed, not what it changed to.
+- **A reveal that cannot be decrypted says so plainly** and tells the admin to ask the writer to re-enter it, rather than showing a partial or guessed account.
+- **Money owed to someone we cannot pay is surfaced before the payment run**, on the admin payments page and to the writer the moment the fee becomes real. Approving an invoice we then cannot pay is worse than saying so immediately.
+- **A writer can delete what we hold** from the same page, in one click.
+
+Tests: `scripts/test-secretbox.ts` (36 checks: round trips, tamper detection on each part, key rotation, the refusal without a key, and UK sort code/account/UTR/VAT validation) and `scripts/e2e-payee.mjs` (22 checks through the real form, including that the account number appears in neither the database, the page source, nor the audit log).

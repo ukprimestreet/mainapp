@@ -7,6 +7,7 @@ import { notify } from "@/lib/notify";
 import { sendMail, siteLink } from "@/lib/mail";
 import { gbp } from "@/lib/commerce";
 import { ARTICLE_TYPES } from "@/lib/constants";
+import { payeeState } from "@/lib/payee";
 
 const s = (f: FormData, k: string) => ((f.get(k) as string | null) ?? "").toString();
 const who = () => process.env.ADMIN_EMAIL ?? "admin";
@@ -118,7 +119,31 @@ export async function markDelivered(form: FormData) {
       data: { authorId: c!.authorId, amountPence: c!.feePence!, description: c!.title, articleId: c!.articleId, status: "DUE" },
     }),
   ]);
-  await notify("AUTHOR", c!.authorId, "PAYMENT", `${gbp(c!.feePence!)} is ready to invoice`, `For "${c!.title}".`, "/write/payments");
+  const owed = payeeState(c!.author);
+  await notify(
+    "AUTHOR", c!.authorId, "PAYMENT", `${gbp(c!.feePence!)} is ready to invoice`,
+    owed.payable ? `For "${c!.title}".` : `For "${c!.title}". We still need ${owed.missing.join(", ")} before we can pay you.`,
+    owed.payable ? "/write/payments" : "/write/payments/details",
+  );
+  if (!owed.payable && c!.author.email) {
+    await sendMail(
+      c!.author.email,
+      `${gbp(c!.feePence!)} is yours — we just need your payment details`,
+      [
+        `${c!.author.name},`,
+        "",
+        `"${c!.title}" is marked delivered and ${gbp(c!.feePence!)} is now owed to you. We cannot send it yet because we still need ${owed.missing.join(", ")}.`,
+        "",
+        "Add it here, in the dashboard you already sign in to:",
+        siteLink("/write/payments/details"),
+        "",
+        "We will never ask for your bank details by email or over the phone, and this email does not ask you to reply with them. If anything claiming to be us does, it is not us.",
+        "",
+        "Nothing is lost in the meantime — what is owed stays owed.",
+      ].join("\n"),
+      { purpose: "billing" },
+    );
+  }
   await db.auditLog.create({ data: { action: "Commission delivered", targetType: "Commission", targetId: id, detail: `${gbp(c!.feePence!)} owed to ${c!.author.email}` } });
   back(`Delivered. ${gbp(c!.feePence!)} is now ready for ${c!.author.name} to invoice.`);
 }
@@ -140,7 +165,12 @@ export async function addPayment(form: FormData) {
   if (!author) back("That writer no longer exists.");
 
   await db.writerPayment.create({ data: { authorId, amountPence: amount, description, status: "DUE" } });
-  await notify("AUTHOR", authorId, "PAYMENT", `${gbp(amount)} is ready to invoice`, description, "/write/payments");
+  const payee = payeeState(author!);
+  await notify(
+    "AUTHOR", authorId, "PAYMENT", `${gbp(amount)} is ready to invoice`,
+    payee.payable ? description : `${description}. We still need ${payee.missing.join(", ")} before we can pay you.`,
+    payee.payable ? "/write/payments" : "/write/payments/details",
+  );
   await db.auditLog.create({ data: { action: "Writer fee added", targetType: "Author", targetId: authorId, detail: `${gbp(amount)} — ${description} by ${who()}` } });
   back(`${gbp(amount)} added for ${author!.name} to invoice.`);
 }
@@ -237,4 +267,21 @@ export async function queryInvoice(form: FormData) {
   }
   await db.auditLog.create({ data: { action: "Writer invoice queried", targetType: "WriterPayment", targetId: id, detail: `${reason} by ${who()}` } });
   back("Sent back to the writer with your query.");
+}
+
+/**
+ * Shows one writer's bank details to an admin, and records that it happened.
+ *
+ * A reveal is a deliberate act with a name against it, rather than account numbers sitting on screen for
+ * anyone walking past. The audit entry says who looked and when, never what they saw.
+ */
+export async function revealBankDetails(form: FormData) {
+  await requireAdmin();
+  const authorId = s(form, "authorId");
+  const author = await db.author.findUnique({ where: { id: authorId } });
+  if (!author) redirect(`/admin/payments?msg=${encodeURIComponent("That writer no longer exists.")}`);
+  await db.auditLog.create({
+    data: { action: "Writer bank details viewed", targetType: "Author", targetId: authorId, detail: `${author!.email ?? authorId} viewed by ${who()}` },
+  });
+  redirect(`/admin/payments?reveal=${authorId}`);
 }

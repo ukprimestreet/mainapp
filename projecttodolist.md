@@ -605,3 +605,20 @@ Legend: `[x]` done · `[ ]` open · `(blocked)` needs info/credentials. See `pha
 - [ ] SPF, DKIM and DMARC records for primestreet.uk (user action)
 - [x] Tests: `scripts/test-team-money.ts` (20 checks); all 15 unit suites pass
 - [x] Docs: `docs/dashboards.md`
+
+## Paying writers (complete)
+- [x] `secretbox.ts`: AES-256-GCM, random IV per value, auth tag checked, rotation via `FIELD_KEY_OLD`
+- [x] Refuses to save without `FIELD_KEY` — never falls back to plain text; the form disables itself and explains
+- [x] `Author` gains payeeName, payeeAddress, vatRegistered, vatNumber, utrEnc, bankEnc, bankLast4, bankUpdatedAt
+- [x] `/write/payments/details` — writer enters their own details; account never rendered back, masked last four only
+- [x] Not part of the 90% gate, and only prompted once money is due
+- [x] Admin reveal on `/admin/payments` is a logged form post; the audit log records who looked, never what they saw
+- [x] Undecryptable account says so rather than showing a guess
+- [x] Admin warned before a payment run about money owed to writers we cannot pay; writer told when the fee lands
+- [x] Writer can delete their bank details and UTR themselves
+- [x] Tests: 36 unit (`test-secretbox.ts`) + 22 e2e (`e2e-payee.mjs`); 501 unit checks pass overall
+- [ ] Set `FIELD_KEY` on Vercel production — until then the details form is disabled there (same login blocker)
+
+## Corrections to earlier notes
+- Production is **not** empty: 3 businesses, 6 articles and 9 search documents are in the `public` schema. `/news` shows none, so they are not in a published state — worth checking before loading more.
+- `prisma db push` against `schema=public` was inspecting `dev` through the transaction pooler (it offered to drop dev's 58-row `search_fts`). Schema changes to production are applied with explicit, schema-qualified DDL and verified per schema afterwards; do not trust `db push` through the pooler.

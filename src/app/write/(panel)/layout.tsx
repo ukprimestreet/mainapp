@@ -4,6 +4,7 @@ import { AccountBlock, DashLayout, type NavGroup } from "@/components/Dash";
 import { Avatar } from "@/components/Social";
 import { requireAuthor } from "@/lib/author-auth";
 import { completeness } from "@/lib/author-profile";
+import { payeeState } from "@/lib/payee";
 import { unreadCount } from "@/lib/notify";
 import { db } from "@/lib/db";
 import { authorSignOut } from "../actions";
@@ -22,6 +23,9 @@ export default async function WritePanelLayout({ children }: { children: React.R
     unreadCount("AUTHOR", me.id),
   ]);
   const c = completeness(me);
+  // Only nag about payment details once there is actually money involved — asking an unpaid new writer for
+  // their bank account is how a scam behaves.
+  const payeeIncomplete = dueMoney > 0 && !payeeState(me).payable ? 1 : undefined;
 
   const groups: NavGroup[] = [
     { title: "Writing", items: [
@@ -33,6 +37,7 @@ export default async function WritePanelLayout({ children }: { children: React.R
     { title: "You", items: [
       { href: "/write/notifications", label: "Notifications", icon: "bolt", badge: unread || undefined },
       { href: "/write/payments", label: "Payments", icon: "card", badge: dueMoney || undefined },
+      { href: "/write/payments/details", label: "Payment details", icon: "shield", badge: payeeIncomplete },
       { href: "/write/profile", label: "Profile", icon: "users", badge: c.enough && c.termsAccepted ? undefined : 1 },
     ] },
     { title: "Reference", items: [

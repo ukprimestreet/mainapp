@@ -7,6 +7,8 @@ import { inviteState } from "../src/lib/team-invite";
 import { countArticleView, articleViews, dayKey } from "../src/lib/analytics";
 import { isBotUA } from "../src/lib/owner";
 import { isOpenNow, londonDay, londonNow } from "../src/lib/geo";
+import { payeeState, readBank, unpayableWithMoneyDue } from "../src/lib/payee";
+import { encryptJson, encryptField, last4 } from "../src/lib/secretbox";
 
 const db = new PrismaClient();
 let fail = 0;
@@ -141,6 +143,56 @@ async function main() {
   const finalRow = await db.writerPayment.findUnique({ where: { id: owed!.id } });
   t("a paid row keeps the date it was paid", !!finalRow?.paidAt);
   t("the fee never changed along the way", finalRow?.amountPence === 15000);
+
+  // ------------------------------------------------ paying a writer: details held encrypted
+  const fresh = await db.author.findUnique({ where: { id: author.id } });
+  t("a new writer is not payable and we say exactly what is missing", (() => {
+    const st = payeeState(fresh!);
+    return !st.payable && st.missing.length === 3 && st.hasBank === false && st.masked === null;
+  })());
+
+  await db.author.update({
+    where: { id: author.id },
+    data: {
+      payeeName: "S O'Brien Media Ltd",
+      payeeAddress: "1 Mare Street, London E8 4RU",
+      bankEnc: encryptJson({ accountName: "S O'Brien Media Ltd", sortCode: "040004", accountNumber: "12345678" }),
+      bankLast4: last4("12345678"),
+      bankUpdatedAt: new Date(),
+      utrEnc: encryptField("1234567890"),
+    },
+  });
+  const payable = await db.author.findUnique({ where: { id: author.id } });
+  t("with a payee, an address and an account, the writer is payable", payeeState(payable!).payable === true);
+  t("the masked account shows only the last four digits", payeeState(payable!).masked === "•••• 5678");
+  t("the stored ciphertext does not contain the account number", !payable!.bankEnc!.includes("12345678"));
+  t("the UTR is not stored in plain text either", !payable!.utrEnc!.includes("1234567890"));
+  t("an admin reveal decrypts the real account", (() => {
+    const b = readBank(payable!);
+    return b?.accountNumber === "12345678" && b.sortCode === "040004";
+  })());
+  t("VAT registration without a number makes a writer unpayable", (() => {
+    const st = payeeState({ ...payable!, vatRegistered: true, vatNumber: null });
+    return !st.payable && st.missing.some((m) => /VAT/.test(m));
+  })());
+
+  // The admin warning: money owed to someone we have no way of paying.
+  await db.writerPayment.create({ data: { authorId: author.id, amountPence: 5000, description: "Unpayable test fee", status: "DUE" } });
+  await db.author.update({ where: { id: author.id }, data: { bankEnc: null, bankLast4: null } });
+  const stuck = await unpayableWithMoneyDue();
+  t("an admin is warned about money owed to a writer we cannot pay", stuck.some((u) => u.authorId === author.id && u.pence >= 5000));
+  await db.author.update({ where: { id: author.id }, data: { bankEnc: encryptJson({ accountName: "A B", sortCode: "040004", accountNumber: "12345678" }), bankLast4: "5678" } });
+  const unstuck = await unpayableWithMoneyDue();
+  t("…and stops being warned once the details are there", !unstuck.some((u) => u.authorId === author.id));
+
+  t("a ciphertext read under the wrong key is null, never a wrong account", (() => {
+    const real = process.env.FIELD_KEY;
+    process.env.FIELD_KEY = Buffer.alloc(32, 7).toString("base64");
+    const out = readBank(payable!);
+    process.env.FIELD_KEY = real;
+    return out === null;
+  })());
+
 
   await cleanup();
   console.log(fail === 0 ? "\nALL TEAM/MONEY TESTS PASS" : `\n${fail} FAILED`);
