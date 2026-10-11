@@ -1,7 +1,7 @@
 // Encryption of the fields we hold that would hurt someone if they leaked.
 import { randomBytes } from "crypto";
 import {
-  decryptField, decryptJson, encryptField, encryptJson, encryptionReady, formatSortCode, last4,
+  decryptField, decryptJson, encryptField, encryptJson, encryptionReady, encryptionStatus, formatSortCode, last4,
   normaliseSortCode, normaliseUtr, normaliseVatNumber, sameSecret, validateBank, validateUtr, validateVatNumber,
   type BankDetails,
 } from "../src/lib/secretbox";
@@ -78,9 +78,16 @@ t("without a key, encrypting REFUSES rather than storing plain text", withKeys(u
   try { encryptField("12345678"); return false; } catch { return true; }
 }));
 t("without a key, the feature reports itself unavailable", withKeys(undefined, undefined, () => encryptionReady() === false));
-t("a key of the wrong length is rejected loudly", withKeys(Buffer.from("too short").toString("base64"), undefined, () => {
-  try { encryptionReady(); return false; } catch { return true; }
+// A wrong-length key is a misconfiguration, but a page asking "can I offer this form?" must not crash on it:
+// it has to render and say what is wrong. So the status is reported, while writing still refuses.
+t("a key of the wrong length reports as invalid rather than crashing the page", withKeys(Buffer.from("too short").toString("base64"), undefined, () => {
+  try { return encryptionStatus() === "invalid" && encryptionReady() === false; } catch { return false; }
 }));
+t("…and encrypting with a wrong-length key still refuses", withKeys(Buffer.from("too short").toString("base64"), undefined, () => {
+  try { encryptField("x"); return false; } catch { return true; }
+}));
+t("a missing key reports as missing, not invalid", withKeys(undefined, undefined, () => encryptionStatus() === "missing"));
+t("a good key reports as ready", withKeys(KEY_A, undefined, () => encryptionStatus() === "ready"));
 t("a hex key is accepted as well as base64", withKeys(randomBytes(32).toString("hex"), undefined, () => {
   return decryptField(encryptField("via hex")) === "via hex";
 }));

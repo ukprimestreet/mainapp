@@ -3,6 +3,8 @@ import { timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
 import { ensureAutomations, runAllEnabled } from "@/lib/automations";
 import { ftsPrune } from "@/lib/search/fts";
+import { encryptionStatus } from "@/lib/secretbox";
+import { mailConfigured, SUPPORT_EMAIL } from "@/lib/mail";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -62,6 +64,9 @@ export async function GET(req: Request) {
   return NextResponse.json({
     ok: errors.length === 0,
     ms: Date.now() - started,
+    // Configuration an operator otherwise has no way to check: this route is the only authenticated endpoint
+    // reachable without the admin password. No secret is echoed — only whether each one is usable.
+    config: { encryption: encryptionStatus(), email: mailConfigured() ? "configured" : "records only", support: SUPPORT_EMAIL() },
     sent,
     skipped,
     pruned,

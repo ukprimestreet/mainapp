@@ -27,8 +27,23 @@ function parseKey(raw: string | undefined, name: string): Buffer | null {
 const key = () => parseKey(process.env.FIELD_KEY, "FIELD_KEY");
 const oldKey = () => parseKey(process.env.FIELD_KEY_OLD, "FIELD_KEY_OLD");
 
+/**
+ * Whether encrypted fields can be written at all, without throwing.
+ *
+ * A key of the wrong length is a misconfiguration we want to shout about, so parseKey throws — but a page
+ * asking "can I offer this form?" must not 500 because of it. It needs to render and say what is wrong.
+ */
+export type EncryptionStatus = "ready" | "missing" | "invalid";
+export function encryptionStatus(): EncryptionStatus {
+  try {
+    return key() === null ? "missing" : "ready";
+  } catch {
+    return "invalid";
+  }
+}
+
 /** Whether encrypted fields can be written at all. Pages use this to explain themselves instead of erroring. */
-export const encryptionReady = () => key() !== null;
+export const encryptionReady = () => encryptionStatus() === "ready";
 
 export function encryptField(plain: string): string {
   const k = key();
