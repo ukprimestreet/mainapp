@@ -56,7 +56,7 @@ export function Footer() {
       </Container>
       <Container className="border-t border-white/15 py-10"><div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-center [&>*]:min-w-0"><div><h2 className="font-display text-2xl font-extrabold text-yellow">Get the weekly digest</h2><p className="mt-1 text-sm text-white/70">London business news, new interviews and new businesses — once a week.</p></div><NewsletterForm formToken={formToken()} source="footer" dark /></div></Container>
       <Container className="border-t border-white/15 py-6 text-xs text-white/60">
-        © {new Date().getFullYear()} PrimeStreet. Sponsored, partner and advertorial content is always labelled. Unclaimed profiles have not been verified or approved by the business.
+        © {new Date().getFullYear()} PrimeStreet. Sponsored, partner and advertorial content is always labelled, as is any business connected to us by ownership. Unclaimed profiles have not been verified or approved by the business.
       </Container>
     </footer>
   );

@@ -225,7 +225,7 @@ ${body}
           ${doc.unsubscribeUrl ? `&nbsp;&middot;&nbsp; <a href="${esc(doc.unsubscribeUrl)}" style="color:${C.grey};">Unsubscribe</a>` : ""}
         </p>
         <p style="margin:10px 0 0;font-family:${SANS};font-size:12px;line-height:1.6;color:${C.grey};">
-          Sponsored, partner and advertorial content is always labelled. Unclaimed profiles have not been verified by the business.
+          Sponsored, partner and advertorial content is always labelled, as is any business connected to us by ownership. Unclaimed profiles have not been verified by the business.
         </p>
       </td></tr>
     </table>
