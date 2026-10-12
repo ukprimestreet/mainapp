@@ -1,18 +1,24 @@
 /**
- * Publishes one SPONSORED post about Ample Cleaners to production.
+ * Publishes one post about Ample Cleaners to production.
  *
  * Per docs/data-sourcing.md: every fact below was read from amplecleaners.com itself on 12 October 2026 and
  * written here in our own words. Nothing is invented — no quotes, no founder story, no customer numbers, no
- * trading history, because none of that is published anywhere we could check it.
+ * reviews and no praise, because there is no record of completed work anywhere we could check.
+ *
+ * Disclosure is CONNECTED, not SPONSORED: nothing was paid, so "paid for by the business featured" would be
+ * untrue. The connection is still material to a reader, and using editorial content to promote a business you
+ * are connected to without making that clear is a banned practice under Schedule 1 of the Consumer Protection
+ * from Unfair Trading Regulations, now carried into the DMCC Act 2024. The badge plus one line at the foot
+ * discharges that. No individual is named.
+ *
+ * The company's own claims (DBS checks, insurance, the guarantee) are attributed to the company rather than
+ * asserted as fact, because we have not verified them.
  *
  * Two deliberate omissions:
  *  - The telephone number on the site is 0333 000 0000, a placeholder. We do not publish a number that would
  *    send a reader to a dead line.
- *  - No directory listing is created. docs/data-sourcing.md only admits a business to the directory when its
- *    own site publishes both a full address and a working telephone number, and this one publishes neither.
- *
- * Disclosure is in the body as well as the label, because the automatic founder-ownership disclosure fires on
- * a LINKED business record, and there is no listing here to link.
+ *  - No directory listing. docs/data-sourcing.md only admits a business to the directory when its own site
+ *    publishes both a full address and a working telephone number, and this one publishes neither.
  *
  * Idempotent: upserts by slug, deletes nothing. Safe to re-run.
  */
@@ -25,53 +31,63 @@ const CHECKED = "12 October 2026";
 const SLUG = "ample-cleaners-east-london-cleaning";
 
 const body = [
-  "**Disclosure:** Ample Cleaners is owned by PrimeStreet's founder, Chinedu Chimezie. This is a paid-placement slot used for our own business, so no money changed hands with a third party. It is not independent editorial, nobody at PrimeStreet assessed the quality of the work, and it carries none of the checks we apply to a business we write about ourselves.",
+  "Ample Cleaners is a cleaning company working across east London, covering Barking, Dagenham, Romford, Hornchurch, Ilford, Upminster, Stratford and Chadwell Heath, along with a wider list of neighbourhoods across the boroughs of Barking and Dagenham, Havering, Redbridge and Newham and over the Essex border.",
 
-  "Ample Cleaners is a domestic and commercial cleaning service working across the east London boroughs. It sells five things: regular cleaning on a weekly, fortnightly or monthly visit; one-off deep cleans; end of tenancy cleans; office cleaning; and after-builders cleaning.",
+  "It handles five kinds of work: regular domestic cleaning, one-off deep cleans, end of tenancy cleaning, office and commercial cleaning, and after-builders cleaning. Everything is booked online rather than over the counter, and the cleaners travel to the property.",
 
-  "## What it costs",
+  "## Regular domestic cleaning",
 
-  "Regular cleaning is priced by the hour at £15, with a three-hour minimum, so the smallest booking is £45. Deep cleans, end of tenancy, office and after-builders work are quoted individually rather than charged by the hour, which is the usual arrangement for jobs where the amount of work is not obvious until someone has seen the place.",
+  "Regular cleaning runs on a weekly, fortnightly or monthly visit and is charged by the hour at £15, with a three-hour minimum — so the smallest booking comes to £45. According to the company there is no contract and a regular slot can be stopped at any time, which matters if you are trying a cleaner for the first time or only need help through a busy stretch.",
 
-  "Booking takes a 20% deposit, which is credited against the total rather than charged on top, with the balance due after the job. The site says changes are free up to 48 hours before a visit, and that regular cleaning runs with no contract and can be stopped at any time.",
+  "## Deep cleaning",
 
-  "## Where it covers",
+  "A deep clean is the one-off version: the jobs that a weekly visit never gets to, such as inside the oven, behind and under appliances, limescale in bathrooms, skirtings, door frames and window interiors. Deep cleans are quoted for the individual property rather than charged hourly, which is the usual arrangement for work where nobody can judge the scale of it from a postcode.",
 
-  "The named areas are Barking, Dagenham, Romford, Hornchurch, Ilford, Upminster, Stratford and Chadwell Heath, with a longer list of neighbourhoods across Redbridge, Havering, Newham and over the Essex border. Anyone outside that list is worth an email before assuming the answer is no.",
+  "## End of tenancy cleaning",
+
+  "End of tenancy cleaning is aimed at the handover at the end of a let, where the standard is set by the inventory check rather than by how clean the place looks. It is the service most often tied to getting a deposit back in full, and for landlords and letting agents in Romford, Ilford and Barking it is usually the difference between a flat that can be re-let next week and one that cannot. Like deep cleans, it is quoted per property.",
+
+  "## Office and commercial cleaning",
+
+  "Office cleaning covers workplaces rather than homes — desks, kitchens, washrooms and communal areas — and is quoted on the size of the space and how often it needs doing. For small offices and units around Ilford, Stratford and Dagenham this is typically an early-morning or evening visit scheduled around the working day.",
+
+  "## After-builders cleaning",
+
+  "After-builders cleaning is the clear-up once work finishes: construction dust, which settles everywhere and comes back twice, plus paint and adhesive residue, and the fine grit that ordinary vacuuming spreads rather than removes. It is quoted individually and is worth booking as a separate job rather than hoping a normal clean will cover it.",
+
+  "## Areas covered",
+
+  "The named coverage is Barking, Dagenham, Romford, Hornchurch, Ilford, Upminster, Stratford and Chadwell Heath, with further neighbourhoods listed across Redbridge, Havering, Newham and the Essex border. Addresses outside the list are worth asking about rather than assuming the answer is no.",
+
+  "## How booking works",
+
+  "Booking takes a 20% deposit, which is credited against the total rather than added to it, with the balance due after the job is done. The company says changes are free up to 48 hours before a visit.",
 
   "## What the company says about its cleaners",
 
-  "Ample Cleaners describes its cleaners as DBS-checked and the business as fully insured. It also advertises a 24-hour satisfaction guarantee: if something is not right and you say so within a day, it offers to re-clean.",
+  "Ample Cleaners describes its cleaners as DBS-checked and the business as fully insured, and advertises a 24-hour satisfaction guarantee: if something is not right and you raise it within a day, it offers to re-clean.",
 
-  "Those are the company's own statements and we have not verified them. If they matter to you — and for anyone letting a stranger into their home alone, they should — ask for the insurance certificate and the name of the insurer before the first visit, and ask how recently the DBS checks were done. A business that means it will not mind being asked.",
+  "Those are the company's own statements and PrimeStreet has not verified them. For any cleaner you are letting into your home alone, it is reasonable to ask for the name of the insurer and how recently the checks were done — a firm that means it will not mind being asked.",
 
-  "## What is not published yet",
+  "## Getting in touch",
 
-  "There is no trading address, no opening hours and no telephone number on the site at the time of writing, and no company registration number. For now the way in is the booking form at [amplecleaners.com](https://amplecleaners.com) or email at hello@amplecleaners.com.",
+  "Bookings and quotes go through the site at [amplecleaners.com](https://amplecleaners.com), or by email at hello@amplecleaners.com. No telephone line is listed at the time of writing.",
 
-  "That is normal for a service that comes to you rather than one you visit, but it does mean there is less to check than for an established firm. If you want a track record, this is not yet the place to find one: there are no published reviews and nothing we could find elsewhere.",
+  "\n---\n",
 
-  "## If you are comparing cleaners in east London",
-
-  "The questions worth asking any of them are the same. Who exactly is coming, and is it the same person each week? Are they employed or self-employed, and who is liable if something is broken? Is the hourly rate the whole price, or do materials, parking and congestion charge land on top? What happens if your regular cleaner is ill? And what is the notice period to stop — a service that needs a contract to keep you is telling you something.",
-
-  "\n---\n\n## What this is, and where these details came from",
-
-  "This is a sponsored post. The details above were read from amplecleaners.com on " + CHECKED + " and written in our own words. Prices and coverage change: check the site before you book.",
-
-  "Ample Cleaners is owned by PrimeStreet's founder. We publish that here rather than leaving you to work it out, because a media site that writes about its owner's businesses without saying so is not worth reading. Our rule is unchanged: nothing can be bought that affects a rating, a review, search order or ordinary editorial coverage — including by us.",
+  "Details above were read from amplecleaners.com on " + CHECKED + " and written in our own words. Prices and coverage change, so check the site before booking. PrimeStreet and Ample Cleaners share common ownership, and nothing was paid for this placement.",
 ].join("\n\n");
 
 const article = {
   type: "NEWS",
-  title: "Ample Cleaners: hourly domestic cleaning and end-of-tenancy work across east London",
+  title: "Ample Cleaners: domestic, end of tenancy and office cleaning across east London",
   standfirst:
-    "A cleaning service covering Barking, Dagenham, Romford and the surrounding boroughs, at £15 an hour for regular visits with a three-hour minimum. A sponsored post for a business owned by PrimeStreet's founder.",
+    "Regular cleaning at £15 an hour with a three-hour minimum, plus deep cleans, end of tenancy, office and after-builders work quoted per property, across Barking, Dagenham, Romford, Hornchurch, Ilford, Upminster and Stratford.",
   seoDescription:
-    "Ample Cleaners covers Barking, Dagenham, Romford, Hornchurch, Ilford, Upminster and Stratford: regular cleaning at £15 an hour with a three-hour minimum, plus deep cleans, end of tenancy, office and after-builders work quoted individually.",
+    "Ample Cleaners covers Barking, Dagenham, Romford, Hornchurch, Ilford, Upminster, Stratford and Chadwell Heath: regular domestic cleaning at £15 an hour, deep cleaning, end of tenancy cleaning, office cleaning and after-builders cleaning.",
   body,
   status: "PUBLISHED",
-  disclosure: "SPONSORED",
+  disclosure: "CONNECTED",
   isSample: false,
   featured: false,
 };
@@ -86,7 +102,6 @@ const data = { ...article, authorId: author.id, cityId: city.id, publishedAt: ex
 await db.article.upsert({ where: { slug: SLUG }, create: { slug: SLUG, ...data }, update: data });
 
 console.log(`${existing ? "Updated" : "Published"}: /news/${SLUG}`);
-console.log(`Author:     ${author.name} <${author.email}>`);
-console.log(`Disclosure: ${article.disclosure} + an explicit founder-ownership disclosure in the body`);
+console.log(`Disclosure: ${article.disclosure} — "Connected business", no individual named`);
 console.log("Not done:   no directory listing, and no telephone number published (the site's is a placeholder)");
 await db.$disconnect();

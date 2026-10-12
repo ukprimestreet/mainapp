@@ -21,6 +21,11 @@ export const DISCLOSURE = {
   SPONSORED: { label: "Sponsored", note: "Paid for by the business featured." },
   PARTNER: { label: "Partner", note: "Created in partnership with the business." },
   ADVERTORIAL: { label: "Advertorial", note: "Advertising content." },
+  // For a business connected to PrimeStreet by ownership. Nothing was paid, so "Sponsored" would be untrue,
+  // but the connection is material to a reader and withholding it is a banned practice under Schedule 1 of
+  // the Consumer Protection from Unfair Trading Regulations (now the DMCC Act 2024). This states the fact
+  // without naming anyone.
+  CONNECTED: { label: "Connected business", note: "PrimeStreet and this business share common ownership. Nothing was paid for this placement." },
 } as const;
 export type Disclosure = keyof typeof DISCLOSURE;
 
