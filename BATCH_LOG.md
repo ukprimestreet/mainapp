@@ -340,4 +340,44 @@ Or, smaller and useful either way: the successor mapping for the 7,037 flagged p
 
 ---
 
+## Decision record — D2: Ideal Postcodes for address and postcode lookup
+
+**Date:** 26 October 2026 · **Not a batch.** Configuration and verification only; no feature code was written.
+
+**Decision:** Ideal Postcodes (Royal Mail PAF). Key supplied by the owner, stored as `IDEAL_POSTCODES_KEY`.
+
+### Verified against the live API
+
+Using their **free test postcode `ID1 1QD`**, which returns the full schema without consuming a paid lookup:
+
+- Key status `available: true`, context `GBR`.
+- A lookup returns the complete PAF field set: address lines, building name and number, sub-building, thoroughfare, dependant locality, post town, `district`, `ward`, counties, country, `udprn`, `uprn`, coordinates and grid references.
+- **No GSS codes.** `district` and `ward` are names; `county_code` is empty.
+
+### What that changes
+
+Our `Place` tree keys on GSS codes, because one in five place names is ambiguous. So the two providers split the work and neither is asked to do the other's job: **Ideal Postcodes** supplies the address list and the chosen address, **postcodes.io** (free, already integrated) supplies the codes that connect it to `Place`.
+
+The name-matching fallback was measured rather than assumed: all **296** local authority names in our tree are distinct, and `"Hammersmith and Fulham"` matched `E09000013` exactly. **4 of 296** need a hand-verified alias because PAF will not reproduce the ONS form — Bristol, Herefordshire, Kingston upon Hull, and Bournemouth Christchurch and Poole. **Ward names are not unique** (6,428 of 6,834), so a ward is only ever resolved inside an identified authority.
+
+### Two things flagged rather than designed around
+
+1. **The key is not URL-restricted** — our server-side call carried no `Referer` and was accepted. Anyone holding it can spend against the account. It must stay server-side, a daily cap belongs in the Ideal Postcodes dashboard, and **this key should be rotated** because it has passed through a chat transcript.
+2. **Caching postcode-to-address results has licence implications.** PAF is licensed data; storing the address a user actually selected is normally permitted, a general cache to avoid future paid lookups generally is not. **To be confirmed against the terms before any cache exists.** That is a licence question, not a performance one.
+
+### Cost control written into the plan
+
+One paid lookup per postcode the user actually enters, on an explicit action rather than per keystroke; local postcode-shape validation before any spend; debounce and minimum length; per-IP and per-session rate limits reusing the enquiry form's controls; lookups counted in our own records so the bill is attributable; and every test suite uses the free test postcodes.
+
+### Files
+
+`docs/leadgen/ADDRESS_LOOKUP.md` (new), `.env.example`, `PROJECT_TODO.md`, `BATCH_LOG.md`. The key is in local `.env`, which is gitignored and was confirmed so before writing to it.
+
+### Open
+
+- `IDEAL_POSTCODES_KEY` is **set on Vercel production** (26 Oct, after the owner authorised a fresh device login to `ukprimestreet-6381`). Deliberately not set on preview, so a preview deployment cannot spend money.
+- The implementation is batch **B3**, not started.
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

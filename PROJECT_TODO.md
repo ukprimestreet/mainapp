@@ -22,14 +22,14 @@
 | A10 | Create the second project's planning documents (master plan now readable) | **COMPLETED** — `docs/leadgen/`: MASTER_PLAN, GEOGRAPHY_SCHEMA, LEAD_ROUTING_AND_PRIVACY, TECHNICAL_SEO_CHECKLIST, SEO_EXPERIMENTS, CONTENT_BRIEFS/, and four CSVs |
 | A11 | Verify Supabase can host the fine-grained cron | **COMPLETED** — pg_cron 1.6.4 + pg_net 0.20.4 available, Postgres 17.11, no `cron` schema yet; role is `postgres` with `supabase_privileged_role`, not superuser |
 | A8 | Obtain and read `UK_Local_Services_Lead_Generation_SEO_Master_Plan.docx` and the platform `.txt` | **COMPLETED** — both found in `docs/` on 26 October and read in full. The `.txt` is identical to the pasted prompt; the `.docx` adds England-first scope, per-category keyword scope, named demand sources, and a different suggested pilot area |
-| A9 | Owner decisions D2–D6 (D1 decided) | **AWAITING APPROVAL** — see below |
+| A9 | Owner decisions D3, D4, D6 (D1 and D2 decided) | **AWAITING APPROVAL** — see below |
 
-### A9 — the decisions that gate Phase B (D1 settled, five open)
+### A9 — the decisions that gate Phase B (D1 and D2 settled, three open plus D5 recommended)
 
 | ID | Decision | Why it blocks | Recommendation |
 |---|---|---|---|
 | ~~D1~~ | ~~Scheduler for the 3-minute escalation~~ | **DECIDED 26 Oct: Supabase `pg_cron`** for anything Vercel cannot schedule. Verified available on our instance (pg_cron 1.6.4, pg_net 0.20.4, not yet installed). Immediate escalation ships first and needs no scheduler | — |
-| D2 | Address-lookup provider and budget | Address-level selection needs licensed PAF/AddressBase. No free source exists | Ship manual cascading selection first; add address lookup when a provider is chosen |
+| ~~D2~~ | ~~Address-lookup provider and budget~~ | **DECIDED 26 Oct: Ideal Postcodes** (Royal Mail PAF). Key verified live against their free test postcode. Gives selectable addresses + UDPRN/UPRN, but **no GSS codes**, so postcodes.io still supplies the codes our tree keys on. See `docs/leadgen/ADDRESS_LOOKUP.md` | — |
 | D3 | Individual admin accounts | One shared password makes role-based PII restriction and per-admin audit impossible | Add an `AdminUser` model with a `role` field |
 | D4 | VAT treatment of £1 credits | Changes the displayed price and the invoice. Cannot sell before it is settled | Owner to confirm with an accountant |
 | D5 | Where business registration lives | No self-service go-live flow exists today | Extend the existing claim/owner flow |
@@ -46,7 +46,11 @@
 - [ ] Add the OGL attribution to the site — required wherever this data is published, and not yet present
 - [x] Joined — **7,037 places flagged `confidence=LOW`** and attached to their region because the 2016 authority no longer exists. None reattached by guesswork
 - [x] Alias layer live: 3,721 inverted sort forms from ONS plus 4 PrimeStreet editorial names, each with its own source. **Still to add: Dagenham Dock, Beam Park and Angel, which need a human source**
-- [ ] `resolvePostcode()` returning a **confirmable suggestion**, never a silent assignment
+- [ ] `resolvePostcode()` returning a **confirmable suggestion**, never a silent assignment — Ideal Postcodes for the address list, postcodes.io for the GSS codes
+- [ ] `src/lib/address.ts` + `/api/address/lookup` so the key never reaches the browser; rate limited; postcode shape validated before any paid call
+- [ ] Alias map for the 4 local authorities whose ONS name PAF will not reproduce verbatim (Bristol, Herefordshire, Kingston upon Hull, Bournemouth Christchurch and Poole)
+- [x] Set `IDEAL_POSTCODES_KEY` on Vercel production (26 Oct). Not set on preview, so preview cannot spend money
+- [ ] **Confirm the PAF caching terms** before building any postcode-to-address cache. Storing the address a user selected is normally fine; a general cache to avoid paying for lookups generally is not
 - [ ] Manual cascading selectors (country → region → authority → town → locality), searchable, usable on mobile
 - [ ] Mandatory location confirmation in onboarding, per D5
 - [ ] `BusinessServiceArea` with `EXACT` / `INCLUDES_CHILDREN`, scope visible to business and admin
