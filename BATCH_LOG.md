@@ -380,4 +380,64 @@ One paid lookup per postcode the user actually enters, on an explicit action rat
 
 ---
 
+## Batch B3 — address lookup, postcode resolution, service areas and categories
+
+**Date:** 26 October 2026
+**Authorised by:** owner — "continue"
+**Type:** schema plus feature code. **`dev` only. Production untouched in this batch. No landing pages.**
+
+### Built
+
+| | |
+|---|---|
+`src/lib/address.ts` | Ideal Postcodes client. Server-only. Shape validated locally before any paid call; free test postcodes bypass the caps; per-IP hourly and daily plus site-wide daily caps enforced **before** spending |
+`src/lib/place-resolve.ts` | `resolvePostcode()` — GSS-code path first, name fallback second, localities offered as ranked candidates and never auto-selected |
+`src/app/api/address/lookup/route.ts` | so the key never reaches the browser. Returns addresses and the resolved chain together, because two round-trips would double the latency on a phone |
+`scripts/ddl-service-areas.ts` | `BusinessServiceArea`, `BusinessCategory`, `CategoryAlias`, `AddressLookup` |
+`scripts/seed-category-aliases.ts` | 36 search terms onto canonical categories, each with its source |
+`scripts/test-address.ts` | 43 checks |
+
+### Design decisions worth keeping
+
+**The key never reaches the browser.** It is not URL-restricted, so client-side use would hand anyone the ability to spend against the account. Hence our own route handler.
+
+**Spend is refused before it happens, not after.** The order is deliberate: postcode shape locally → free test postcodes → caps → only then pay. An outcode like "E8" has no address list and a typo never will, so neither is paid for. Refusals are recorded as `free`, so they can never be mistaken for spend.
+
+**`AddressLookup` holds no address data.** Only that a lookup happened, its postcode, how many results, and whether it was free. PAF is licensed; the general cache that would make repeats free is **not built**, pending the terms check.
+
+**Nothing resolves by name if a code exists.** `via` records which route was taken — `gss` is trustworthy, `name` is a fallback and says so in a warning the user sees.
+
+**Localities are candidates, not answers.** postcodes.io returns a ward, not a neighbourhood: for RM10 7AA it gives "Eastbrook & Rush Green", not "Dagenham Dock". So nearby settlements are ranked by distance, inside the identified authority first, and the person picks. A test asserts that the ward names Rush Green while no suggested locality is wrongly placed in Barking and Dagenham — the B1 correction, now enforced in two places.
+
+### Verified — 43 checks, all passing
+
+Live calls used only Ideal Postcodes' **free test postcode**, so the suite never spends money. Covered: the refusal-before-spend ordering, the outcode message, free lookups not counting against caps, the hourly cap refusing a real lookup rather than charging it, PAF returning district/ward/UDPRN/coordinates, the post town not left shouting, resolution via GSS code to `E09000002`, the full England→ward chain, candidate ordering, an unresolvable postcode producing warnings rather than a guess, all 8 ONS-spelling aliases resolving to real authorities, alias mapping with 0 ambiguous terms, and the new join tables accepting and constraining data.
+
+588 unit checks pass across 18 suites. Build compiles; `/api/address/lookup` is in the route manifest.
+
+### The blocker this batch found
+
+**The directory's taxonomy is a sector taxonomy, not a trades one.** Its 12 categories are restaurants, cafes, beauty, gyms, property, retail, technology, professional services, logistics, construction, cleaning, removals. Only the last two are trades a lead can be routed to.
+
+**18 trades the brief requires have no category:** plumbing, electrical, painting-and-decorating, gardening, roofing, locksmith, handyman, heating-and-boilers, building, landscaping, plastering, tiling, carpentry, pest-control, rubbish-removal, fencing, driveways, flooring.
+
+These were **not** created automatically. A category is an editorial decision about what the directory covers, and it changes live URLs. Nothing can match a plumbing lead until they exist.
+
+### Open
+
+- The trade categories above — an owner decision, and now the first real blocker to Phase D.
+- Production has none of batch B3: no tables, no aliases. Needs authorisation.
+- The owner-facing pieces are not built: the cascading selector, the address picker UI, the service-area editor.
+- `pg_cron` and `pg_net` still need enabling in Supabase.
+- Rotate the Ideal Postcodes key, set a daily cap, confirm the PAF caching terms.
+- Decisions open: **D3** admin accounts · **D4** VAT · **D5** registration flow (recommended, awaiting confirmation) · **D6** pilot area.
+
+### Recommended next batch
+
+**B4 — onboarding UI**: the postcode-and-address picker, the cascading manual selector as its fallback, and the service-area editor, wired into the claim/owner flow per D5. It needs the trade categories to be genuinely useful, but it can be built against `cleaning` and `removals` and tested there.
+
+**Not started.**
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

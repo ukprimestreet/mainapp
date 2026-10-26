@@ -51,17 +51,35 @@ area are open. **None of them blocks batch B3** — the resolver and the geograp
 - [ ] Add the OGL attribution to the site — required wherever this data is published, and not yet present
 - [x] Joined — **7,037 places flagged `confidence=LOW`** and attached to their region because the 2016 authority no longer exists. None reattached by guesswork
 - [x] Alias layer live: 3,721 inverted sort forms from ONS plus 4 PrimeStreet editorial names, each with its own source. **Still to add: Dagenham Dock, Beam Park and Angel, which need a human source**
-- [ ] `resolvePostcode()` returning a **confirmable suggestion**, never a silent assignment — Ideal Postcodes for the address list, postcodes.io for the GSS codes
-- [ ] `src/lib/address.ts` + `/api/address/lookup` so the key never reaches the browser; rate limited; postcode shape validated before any paid call
-- [ ] Alias map for the 4 local authorities whose ONS name PAF will not reproduce verbatim (Bristol, Herefordshire, Kingston upon Hull, Bournemouth Christchurch and Poole)
+- [x] `resolvePostcode()` returning a **confirmable suggestion** — GSS-code path, name fallback, localities offered as ranked candidates and never auto-selected
+- [x] `src/lib/address.ts` + `/api/address/lookup` — key stays server-side, shape validated before any spend, per-IP hourly/daily and site-wide caps enforced **before** the call
+- [x] Alias map for the 4 ONS spellings PAF will not reproduce, each asserted against the imported tree by a test
 - [x] Set `IDEAL_POSTCODES_KEY` on Vercel production (26 Oct). Not set on preview, so preview cannot spend money
 - [ ] **Confirm the PAF caching terms** before building any postcode-to-address cache. Storing the address a user selected is normally fine; a general cache to avoid paying for lookups generally is not
 - [ ] Manual cascading selectors (country → region → authority → town → locality), searchable, usable on mobile
 - [ ] Mandatory location confirmation in onboarding, per D5
-- [ ] `BusinessServiceArea` with `EXACT` / `INCLUDES_CHILDREN`, scope visible to business and admin
-- [ ] `BusinessCategory` (multiple per business) and `CategoryAlias` (synonym mapping)
+- [x] `BusinessServiceArea` with `EXACT` / `INCLUDES_CHILDREN` — table live in dev; the owner-facing selector is still to build
+- [x] `BusinessCategory` and `CategoryAlias` — 36 search terms mapped, 0 ambiguous. **The taxonomy is the problem, not the mapping: see below**
 - [ ] Businesses can edit their location later, with the change recorded in `BusinessEditLog`
 - [ ] Tests: spec §18 items 1–7
+
+### Blocker found in B3: the taxonomy is a directory taxonomy, not a trades one
+
+The 12 existing categories are business **sectors** — restaurants, cafes, beauty, gyms, property, retail,
+technology, professional services, logistics, construction. Only `cleaning` and `removals` are trades the lead
+system can route to.
+
+**18 trades the brief requires have no category at all:** plumbing, electrical, painting-and-decorating,
+gardening, roofing, locksmith, handyman, heating-and-boilers, building, landscaping, plastering, tiling,
+carpentry, pest-control, rubbish-removal, fencing, driveways, flooring.
+
+A category is an editorial decision about what the directory covers and it changes live URLs, so these were
+**not** created automatically. They are needed before any trade lead can be matched.
+
+- [ ] Decide and add the trade categories (owner decision, affects live URLs)
+- [ ] Re-run `npm run geo:aliases` once they exist
+
+---
 
 ## Phase C — lead creation and admin dashboard · NOT STARTED
 

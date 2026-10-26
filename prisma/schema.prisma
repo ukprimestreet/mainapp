@@ -64,14 +64,16 @@ model Location {
 }
 
 model Category {
-  id         String     @id @default(cuid())
-  slug       String     @unique
-  name       String
-  intro      String?
-  parentId   String?
-  parent     Category?  @relation("CategoryTree", fields: [parentId], references: [id])
-  children   Category[] @relation("CategoryTree")
-  businesses Business[]
+  id            String             @id @default(cuid())
+  slug          String             @unique
+  name          String
+  intro         String?
+  parentId      String?
+  parent        Category?          @relation("CategoryTree", fields: [parentId], references: [id])
+  children      Category[]         @relation("CategoryTree")
+  businesses    Business[]
+  aliases       CategoryAlias[]
+  businessLinks BusinessCategory[]
 }
 
 model Business {
@@ -137,6 +139,8 @@ model Business {
   campaigns        Campaign[]
   teamInvites      TeamInvite[]
   specialHours     SpecialHours[]
+  serviceAreas     BusinessServiceArea[]
+  categories       BusinessCategory[]
 
   @@index([locationId])
   @@index([categoryId])
@@ -1011,10 +1015,11 @@ model Place {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  aliases    PlaceAlias[]
-  linksFrom  PlaceLink[]  @relation("PlaceLinkFrom")
-  linksTo    PlaceLink[]  @relation("PlaceLinkTo")
-  businesses Business[]
+  aliases      PlaceAlias[]
+  linksFrom    PlaceLink[]           @relation("PlaceLinkFrom")
+  linksTo      PlaceLink[]           @relation("PlaceLinkTo")
+  businesses   Business[]
+  serviceAreas BusinessServiceArea[]
 
   @@unique([parentId, slug])
   @@index([kind])
@@ -1058,4 +1063,68 @@ model PlaceLink {
 
   @@unique([fromId, toId, relation])
   @@index([toId])
+}
+
+/// Where a business is willing to work. Replaces the free-text Business.areasServed, which could not be
+/// matched against anything. INCLUDES_CHILDREN on a borough says "all of it" once rather than fifteen times,
+/// and the resolved scope is shown to the business and the administrator so nobody is guessing.
+model BusinessServiceArea {
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  placeId    String
+  place      Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  /// EXACT = this place only. INCLUDES_CHILDREN = this place and everything beneath it in the tree.
+  mode       String   @default("EXACT")
+  createdAt  DateTime @default(now())
+
+  @@id([businessId, placeId])
+  @@index([placeId])
+}
+
+/// A business can offer more than one service. Business.categoryId stays as the primary for now, because
+/// directory URLs are built from it; isPrimary here is the same fact, ready for when it moves.
+model BusinessCategory {
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@id([businessId, categoryId])
+  @@index([categoryId])
+}
+
+/// The words customers actually use. Somebody searching for a "painter" means painting and decorating, and
+/// a lead must reach the right trade rather than the nearest business. Each alias records where it came from.
+model CategoryAlias {
+  id         String   @id @default(cuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  alias      String
+  normalised String
+  source     String   @default("MANUAL")
+  createdAt  DateTime @default(now())
+
+  @@unique([categoryId, alias])
+  @@index([normalised])
+}
+
+/// One paid address lookup. Kept so the bill is predictable and attributable rather than discovered at the
+/// end of the month, and so a per-session cap can be enforced. No address data is retained here: PAF is
+/// licensed, and only the address a user actually selects is stored, against their own record.
+model AddressLookup {
+  id        String   @id @default(cuid())
+  postcode  String
+  results   Int      @default(0)
+  provider  String   @default("IDEAL_POSTCODES")
+  /// true when served without a paid call: a free test postcode, an invalid shape, or a refusal
+  free      Boolean  @default(false)
+  ipHash    String   @default("")
+  ok        Boolean  @default(true)
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([ipHash, createdAt])
 }

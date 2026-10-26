@@ -20,6 +20,25 @@ Row counts in production at 26 October 2026: 3 businesses, 6 articles, 9 search 
 
 ---
 
+## 2026-10-26 — service areas, multiple categories, category aliases, lookup accounting
+
+**Why:** batch B3. Structured service coverage in place of free text, more than one trade per business, the words customers actually use, and a record of every paid address lookup.
+
+| Table | Note |
+|---|---|
+`BusinessServiceArea` | `(businessId, placeId)` with `mode` = `EXACT` or `INCLUDES_CHILDREN`. Replaces the unmatched free-text `Business.areasServed`, which **stays** for now |
+`BusinessCategory` | `(businessId, categoryId)` with `isPrimary`. `Business.categoryId` **stays**: live directory URLs are built from it |
+`CategoryAlias` | search terms → canonical category, each with its source |
+`AddressLookup` | one row per lookup, so the bill is attributable and the per-IP caps are enforceable. **Holds no address data** — PAF is licensed |
+
+**Applied:** `scripts/ddl-service-areas.ts`, explicit schema-qualified DDL, additive, `IF NOT EXISTS`. **`dev` only**; the script now defaults to `dev` and needs `--schema=public`.
+
+**Verified:** 4/4 tables, RLS on all four, 5/5 foreign keys.
+
+**Rollback:** additive; dropping the four tables restores the previous state. Nothing existing was altered.
+
+---
+
 ## 2026-10-26 — `Place`, `PlaceAlias`, `PlaceLink`, `Business.placeId`
 
 **Why:** England-wide geography for the lead system. The existing `City`/`Location` tree stays in place and keeps serving live indexed URLs.
