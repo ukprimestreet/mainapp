@@ -111,6 +111,62 @@ A `Place` may not carry a landing page unless `pageJustified = YES` **and** a pr
 
 Normalise: lowercase, strip punctuation and `the`, collapse whitespace, fold accents. Compare within the same parent **and** across the alias table. Places legitimately sharing a name (there are several Richmonds) are distinguished by parent and GSS code, never merged.
 
+## 4a. Ambiguous place names — the measured problem and the plan
+
+An earlier note said "one in five English place names is ambiguous". **That figure was wrong**, and wrong in a way that would have led to the wrong design. It counted any name appearing on more than one row, which lumps together four different situations — three of which need *merging*, not disambiguating.
+
+Measured with `scripts/analyse-place-ambiguity.mjs` against the 50,257 settlement rows (`LOC`, `BUA`, `BUASD`), of 39,637 distinct settlement names:
+
+| Situation | Names | What it actually is | Treatment |
+|---|---|---|---|
+| Name used once | 34,470 | unambiguous | nothing to do |
+| Same authority, same type | 190 | one place recorded twice, or split across a boundary | **merge** |
+| Same authority, different type | 1,521 | one place recorded at two levels — Becontree is both a locality and a ward | **collapse** to the finest level |
+| Different authorities | 3,456 | genuinely different places sharing a name | **disambiguate** |
+
+So the real ambiguity rate is **8.7% of settlement names, not 20%** — and the inflated figure came from counting ward, parish and county rows that are hierarchy levels rather than places.
+
+### Geometry does most of the merging
+
+Clustering same-name rows by distance (single-link, 5 km) was tested against the data:
+
+- 5,167 names appear on more than one row → **12,800 distinct places**
+- **1,908 of those names collapse entirely to one place.** They were never ambiguous: they are built-up areas straddling a boundary. Accrington appears under both Hyndburn and Rossendale with an identical population of 35,456 — one town, two authorities. Aldershot appears under Guildford, Rushmoor and Waverley.
+- **3,259 names remain genuinely ambiguous.**
+
+Radius sensitivity is low — 3 km gives 3,327 and 10 km gives 3,182 — so the result does not hinge on picking the number precisely. 5 km is the default, recorded rather than tuned.
+
+Without this step we would create thousands of duplicate `Place` rows, which is exactly what the master plan forbids: *"Do not create multiple records for the same locality."*
+
+### What disambiguates the genuine residue
+
+| | Names | Share |
+|---|---|---|
+"Name, Local Authority" is unique | 2,817 | **86%** |
+Needs something finer — two distinct places in one authority | 442 | 1.1% of all settlement names |
+
+Region alone disambiguates **nothing** (0 cases) — it is too coarse, and the collisions are mostly within a region.
+
+The 442 hardest cases are two Aishes in South Hams, two Allingtons in Wiltshire, five Ashtons across Cornwall, Peterborough, Sedgemoor and Winchester. Almost all are tiny hamlets with no recorded population.
+
+### The plan
+
+1. **Nothing resolves by name.** Every reference — business location, service area, job request, matching, URL — keys on `place_id` and GSS codes. A name is a label for humans, never an identifier. This single rule removes the whole class of failure where a Havering lead reaches a Hertfordshire business.
+
+2. **Merge before disambiguating.** Import in this order: collapse same-authority level duplicates to the finest level, keeping the others as `PlaceLink` rows; then cluster remaining same-name rows within 5 km into one `Place` with multiple source rows recorded. Only what survives both steps is treated as a distinct place.
+
+3. **A computed disambiguation label**, not a hand-written one: the *shortest parent that makes the name unique*. "Becontree" where it is unique; "Rush Green, Havering" where it is not; "Allington, near Grantham" for the 442 that need a nearer landmark than the authority. Computed at import, stored, and shown in every selector.
+
+4. **Postcode first for customers, which makes this almost moot.** A postcode resolves to exactly one ward and one authority, so the lead flow asks for a postcode — which routing needs anyway — and name entry is only a convenience path. Ambiguity then affects a fallback, not the critical path.
+
+5. **Refuse to guess.** Where a typed name matches more than one place and no default is defensible, the interface asks. Population picks a default only where one place is at least five times larger than the rest (659 cases); for the 355 with no clear winner and the 2,442 with no population recorded, the system asks. **For lead routing specifically, an unresolvable location escalates to an administrator rather than being guessed**, because the cost of guessing is a stranger's phone number sent to a business 200 miles away.
+
+6. **Slugs follow the same rule.** A unique name gets the bare slug. A collision gets parent-qualified slugs, and the bare path serves a **disambiguation page listing the options** — never a 301 to whichever place we guessed. Two places may not compete for one URL, and neither may a guess.
+
+7. **The 442 hardest cases get no landing pages.** They are hamlets with no population on record and no realistic search demand. They remain resolvable by postcode and selectable in a list; they do not get a page, which also keeps us clear of thin-page risk. The decision is recorded per place in `pageJustified` / `decisionNotes`.
+
+8. **Tested on the known-hard names.** The import carries a fixture asserting the resolver's behaviour for Accrington and Aldershot (must merge), Rush Green and Abbey (must disambiguate), Aish and Allington (must ask), and Becontree (locality and ward must collapse to one place). A resolver that silently changes behaviour on these is a regression.
+
 ## 5. Migration — additive, and reversible
 
 Live URLs are indexed. `/locations/hackney`, `/businesses/london/cleaning/{slug}` and the city-scoped routes must not break.
