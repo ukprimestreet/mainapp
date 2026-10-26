@@ -622,3 +622,10 @@ Legend: `[x]` done · `[ ]` open · `(blocked)` needs info/credentials. See `pha
 ## Corrections to earlier notes
 - Production is **not** empty: 3 businesses, 6 articles and 9 search documents are in the `public` schema. `/news` shows none, so they are not in a published state — worth checking before loading more.
 - `prisma db push` against `schema=public` was inspecting `dev` through the transaction pooler (it offered to drop dev's 58-row `search_fts`). Schema changes to production are applied with explicit, schema-qualified DDL and verified per schema afterwards; do not trust `db push` through the pooler.
+
+## Lead-generation extension (separate tracker)
+Location-aware registration, automated lead distribution, lead credits and admin lead management are tracked in
+`PROJECT_TODO.md`, with the audit in `EXISTING_PLATFORM_AUDIT.md`, the design in `LOCATION_AND_LEAD_SYSTEM_SPEC.md`,
+migrations in `DATABASE_CHANGELOG.md` and batch history in `BATCH_LOG.md`.
+- [x] Phase A: audit and architecture (batch A1, 26 October 2026)
+- [ ] Phase B onwards: blocked on five owner decisions (scheduler, address-lookup provider, admin accounts, VAT, where registration lives)
