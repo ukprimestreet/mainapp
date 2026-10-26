@@ -1,5 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
+import { auditLog } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendMail } from "@/lib/mail";
@@ -7,8 +8,8 @@ import { SEND_LIMIT, buildDigest, renderForRecipient, unsubUrl } from "@/lib/new
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const back = (id: string, msg: string): never => redirect(`/admin/newsletter/${id}?msg=${encodeURIComponent(msg)}`);
-const audit = (action: string, id: string, detail?: string) => db.auditLog.create({ data: { action, targetType: "Newsletter", targetId: id, detail } });
-
+// Routed through lib/audit so the acting administrator is recorded on every entry.
+const audit = (action: string, id: string, detail?: string) => auditLog(action, "Newsletter", id, detail);
 export async function createDigest() {
   await requireAdmin();
   const d = await buildDigest(7);

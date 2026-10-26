@@ -1,5 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
+import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { geocodePending } from "@/lib/geo-db";
@@ -10,14 +11,14 @@ const back = (m: string): never => redirect(`/admin/search?msg=${encodeURICompon
 export async function reindexNow() {
   await requireAdmin();
   const r = await syncIndex({ force: true });
-  await db.auditLog.create({ data: { action: "SEARCH_REINDEX", targetType: "Search", targetId: "*", detail: `${r.changed} documents` } });
+  await audit({ action: "SEARCH_REINDEX", targetType: "Search", targetId: "*", detail: `${r.changed} documents` });
   back(`Rebuilt the search index (${r.changed} documents)`);
 }
 
 export async function geocodeAll() {
   await requireAdmin();
   const r = await geocodePending();
-  await db.auditLog.create({ data: { action: "GEOCODE_BUSINESSES", targetType: "Business", targetId: "*", detail: `${r.found}/${r.tried}` } });
+  await audit({ action: "GEOCODE_BUSINESSES", targetType: "Business", targetId: "*", detail: `${r.found}/${r.tried}` });
   back(r.tried ? `Geocoded ${r.found} of ${r.tried} businesses with a postcode${r.found < r.tried ? " (the rest have invalid postcodes or the lookup service was unreachable)" : ""}` : "Every business with a postcode already has coordinates");
 }
 

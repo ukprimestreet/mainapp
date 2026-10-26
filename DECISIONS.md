@@ -4,7 +4,7 @@ The decisions only you can make, in one place. Settled ones are kept with their 
 
 **Written for:** the owner. Each open decision states the question, what it changes, the options, and my recommendation. Answer by editing this file or just telling me.
 
-**Status: 2 settled · 4 open.** None of them is currently blocking batch B3.
+**Status: 3 settled · 3 open.** D4, D5 and D6 remain. None blocks the current work.
 
 ---
 
@@ -32,28 +32,15 @@ It gives selectable individual addresses plus UDPRN/UPRN, which postcodes.io can
 
 ## Open
 
-### D3 — Individual admin accounts
+### D3 — Individual admin accounts ✅ 26 October 2026
 
-**The question:** do we give administrators their own accounts, or carry on with one shared password?
+**Answer: the `AdminUser` model with role-based permissions.** No new vendor.
 
-**What it changes.** Today `/admin` is one shared password from `ADMIN_PASSWORD`. There is no `Admin` table and no roles. That makes two things in the brief impossible:
+Built: individual accounts with scrypt passwords, two roles (`SUPER_ADMIN`, `ADMIN`), a capability map enforced on the server at every protected operation, durable login throttling in the database, opt-in TOTP two-factor with recovery codes, and an audit log that names the acting administrator on all 35 call sites.
 
-- "Use role-based permissions to restrict access to customer contact details" (§10) — there is no identity to attach a role to.
-- Test 31, that an unauthorised user cannot reach admin lead details.
+The migration completes itself: the shared `ADMIN_PASSWORD` keeps working while no individual account can sign in, and stops the moment one can. Nobody has to remember to close the old door, and nobody can be locked out. `docs/admin-accounts.md` has the detail.
 
-It also means the audit log can only ever record *"admin"*, never **which** admin. For a system that shares members of the public's phone numbers with businesses and moves money between accounts, that is the gap I would least want to explain afterwards.
-
-| Option | Cost | Trade-off |
-|---|---|---|
-**`AdminUser` model with a `role` field** *(recommended)* | ~half a day | Reuses the scrypt password and session patterns already proven for writers. No new vendor, no new bill |
-Supabase Auth for staff | ~a day | Proper identity provider, SSO later. A second auth system alongside the three we have |
-Leave as is | nothing | Role-based PII restriction cannot be built, and money and moderation decisions stay unattributable |
-
-**My recommendation: the `AdminUser` model.** It is the smallest change that makes the rest honest, and it fits the three session patterns already in the codebase.
-
-**Needed before:** Phase C (the admin leads dashboard), because that screen is where customer contact details first appear.
-
----
+*Still needs from you:* run `npm run admin:ddl -- --schema=public` and create the first production account with `npm run admin:create`. Then remove `ADMIN_PASSWORD` once you have signed in with your own account.
 
 ### D4 — VAT on £1 lead credits
 

@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { auditLog } from "@/lib/audit";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { safeUrl } from "@/lib/business";
@@ -7,7 +8,8 @@ import { db } from "@/lib/db";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const back = (to: string, msg: string): never => redirect(`${to}?msg=${encodeURIComponent(msg)}`);
-const audit = (action: string, targetType: string, targetId: string, detail?: string) => db.auditLog.create({ data: { action, targetType, targetId, detail } });
+// Routed through lib/audit so the acting administrator is recorded on every entry.
+const audit = (action: string, targetType: string, targetId: string, detail?: string) => auditLog(action, targetType, targetId, detail);
 const date = (v: string) => { const d = /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(`${v}T00:00:00Z`) : null; return d && !isNaN(d.getTime()) ? d : null; };
 const endOfDay = (d: Date) => new Date(d.getTime() + 86400_000 - 1);
 
@@ -135,6 +137,28 @@ export async function updateSponsorship(fd: FormData) {
 export async function setEnquiryStatus(fd: FormData) {
   await requireAdmin();
   const st = s(fd, "status");
-  if (["NEW", "CONTACTED", "WON", "LOST"].includes(st)) await db.salesEnquiry.update({ where: { id: s(fd, "id") }, data: { status: st } }).catch(() => null);
+  // WON/LOST close the deal (closedAt set, for Phase 5 time-to-close); moving back out of either reopens it.
+  if (["NEW", "CONTACTED", "WON", "LOST"].includes(st)) {
+    const closedAt = st === "WON" || st === "LOST" ? new Date() : null;
+    await db.salesEnquiry.update({ where: { id: s(fd, "id") }, data: { status: st, closedAt } }).catch(() => null);
+  }
+  back("/admin/commerce/enquiries", "Updated");
+}
+
+/** Phase 5 sales CRM: assign (or unassign) a deal's sales owner. */
+export async function assignEnquiryOwner(fd: FormData) {
+  await requireAdmin();
+  const assignedToId = s(fd, "assignedToId") || null;
+  await db.salesEnquiry.update({ where: { id: s(fd, "id") }, data: { assignedToId } }).catch(() => null);
+  back("/admin/commerce/enquiries", "Updated");
+}
+
+/** Phase 5 sales CRM: set (or clear) a deal's next follow-up date. */
+export async function setEnquiryFollowUp(fd: FormData) {
+  await requireAdmin();
+  const raw = s(fd, "followUpAt");
+  const followUpAt = raw ? date(raw) : null;
+  if (raw && !followUpAt) back("/admin/commerce/enquiries", "Invalid date");
+  await db.salesEnquiry.update({ where: { id: s(fd, "id") }, data: { followUpAt } }).catch(() => null);
   back("/admin/commerce/enquiries", "Updated");
 }

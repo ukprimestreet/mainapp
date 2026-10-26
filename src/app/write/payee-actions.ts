@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { audit } from "@/lib/audit";
 import { requireAuthor } from "@/lib/author-auth";
 import { db } from "@/lib/db";
 import {
@@ -79,15 +80,11 @@ export async function savePayeeDetails(form: FormData) {
   }
 
   await db.author.update({ where: { id: me.id }, data });
-  await db.auditLog.create({
-    data: {
-      action: "Writer payment details changed",
+  await audit({ action: "Writer payment details changed",
       targetType: "Author",
       targetId: me.id,
       // What changed, never the values themselves.
-      detail: `${me.email ?? me.id} updated ${[bankChanged ? "bank account" : null, utrRaw ? "UTR" : null, "payee and tax fields"].filter(Boolean).join(", ")}`,
-    },
-  });
+      detail: `${me.email ?? me.id} updated ${[bankChanged ? "bank account" : null, utrRaw ? "UTR" : null, "payee and tax fields"].filter(Boolean).join(", ")}` });
 
   ok(bankChanged ? "Saved. Your account ends " + last4(accountNumber) + "." : "Saved.");
 }
@@ -99,8 +96,6 @@ export async function clearPayeeDetails() {
     where: { id: me.id },
     data: { bankEnc: null, bankLast4: null, bankUpdatedAt: null, utrEnc: null },
   });
-  await db.auditLog.create({
-    data: { action: "Writer payment details removed", targetType: "Author", targetId: me.id, detail: `${me.email ?? me.id} removed their bank details and UTR` },
-  });
+  await audit({ action: "Writer payment details removed", targetType: "Author", targetId: me.id, detail: `${me.email ?? me.id} removed their bank details and UTR` });
   redirect(`/write/payments/details?msg=${encodeURIComponent("Removed. We no longer hold your bank details or UTR.")}`);
 }

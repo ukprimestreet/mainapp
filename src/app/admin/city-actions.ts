@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { auditLog } from "@/lib/audit";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -8,8 +9,8 @@ import { EDITOR_ROLES, validateArea, validateCity } from "@/lib/cities";
 import { createRedirect } from "@/lib/redirects";
 
 
-const audit = (action: string, targetType: string, targetId: string, detail?: string) => db.auditLog.create({ data: { action, targetType, targetId, detail } });
-
+// Routed through lib/audit so the acting administrator is recorded on every entry.
+const audit = (action: string, targetType: string, targetId: string, detail?: string) => auditLog(action, targetType, targetId, detail);
 const back = (path: string, msg: string) => redirect(`${path}?msg=${encodeURIComponent(msg)}`);
 const str = (f: FormData, k: string) => (f.get(k) as string | null)?.toString() ?? "";
 

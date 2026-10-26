@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { auditLog } from "@/lib/audit";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -9,8 +10,8 @@ import { bizPath } from "@/lib/queries";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const back = (msg: string, tab = ""): never => redirect(`/admin/reviews?${tab ? `tab=${tab}&` : ""}msg=${encodeURIComponent(msg)}`);
-const audit = (action: string, id: string, detail?: string) => db.auditLog.create({ data: { action, targetType: "Review", targetId: id, detail } });
-
+// Routed through lib/audit so the acting administrator is recorded on every entry.
+const audit = (action: string, id: string, detail?: string) => auditLog(action, "Review", id, detail);
 export async function moderateReview(fd: FormData) {
   await requireAdmin();
   const id = s(fd, "id"), decision = s(fd, "decision"), note = s(fd, "note").slice(0, 500), tab = s(fd, "tab");

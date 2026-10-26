@@ -1,6 +1,7 @@
 "use server";
 
 import { randomBytes } from "crypto";
+import { audit } from "@/lib/audit";
 import { redirect } from "next/navigation";
 import { requireBusiness } from "@/lib/owner";
 import { db } from "@/lib/db";
@@ -139,6 +140,6 @@ export async function removeTeammate(form: FormData) {
 
   const person = await db.owner.findUnique({ where: { id: ownerId } });
   await db.businessOwner.deleteMany({ where: { businessId: id, ownerId } });
-  await db.auditLog.create({ data: { action: "Team member removed", targetType: "Business", targetId: id, detail: `${person?.email ?? ownerId} by ${owner.email}` } });
+  await audit({ action: "Team member removed", targetType: "Business", targetId: id, detail: `${person?.email ?? ownerId} by ${owner.email}` });
   back(`${person?.name ?? "They"} no longer manage this business.`);
 }

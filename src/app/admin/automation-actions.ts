@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { runAutomation } from "@/lib/automations";
@@ -12,7 +13,7 @@ export async function toggleAutomation(form: FormData) {
   await requireAdmin();
   const key = s(form, "key"), on = s(form, "enabled") === "1";
   await db.automation.upsert({ where: { key }, create: { key, enabled: on }, update: { enabled: on } });
-  await db.auditLog.create({ data: { action: on ? "Automation enabled" : "Automation disabled", targetType: "Automation", targetId: key, detail: process.env.ADMIN_EMAIL ?? "admin" } });
+  await audit({ action: on ? "Automation enabled" : "Automation disabled", targetType: "Automation", targetId: key, detail: process.env.ADMIN_EMAIL ?? "admin" });
   back(on ? `"${key}" is on. It will send on the next run.` : `"${key}" is off. Nothing further will send.`);
 }
 
@@ -44,6 +45,6 @@ export async function runNow(form: FormData) {
 export async function pauseAll() {
   await requireAdmin();
   const n = await db.automation.updateMany({ where: { enabled: true }, data: { enabled: false } });
-  await db.auditLog.create({ data: { action: "All automations paused", targetType: "Automation", targetId: "*", detail: process.env.ADMIN_EMAIL ?? "admin" } });
+  await audit({ action: "All automations paused", targetType: "Automation", targetId: "*", detail: process.env.ADMIN_EMAIL ?? "admin" });
   back(`Stopped. ${n.count} ${n.count === 1 ? "automation is" : "automations are"} now off.`);
 }

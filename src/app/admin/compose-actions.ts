@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth";
 import { adminAuthor } from "@/lib/author-auth";
 import { db } from "@/lib/db";
@@ -84,8 +85,9 @@ export async function adminPublishArticle(form: FormData) {
 
   await db.$transaction([
     db.article.update({ where: { id }, data: { status: "PUBLISHED", publishedAt: article!.publishedAt ?? new Date() } }),
-    db.articleReview.create({ data: { articleId: id, decision: "APPROVED", note: "Written and published by an editor.", reviewer: process.env.ADMIN_EMAIL ?? "admin" } }),
-    db.auditLog.create({ data: { action: "Article published by admin", targetType: "Article", targetId: id, detail: article!.title } }),
+    db.articleReview.create({ data: { articleId: id, decision: "APPROVED", note: "Written and published by an editor.", reviewer: process.env.ADMIN_EMAIL ?? "admin" } }),
   ]);
+  // Outside the transaction on purpose: a failed audit write must not roll back the decision.
+  await audit({ action: "Article published by admin", targetType: "Article", targetId: id, detail: article!.title });
   redirect(`/admin/articles?msg=${encodeURIComponent(`Published "${article!.title}".`)}`);
 }

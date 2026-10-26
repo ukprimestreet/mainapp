@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { auditLog } from "@/lib/audit";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { websiteHost } from "@/lib/business";
@@ -8,8 +9,8 @@ import { sendMail } from "@/lib/mail";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const back = (msg: string): never => redirect(`/admin/owner-inbox?msg=${encodeURIComponent(msg)}`);
-const audit = (action: string, targetType: string, targetId: string, detail?: string) => db.auditLog.create({ data: { action, targetType, targetId, detail } });
-
+// Routed through lib/audit so the acting administrator is recorded on every entry.
+const audit = (action: string, targetType: string, targetId: string, detail?: string) => auditLog(action, targetType, targetId, detail);
 export async function resolveChangeRequest(fd: FormData) {
   await requireAdmin();
   const id = s(fd, "id"), decision = s(fd, "decision"), note = s(fd, "note").slice(0, 500);

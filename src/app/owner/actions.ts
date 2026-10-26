@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { audit } from "@/lib/audit";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { ipHash, sha256 } from "@/lib/antispam";
@@ -123,7 +124,7 @@ export async function respondToReviewAsOwner(_: OState, fd: FormData): Promise<O
   const response = s(fd, "response");
   if (response.length < 10 || response.length > 1500) return { message: "A response must be 10–1500 characters." };
   await db.review.update({ where: { id: ctx.r.id }, data: { response, respondedAt: new Date() } });
-  await db.auditLog.create({ data: { action: "OWNER_REVIEW_RESPONSE", targetType: "Review", targetId: ctx.r.id, detail: ctx.owner.email } });
+  await audit({ action: "OWNER_REVIEW_RESPONSE", targetType: "Review", targetId: ctx.r.id, detail: ctx.owner.email });
   revalidatePath("/", "layout");
   return { ok: true, message: "Response published." };
 }

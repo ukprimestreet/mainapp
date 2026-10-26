@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { DECISIONS, type Decision } from "@/lib/editorial-flow";
@@ -35,14 +36,11 @@ export async function decide(form: FormData) {
     db.article.update({
       where: { id },
       data: approved ? { status: "PUBLISHED", publishedAt: article!.publishedAt ?? new Date() } : { status: "DRAFT" },
-    }),
-    db.auditLog.create({
-      data: {
-        action: approved ? "Article approved" : "Article changes requested",
-        targetType: "Article", targetId: id, detail: `${article!.title} — ${reviewer}`,
-      },
-    }),
+    }),
   ]);
+  // Outside the transaction on purpose: a failed audit write must not roll back the decision.
+  await audit({ action: approved ? "Article approved" : "Article changes requested",
+    targetType: "Article", targetId: id, detail: `${article!.title} — ${reviewer}` });
 
   const path = ARTICLE_TYPES[article!.type as ArticleType]?.path ?? "news";
   if (article!.author.email) {

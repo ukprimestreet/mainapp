@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notify } from "@/lib/notify";
@@ -27,7 +28,7 @@ export async function addCorrection(form: FormData) {
       correctedBy: admin(),
     },
   });
-  await db.auditLog.create({ data: { action: "Correction published", targetType: "Article", targetId: articleId, detail: summary.slice(0, 160) } });
+  await audit({ action: "Correction published", targetType: "Article", targetId: articleId, detail: summary.slice(0, 160) });
   if (article!.authorId) {
     await notify("AUTHOR", article!.authorId, "SYSTEM", `A correction was published on "${article!.title}"`, summary, `/write/articles/${articleId}`);
   }
@@ -38,7 +39,7 @@ export async function removeCorrection(form: FormData) {
   await requireAdmin();
   const id = s(form, "id");
   await db.correction.delete({ where: { id } }).catch(() => {});
-  await db.auditLog.create({ data: { action: "Correction removed", targetType: "Correction", targetId: id, detail: admin() } });
+  await audit({ action: "Correction removed", targetType: "Correction", targetId: id, detail: admin() });
   redirect("/admin/corrections?msg=Removed");
 }
 
@@ -47,6 +48,6 @@ export async function saveSetting(form: FormData) {
   await requireAdmin();
   const key = s(form, "key"), value = s(form, "value").trim();
   await db.setting.upsert({ where: { key }, create: { key, value, updatedBy: admin() }, update: { value, updatedBy: admin() } });
-  await db.auditLog.create({ data: { action: "Setting changed", targetType: "Setting", targetId: key, detail: `${value.slice(0, 80)} — ${admin()}` } });
+  await audit({ action: "Setting changed", targetType: "Setting", targetId: key, detail: `${value.slice(0, 80)} — ${admin()}` });
   redirect(`/admin/settings?msg=${encodeURIComponent(`Saved ${key}.`)}`);
 }

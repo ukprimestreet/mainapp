@@ -20,6 +20,28 @@ Row counts in production at 26 October 2026: 3 businesses, 6 articles, 9 search 
 
 ---
 
+## 2026-10-26 — `AdminUser`, `AdminLoginAttempt`, and an actor on every audit row
+
+**Why:** decision D3. Individual administrator accounts, so a role can attach to a person and an audit entry can name who acted.
+
+| Object | Note |
+|---|---|
+`AdminUser` | email (unique), scrypt password, role, active, one-time setup token (hashed), encrypted TOTP secret, hashed recovery codes, `sessionVersion` for revocation |
+`AdminLoginAttempt` | login attempts **in the database**, so throttling survives a deploy. Holds a hash of the email, never a password or hash |
+`AuditLog.actorId` | FK to `AdminUser`, `ON DELETE SET NULL` |
+`AuditLog.actorEmail` | the email as it was at the time, so the trail survives a rename or deletion |
+`AuditLog.actorKind` | `ADMIN` · `SUPER_ADMIN` · `AUTHOR` · `OWNER` · `SYSTEM` |
+
+**Existing audit rows keep a null actor.** Before this change there was one shared password and therefore no identity to record; back-filling a name onto an action nobody can attribute would be worse than an honest gap.
+
+**Applied:** `scripts/ddl-admin-users.ts`, explicit schema-qualified DDL, additive, `IF NOT EXISTS`. **`dev` only.** Production needs `--schema=public`.
+
+**Verified:** 2/2 tables, 3/3 audit columns, RLS on both tables, the foreign key present.
+
+**Rollback:** additive. Dropping the two tables and the three columns restores the previous state; the shared-password login still works and is unchanged.
+
+---
+
 ## 2026-10-26 — service areas, multiple categories, category aliases, lookup accounting
 
 **Why:** batch B3. Structured service coverage in place of free text, more than one trade per business, the words customers actually use, and a record of every paid address lookup.

@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { auditLog } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { inviteAuthor, resendInvite } from "@/lib/author-auth";
@@ -8,8 +9,8 @@ import { validEmail } from "@/lib/authors";
 import { sendMail } from "@/lib/mail";
 
 const s = (f: FormData, k: string) => ((f.get(k) as string | null) ?? "").toString();
-const audit = (action: string, targetId: string, detail?: string) =>
-  db.auditLog.create({ data: { action, targetType: "Author", targetId, detail } });
+// Routed through lib/audit so the acting administrator is recorded on every entry.
+const audit = (action: string, targetId: string, detail?: string) => auditLog(action, "Author", targetId, detail);
 const back = (msg: string, path = "/admin/authors") => redirect(`${path}?msg=${encodeURIComponent(msg)}`);
 
 /** Register a writer: creates the account and emails them a link to finish setting it up. */

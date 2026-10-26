@@ -1,12 +1,14 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { auditLog } from "@/lib/audit";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createRedirect, normalisePath } from "@/lib/redirects";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
-const audit = (action: string, targetId: string, detail?: string) => db.auditLog.create({ data: { action, targetType: "Seo", targetId, detail } });
+// Routed through lib/audit so the acting administrator is recorded on every entry.
+const audit = (action: string, targetId: string, detail?: string) => auditLog(action, "Seo", targetId, detail);
 const RESERVED = ["/admin", "/owner", "/api", "/_next"];
 
 export type SeoState = { ok?: boolean; message?: string; errors?: Record<string, string> };

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { audit } from "./audit";
 import { db } from "./db";
 import { findDuplicate, normName, normPhone, safeUrl, slugify, uniqueSlug, websiteHost } from "./business";
 
@@ -91,7 +92,7 @@ export async function runImport(text: string, opts: { dryRun: boolean }): Promis
         normName: normName(d.name), source: d.source, claimStatus: "UNCLAIMED", isSample: false, published: true,
       },
     });
-    await db.auditLog.create({ data: { action: "IMPORT_CREATE", targetType: "Business", targetId: slug, detail: d.source } });
+    await audit({ action: "IMPORT_CREATE", targetType: "Business", targetId: slug, detail: d.source });
     results.push({ line, name, status: "create", slug });
   }
   const count = (s: RowResult["status"]) => results.filter((r) => r.status === s).length;

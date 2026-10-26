@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { auditLog } from "@/lib/audit";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { safeUrl, slugify } from "@/lib/business";
@@ -10,8 +11,8 @@ import { londonToDate, validateArticle, type ArticleInput, type Intent } from "@
 
 export type ArticleState = { errors?: Record<string, string>; message?: string };
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
-const audit = (action: string, targetId: string, detail?: string) => db.auditLog.create({ data: { action, targetType: "Article", targetId, detail } });
-
+// Routed through lib/audit so the acting administrator is recorded on every entry.
+const audit = (action: string, targetId: string, detail?: string) => auditLog(action, "Article", targetId, detail);
 export async function saveArticle(_: ArticleState, fd: FormData): Promise<ArticleState> {
   await requireAdmin();
   const id = s(fd, "id") || undefined;
@@ -100,7 +101,7 @@ export async function saveAuthor(_: AuthorState, fd: FormData): Promise<AuthorSt
   if (bio.length > 600) errors.bio = "Bio is over 600 characters";
   if (Object.keys(errors).length) return { errors };
   const a = id ? await db.author.update({ where: { id }, data: { name, slug, role: role || null, bio: bio || null } }) : await db.author.create({ data: { name, slug, role: role || null, bio: bio || null } });
-  await db.auditLog.create({ data: { action: id ? "AUTHOR_UPDATE" : "AUTHOR_CREATE", targetType: "Author", targetId: a.id, detail: name } });
+  await auditLog(id ? "AUTHOR_UPDATE" : "AUTHOR_CREATE", "Author", a.id, name);
   revalidatePath("/", "layout");
   redirect(`/admin/authors?msg=${encodeURIComponent("Saved")}`);
 }

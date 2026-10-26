@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { auditLog } from "@/lib/audit";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
@@ -11,8 +12,8 @@ import { createRedirect } from "@/lib/redirects";
 
 export type EpState = { errors?: Record<string, string>; message?: string };
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
-const audit = (action: string, targetType: string, targetId: string, detail?: string) => db.auditLog.create({ data: { action, targetType, targetId, detail } });
-
+// Routed through lib/audit so the acting administrator is recorded on every entry.
+const audit = (action: string, targetType: string, targetId: string, detail?: string) => auditLog(action, targetType, targetId, detail);
 export async function probeAudioAction(url: string) { await requireAdmin(); return probeAudio(url.trim()); }
 
 export async function saveEpisode(_: EpState, fd: FormData): Promise<EpState> {

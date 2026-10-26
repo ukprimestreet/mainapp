@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { auditLog } from "@/lib/audit";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { adminConfigured, clearFails, clearSession, clientKey, emailOk, passwordOk, recordFail, requireAdmin, setSession, throttled } from "@/lib/auth";
@@ -11,8 +12,8 @@ import { db } from "@/lib/db";
 import { runImport, type ImportReport } from "@/lib/importer";
 
 const back = (path: string, msg: string): never => redirect(`${path}?msg=${encodeURIComponent(msg)}`);
-const audit = (action: string, targetType: string, targetId: string, detail?: string) => db.auditLog.create({ data: { action, targetType, targetId, detail } });
-
+// Routed through lib/audit so the acting administrator is recorded on every entry.
+const audit = (action: string, targetType: string, targetId: string, detail?: string) => auditLog(action, targetType, targetId, detail);
 export async function login(_: { error?: string }, fd: FormData): Promise<{ error?: string }> {
   if (!adminConfigured()) return { error: "Admin login is not configured on this server." };
   const key = await clientKey();

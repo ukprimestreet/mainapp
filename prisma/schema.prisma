@@ -567,12 +567,23 @@ model BusinessSubmission {
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
+  id         String     @id @default(cuid())
   action     String
   targetType String
   targetId   String
   detail     String?
-  createdAt  DateTime @default(now())
+  /// Who did it. Null for system actions (the cron) and for pre-migration rows written when there was only
+  /// one shared admin password and therefore no identity to record.
+  actorId    String?
+  actor      AdminUser? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  /// The actor email as it was at the time, so the trail survives a rename or a deletion.
+  actorEmail String?
+  /// ADMIN | SUPER_ADMIN | AUTHOR | OWNER | SYSTEM
+  actorKind  String?
+  createdAt  DateTime   @default(now())
+
+  @@index([actorId])
+  @@index([createdAt])
 }
 
 // Per-page SEO controls, keyed by the page's canonical path (e.g. "/locations/hackney", "/locations/hackney/cleaning").
@@ -697,11 +708,39 @@ model Order {
   business        Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   ownerId         String?
   productKey      String
-  amountPence     Int
+  amountPence     Int // gross, as charged — includes VAT when vatPence > 0
+  /// The VAT portion of amountPence. Always 0 while VAT is switched off in Settings (the default, pending
+  /// VAT registration). Snapshotted at the moment the order is created so a later rate change never rewrites history.
+  vatPence        Int       @default(0)
+  /// Basis points (2000 = 20%) in force when this order was created. 0 when VAT was off. Kept for audit even
+  /// after the rate or the toggle changes.
+  vatRateBp       Int       @default(0)
+  /// CHECKOUT = the initial Stripe Checkout Session. RENEWAL = a later subscription billing cycle, recorded
+  /// from `invoice.paid` so recurring revenue beyond the first period is not invisible to reporting. MANUAL =
+  /// an admin-granted plan with no card payment.
+  source          String    @default("CHECKOUT")
   status          String    @default("PENDING") // PENDING | PAID | FAILED | REFUNDED
   stripeSessionId String?   @unique
   createdAt       DateTime  @default(now())
   paidAt          DateTime?
+}
+
+/// A manually recorded operating cost. Phase 2 of the admin growth dashboard — see admin-dashboard-audit.md.
+/// Separate from WriterPayment, which stays the editorial-freelancer ledger it already was.
+model Expense {
+  id          String    @id @default(cuid())
+  /// HOSTING | MARKETING | SALES | CONTENT | CONTRACTORS | PAYMENT_FEES | OTHER
+  category    String
+  description String
+  amountPence Int
+  date        DateTime
+  recurring   Boolean   @default(false)
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  @@index([date])
+  @@index([category])
 }
 
 // Idempotency for webhooks: a Stripe event id is processed at most once.
@@ -800,6 +839,16 @@ model SalesEnquiry {
   businessId String?
   status     String   @default("NEW") // NEW | CONTACTED | WON | LOST
   createdAt  DateTime @default(now())
+
+  /// Phase 5 sales CRM: who owns this deal, when to follow up next, and when it left the pipeline
+  /// (set alongside status moving to WON/LOST). All optional — no enquiry has ever had these recorded
+  /// before Phase 5, and an enquiry can sit unassigned/un-followed-up indefinitely.
+  assignedToId String?
+  assignedTo   AdminUser? @relation(fields: [assignedToId], references: [id])
+  followUpAt   DateTime?
+  closedAt     DateTime?
+
+  @@index([assignedToId])
 }
 
 // ============================================================================
@@ -1126,5 +1175,57 @@ model AddressLookup {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+  @@index([ipHash, createdAt])
+}
+
+/// An individual administrator. Replaces the single shared ADMIN_PASSWORD so that a role can be attached to
+/// a person and an audit entry can name who did it — which matters for a system that shares members of the
+/// public's phone numbers with businesses and moves money between accounts.
+model AdminUser {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  name         String
+  /// SUPER_ADMIN | ADMIN — see lib/admin-users.ts for what each may do.
+  role         String  @default("ADMIN")
+  /// scrypt, via lib/author-password.ts. Null until the account is set up from its one-time link.
+  passwordHash String?
+  active       Boolean @default(true)
+
+  /// Phase 5 sales CRM: deals assigned to this admin as the sales owner.
+  assignedEnquiries SalesEnquiry[]
+
+  /// One-time setup or reset link. Hash only; the token itself is shown once and never stored.
+  setupTokenHash String?   @unique
+  setupExpiresAt DateTime?
+
+  /// TOTP second factor, opt-in. The secret is encrypted at rest (lib/secretbox.ts), never stored plainly.
+  totpSecretEnc      String?
+  totpConfirmedAt    DateTime?
+  /// Hashed single-use recovery codes, so losing a phone is not losing the account.
+  recoveryCodeHashes String?
+
+  /// Bumping this invalidates every existing session for this admin.
+  sessionVersion Int       @default(1)
+  lastLoginAt    DateTime?
+  createdBy      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  auditEvents AuditLog[]
+
+  @@index([active])
+}
+
+/// Login attempts, kept in the database rather than in memory so throttling survives a deploy and so there
+/// is a trail if someone is probing the admin door. No password or password hash is ever recorded here.
+model AdminLoginAttempt {
+  id        String   @id @default(cuid())
+  emailHash String // sha256 of the lowercased email: enough to throttle per account without storing it
+  ipHash    String
+  ok        Boolean  @default(false)
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([emailHash, createdAt])
   @@index([ipHash, createdAt])
 }

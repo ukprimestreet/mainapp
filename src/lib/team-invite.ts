@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { audit } from "./audit";
 import { sha256 } from "./antispam";
 import { setOwnerSession } from "./owner";
 
@@ -45,9 +46,7 @@ export async function acceptInvite(token: string): Promise<{ ok: true; businessI
     create: { ownerId: owner.id, businessId: invite.businessId },
     update: {},
   });
-  await db.auditLog.create({
-    data: { action: "Team member added", targetType: "Business", targetId: invite.businessId, detail: `${email} accepted an invitation from ${invite.invitedBy}` },
-  });
+  await audit({ action: "Team member added", targetType: "Business", targetId: invite.businessId, detail: `${email} accepted an invitation from ${invite.invitedBy}` });
   await db.owner.update({ where: { id: owner.id }, data: { lastLoginAt: new Date() } });
   await setOwnerSession(owner.id, owner.sessionVersion);
   return { ok: true, businessId: invite.businessId };

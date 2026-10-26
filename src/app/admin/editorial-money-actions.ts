@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notify } from "@/lib/notify";
@@ -66,7 +67,7 @@ export async function offerCommission(form: FormData) {
       { purpose: "editorial" },
     );
   }
-  await db.auditLog.create({ data: { action: "Commission offered", targetType: "Commission", targetId: c.id, detail: `${title} to ${author!.email} by ${who()}` } });
+  await audit({ action: "Commission offered", targetType: "Commission", targetId: c.id, detail: `${title} to ${author!.email} by ${who()}` });
   back(`Offered "${title}" to ${author!.name}.`);
 }
 
@@ -99,7 +100,7 @@ export async function cancelCommission(form: FormData) {
       { purpose: "editorial" },
     );
   }
-  await db.auditLog.create({ data: { action: "Commission cancelled", targetType: "Commission", targetId: id, detail: `${reason} by ${who()}` } });
+  await audit({ action: "Commission cancelled", targetType: "Commission", targetId: id, detail: `${reason} by ${who()}` });
   back("Cancelled, and the writer has been told why.");
 }
 
@@ -144,7 +145,7 @@ export async function markDelivered(form: FormData) {
       { purpose: "billing" },
     );
   }
-  await db.auditLog.create({ data: { action: "Commission delivered", targetType: "Commission", targetId: id, detail: `${gbp(c!.feePence!)} owed to ${c!.author.email}` } });
+  await audit({ action: "Commission delivered", targetType: "Commission", targetId: id, detail: `${gbp(c!.feePence!)} owed to ${c!.author.email}` });
   back(`Delivered. ${gbp(c!.feePence!)} is now ready for ${c!.author.name} to invoice.`);
 }
 
@@ -171,7 +172,7 @@ export async function addPayment(form: FormData) {
     payee.payable ? description : `${description}. We still need ${payee.missing.join(", ")} before we can pay you.`,
     payee.payable ? "/write/payments" : "/write/payments/details",
   );
-  await db.auditLog.create({ data: { action: "Writer fee added", targetType: "Author", targetId: authorId, detail: `${gbp(amount)} — ${description} by ${who()}` } });
+  await audit({ action: "Writer fee added", targetType: "Author", targetId: authorId, detail: `${gbp(amount)} — ${description} by ${who()}` });
   back(`${gbp(amount)} added for ${author!.name} to invoice.`);
 }
 
@@ -188,7 +189,7 @@ export async function approvePayments(form: FormData) {
   for (const r of rows) {
     await notify("AUTHOR", r.authorId, "PAYMENT", `${gbp(r.amountPence)} approved for payment`, `For "${r.description}". It will go out in the next payment run.`, "/write/payments");
   }
-  await db.auditLog.create({ data: { action: "Writer payments approved", targetType: "WriterPayment", targetId: rows.map((r) => r.id).join(","), detail: `${rows.length} item(s) by ${who()}` } });
+  await audit({ action: "Writer payments approved", targetType: "WriterPayment", targetId: rows.map((r) => r.id).join(","), detail: `${rows.length} item(s) by ${who()}` });
   back(`Approved ${rows.length} ${rows.length === 1 ? "item" : "items"}. Mark them paid once the money has actually gone.`);
 }
 
@@ -232,7 +233,7 @@ export async function markPaid(form: FormData) {
       );
     }
   }
-  await db.auditLog.create({ data: { action: "Writer payments paid", targetType: "WriterPayment", targetId: rows.map((r) => r.id).join(","), detail: `${gbp(rows.reduce((n, r) => n + r.amountPence, 0))} by ${who()}` } });
+  await audit({ action: "Writer payments paid", targetType: "WriterPayment", targetId: rows.map((r) => r.id).join(","), detail: `${gbp(rows.reduce((n, r) => n + r.amountPence, 0))} by ${who()}` });
   back(`Marked ${rows.length} ${rows.length === 1 ? "item" : "items"} paid.`);
 }
 
@@ -265,7 +266,7 @@ export async function queryInvoice(form: FormData) {
       { purpose: "billing" },
     );
   }
-  await db.auditLog.create({ data: { action: "Writer invoice queried", targetType: "WriterPayment", targetId: id, detail: `${reason} by ${who()}` } });
+  await audit({ action: "Writer invoice queried", targetType: "WriterPayment", targetId: id, detail: `${reason} by ${who()}` });
   back("Sent back to the writer with your query.");
 }
 
@@ -280,8 +281,6 @@ export async function revealBankDetails(form: FormData) {
   const authorId = s(form, "authorId");
   const author = await db.author.findUnique({ where: { id: authorId } });
   if (!author) redirect(`/admin/payments?msg=${encodeURIComponent("That writer no longer exists.")}`);
-  await db.auditLog.create({
-    data: { action: "Writer bank details viewed", targetType: "Author", targetId: authorId, detail: `${author!.email ?? authorId} viewed by ${who()}` },
-  });
+  await audit({ action: "Writer bank details viewed", targetType: "Author", targetId: authorId, detail: `${author!.email ?? authorId} viewed by ${who()}` });
   redirect(`/admin/payments?reveal=${authorId}`);
 }

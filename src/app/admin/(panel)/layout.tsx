@@ -2,10 +2,10 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { AccountBlock, DashLayout, type NavGroup } from "@/components/Dash";
-import { requireAdmin } from "@/lib/auth";
+import { adminCan, requireAdmin } from "@/lib/auth";
 import { queueCount } from "@/lib/editorial-flow";
 import { db } from "@/lib/db";
-import { logout } from "../actions";
+import { adminSignOut } from "../admin-actions";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -21,6 +21,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     db.commission.count({ where: { status: "OFFERED" } }),
     db.writerPayment.count({ where: { status: { in: ["SUBMITTED", "APPROVED"] } } }),
   ]);
+
+  const canManageAdmins = await adminCan("admins.manage");
+  const pendingAdmins = canManageAdmins ? await db.adminUser.count({ where: { passwordHash: null, active: true } }) : 0;
 
   const groups: NavGroup[] = [
     { title: "Overview", items: [{ href: "/admin", label: "Dashboard", icon: "home", exact: true }] },
@@ -53,11 +56,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ] },
     { title: "System", items: [
       { href: "/admin/audit", label: "Audit log", icon: "shield" },
+      { href: "/admin/account", label: "Your account", icon: "users" },
+      ...(canManageAdmins ? [{ href: "/admin/admins", label: "Administrators", icon: "shield" as const, badge: pendingAdmins || undefined }] : []),
       { href: "/admin/settings", label: "Settings", icon: "cog" },
     ] },
   ];
 
-  await requireAdmin();
+  const session = await requireAdmin();
   const active = (await headers()).get("x-ps-path") ?? "/admin";
 
   return (
@@ -66,9 +71,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       active={active}
       groups={groups}
       account={
-        <AccountBlock name="Signed in as admin" sub={process.env.ADMIN_EMAIL ?? undefined}>
+        <AccountBlock name={session.kind === "USER" ? session.admin.name : "Shared password"} sub={session.kind === "USER" ? session.admin.email : "no individual account yet"}>
           <Link href="/" className="hover:text-yellow">View site</Link>
-          <form action={logout}><button className="hover:text-yellow">Sign out</button></form>
+          <form action={adminSignOut}><button className="hover:text-yellow">Sign out</button></form>
         </AccountBlock>
       }
     >
