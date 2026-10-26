@@ -19,14 +19,16 @@
 | A5 | Propose the geography model, lead model, credit ledger and matching engine | **COMPLETED** — `LOCATION_AND_LEAD_SYSTEM_SPEC.md` |
 | A6 | Record the migration order and rollback position | **COMPLETED** — `DATABASE_CHANGELOG.md` |
 | A7 | Recommend a pilot grounded in provider supply, not keyword demand | **COMPLETED** — spec §8 |
+| A10 | Create the second project's planning documents (master plan now readable) | **COMPLETED** — `docs/leadgen/`: MASTER_PLAN, GEOGRAPHY_SCHEMA, LEAD_ROUTING_AND_PRIVACY, TECHNICAL_SEO_CHECKLIST, SEO_EXPERIMENTS, CONTENT_BRIEFS/, and four CSVs |
+| A11 | Verify Supabase can host the fine-grained cron | **COMPLETED** — pg_cron 1.6.4 + pg_net 0.20.4 available, Postgres 17.11, no `cron` schema yet; role is `postgres` with `supabase_privileged_role`, not superuser |
 | A8 | Obtain and read `UK_Local_Services_Lead_Generation_SEO_Master_Plan.docx` and the platform `.txt` | **COMPLETED** — both found in `docs/` on 26 October and read in full. The `.txt` is identical to the pasted prompt; the `.docx` adds England-first scope, per-category keyword scope, named demand sources, and a different suggested pilot area |
-| A9 | Owner decisions D1–D6 | **AWAITING APPROVAL** — see below |
+| A9 | Owner decisions D2–D6 (D1 decided) | **AWAITING APPROVAL** — see below |
 
-### A9 — the six decisions that gate Phase B
+### A9 — the decisions that gate Phase B (D1 settled, five open)
 
 | ID | Decision | Why it blocks | Recommendation |
 |---|---|---|---|
-| D1 | Scheduler for the 3-minute escalation | Hobby crons are daily. Nothing can escalate on a timer | Inline escalation first (covers most cases); QStash for the delayed check |
+| ~~D1~~ | ~~Scheduler for the 3-minute escalation~~ | **DECIDED 26 Oct: Supabase `pg_cron`** for anything Vercel cannot schedule. Verified available on our instance (pg_cron 1.6.4, pg_net 0.20.4, not yet installed). Immediate escalation ships first and needs no scheduler | — |
 | D2 | Address-lookup provider and budget | Address-level selection needs licensed PAF/AddressBase. No free source exists | Ship manual cascading selection first; add address lookup when a provider is chosen |
 | D3 | Individual admin accounts | One shared password makes role-based PII restriction and per-admin audit impossible | Add an `AdminUser` model with a `role` field |
 | D4 | VAT treatment of £1 credits | Changes the displayed price and the invoice. Cannot sell before it is settled | Owner to confirm with an accountant |
@@ -88,7 +90,7 @@
 - [ ] In-app notifications for owners — the `OWNER` audience exists in `Notification` and is currently unused
 - [ ] Low-credit (default threshold 2) and zero-credit emails, de-duplicated via `lowWarnedAt` / `zeroWarnedAt`
 - [ ] Immediate escalation when no eligible recipient exists
-- [ ] Delayed escalation check — **BLOCKED on D1**
+- [ ] Delayed escalation check via Supabase `pg_cron` + `pg_net` (D1 decided). Extensions need enabling in the Supabase dashboard — owner action
 - [ ] Retry handling and delivery logging; lead stays visible when email fails
 - [ ] SMS/WhatsApp — **no provider integrated**; out of scope until one is chosen
 

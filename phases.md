@@ -72,3 +72,61 @@ A daily job at `/api/cron` runs the enabled automations and prunes orphaned sear
 ---
 ### Cross-phase standards (Definition of Done)
 Implemented · works · tested · edge/empty/error states · usable on mobile · fits architecture · docs updated · `projecttodolist.md` updated.
+
+---
+
+# Lead-generation platform (separate programme)
+
+Location-aware registration, automated lead distribution, lead credits and admin lead management, plus the
+service-and-place landing pages. Source documents: `docs/UK_Local_Services_Lead_Generation_SEO_Master_Plan.docx`,
+`docs/UK-WIDE LOCAL SERVICES LEAD-GENERATION PLATFORM.txt`, `nextbigprojectforprimestreet.md`.
+
+Planning lives in `docs/leadgen/` and the four root documents (`EXISTING_PLATFORM_AUDIT.md`,
+`LOCATION_AND_LEAD_SYSTEM_SPEC.md`, `DATABASE_CHANGELOG.md`, `PROJECT_TODO.md`). Batch history: `BATCH_LOG.md`.
+
+**Governing rule: at most three landing pages per authorised batch, and a full stop after each one.** It is a
+ceiling, not a target. The risk is Google's scaled-content and doorway policies, which act against a whole
+domain rather than individual pages — and this domain carries real editorial worth protecting.
+
+## Lead Phase A — audit and architecture
+**Status: complete** (batches A1, A2, A3). Platform audited against the live database and deployment; lead,
+geography and credit models designed; migration order and rollback recorded; planning documents created.
+**Acceptance:** every claim verified rather than recalled, and every unknown named as an unknown.
+
+## Lead Phase B — geography and onboarding
+`Place` / `PlaceAlias` / `PlaceLink`; back-fill the 83 existing locations; `Business.placeId` alongside
+`locationId`; ONS and OS Open Names import under licence; postcode resolution as a confirmable suggestion;
+cascading manual selectors; mandatory location in onboarding; structured service areas; multiple categories
+per business with synonym mapping.
+**Risks:** breaking indexed URLs; duplicate places from spelling variants. **Acceptance:** 100% of existing
+rows mapped, no live URL changed, no place created without a source and a date.
+
+## Lead Phase C — lead creation and admin oversight
+`JobRequest` with versioned consent and idempotency; the customer job-request form reusing the existing
+anti-abuse controls; `/admin/leads` showing every lead immediately; lead detail with the full match and
+notification history.
+**Acceptance:** a lead appears in admin the moment it exists, and a double-submit creates one row.
+
+## Lead Phase D — matching and assignment
+Four-stage expansion; every decision recorded with a reason; **two paying businesses per lead enforced by a
+database constraint**; round-robin allocation; manual admin assignment with paid and sponsored types.
+**Acceptance:** concurrent processing cannot produce a third paid assignment; reprocessing charges nobody twice.
+
+## Lead Phase E — credits and payments
+Credit ledger; five free credits once; atomic reserve/confirm/reverse; `CREDITS` product through the existing
+Stripe pipeline; purchase UI.
+**Blocked on:** Stripe keys in production, and the VAT decision. **Acceptance:** duplicate webhooks grant
+nothing; a failed assignment leaves no charge.
+
+## Lead Phase F — notifications and escalation
+Urgent assignment email; owner in-app notifications; low and zero credit emails, de-duplicated; immediate
+escalation when nobody is eligible; delayed escalation via **Supabase `pg_cron`**, because Vercel's Hobby plan
+schedules once a day and cannot serve a three-minute threshold.
+**Acceptance:** no duplicate escalation alerts; a lead stays visible when email delivery fails.
+
+## Lead Phase G — pilot, measurement and release
+One service in one area, with **providers recruited before any customer form goes live**. Privacy notice and
+business terms reviewed by a qualified adviser. Analytics and Search Console in place, or the pilot cannot be
+judged. Existing directory, reviews, listings and Premium enquiries verified unaffected.
+**Acceptance:** the whole commercial loop runs end to end for one real enquiry, and a provider says they would
+pay for the next one.

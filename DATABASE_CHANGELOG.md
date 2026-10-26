@@ -101,7 +101,18 @@ The existing `Lead` model is **untouched**: it is a live Premium feature and a d
 **Batch E — credits:**
 `CreditAccount` (unique on `businessId`), `CreditTransaction`. A `Product` row with `kind = "CREDITS"`.
 
-**Batch F — admin identity (prerequisite for role-based PII access):**
+**Batch F — scheduling inside the database (decision D1):**
+
+`pg_cron` and `pg_net` to be enabled, so escalation and notification retries can run at minute granularity —
+Vercel's Hobby plan schedules once a day. Verified available on this instance 26 Oct 2026: `pg_cron` 1.6.4,
+`pg_net` 0.20.4, neither installed, no `cron` schema present, Postgres 17.11.
+
+Enabling is an owner action in the Supabase dashboard (Database → Extensions); our role is `postgres` with
+`supabase_privileged_role` but **not** superuser, so direct `CREATE EXTENSION` is to be confirmed rather than
+assumed. The scheduled job will call a secret-gated endpoint via `pg_net`, so **the secret must live in a
+Postgres setting or Vault entry, never in the job definition in plain text.**
+
+**Batch F2 — admin identity (prerequisite for role-based PII access):**
 `AdminUser`, pending decision D3 in the spec.
 
 **Indexes to add with the above:** `(categoryId, placeId)` style composites for matching, `JobRequest.status`, `JobRequest.createdAt`, `LeadAssignment.businessId`, `CreditTransaction.businessId`.

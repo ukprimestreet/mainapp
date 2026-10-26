@@ -125,4 +125,76 @@ On A3, one commitment: the CSVs would ship with **headers and no invented rows**
 
 ---
 
+## Batch A3 - Phase A: planning documents and the scheduling decision
+
+**Date:** 26 October 2026
+**Authorised by:** owner - “continue”, with the instruction to use the Supabase database for cron jobs Vercel cannot run
+**Type:** planning documents and one decision recorded. **No application code, no landing pages, no schema change applied.**
+
+### Decision D1 - settled
+
+**Supabase `pg_cron` for anything Vercel cannot schedule.** Verified on our own instance before writing it down:
+
+| Check | Result |
+|---|---|
+| `pg_cron` | **1.6.4 available, not installed** |
+| `pg_net` | **0.20.4 available, not installed** |
+| `http` | 1.6 available (alternative to `pg_net`) |
+| Postgres | 17.11 |
+| `cron` schema | **absent** - nothing scheduled yet |
+| Our DB role | `postgres`, **not** superuser, member of `supabase_privileged_role` |
+
+Division of labour recorded in `docs/leadgen/MASTER_PLAN.md` §6: Vercel keeps the existing daily job; Supabase takes the minute-granularity work (escalation, notification retries). **The immediate-escalation path is built first and needs no scheduler at all** - when matching finds nobody eligible there is nothing to wait for.
+
+Two things flagged rather than assumed: enabling the extensions is an owner action in the Supabase dashboard, and the endpoint secret must live in a Postgres setting or Vault entry, **never in the job definition in plain text**.
+
+### Files created - `docs/leadgen/`
+
+| File | Content | Honest about |
+|---|---|---|
+| `MASTER_PLAN.md` | Vision, revenue, acquisition, SEO strategy, lead model, architecture, geography, prioritisation, conversion, risks, metrics, current phase | - |
+| `GEOGRAPHY_SCHEMA.md` | `Place` / `PlaceAlias` / `PlaceLink` design, source and licence inventory, validation and duplicate rules, migration plan | What postcode lookup can and **cannot** do, verified by live call |
+| `LEAD_ROUTING_AND_PRIVACY.md` | Lifecycle, qualification, duplicate and refund rules, matching, PII, retention, security, complaints | States plainly that it **does not establish compliance** and lists what a lawyer must sign off |
+| `TECHNICAL_SEO_CHECKLIST.md` | What is already verified working vs what the lead pages need | **No analytics is installed and Search Console is unverified** - so conversion rate cannot be measured today |
+| `SEO_EXPERIMENTS.md` | Structure and rules | **Zero entries.** Nothing is published, so no experiment would mean anything |
+| `CONTENT_BRIEFS/README.md`, `TEMPLATE.md` | The brief shape | **Zero briefs.** No page is approved |
+| `SERVICE_RANKING.csv` | 50 categories with keyword scope, 9 flagged for regulatory review | **All 13 scoring columns empty, every row `UNVERIFIED`.** The order is the master plan hypothesis, not a ranking |
+| `LOCATION_MASTER.csv` | **83 real rows** exported from the live database | `gss_code` and `os_id` **deliberately blank** - not yet matched against ONS/OS. `source = PRIMESTREET_EXISTING`, `confidence = MEDIUM` |
+| `KEYWORD_DATABASE.csv` | 24-column schema | **Headers only, zero rows.** Real volumes need Keyword Planner and Search Console |
+| `PAGE_QUEUE.csv` | 23-column schema | **Headers only, zero rows.** No page is approved or proposed |
+
+### Files updated
+
+`phases.md` - gained a “Lead-generation platform” programme with phases A-G.
+`PROJECT_TODO.md` - D1 struck through as decided; A10 and A11 added as completed.
+`DATABASE_CHANGELOG.md` - planned batch F records the `pg_cron` work and its secret-handling constraint.
+
+### A deliberate deviation, and why
+
+The master plan asks for `PHASES.md`. **`PHASES.md` and the existing `phases.md` are the same file on Windows** (confirmed: `ls phases.md PHASES.md` resolves both). Creating it would either collide or produce a repository that cannot be checked out cleanly on this machine. The phase plan was therefore appended to `phases.md`, which is also what the master plan instructs for existing equivalents: inspect and update rather than overwrite useful work.
+
+Likewise `MASTER_PLAN.md` and the rest sit in `docs/leadgen/` rather than the repository root, to keep 10 new planning files from burying the four root documents the first prompt named. Paths are stated in every cross-reference.
+
+### Verification
+
+No tests were run because no code changed. The suites stand at 15 unit and 10 e2e, plus the a11y audit. The 83 exported location rows were read from the live database, not transcribed.
+
+### Open issues
+
+**Five owner decisions remain:** D2 address-lookup provider and budget · D3 individual admin accounts · D4 VAT on £1 credits · D5 where registration lives · D6 pilot area (West Berkshire per the master plan, versus Barking and Dagenham per the spec).
+
+**Two capability gaps that will distort the pilot if left:** no analytics provider is installed, and Search Console is not verified. Conversion rate, form-start versus submit, and first-party keyword data are all unavailable until those are fixed. A lead platform that cannot measure conversion cannot be judged.
+
+**Owner actions:** enable `pg_cron` and `pg_net` in the Supabase dashboard; legal review before any live lead distribution; recruit pilot providers.
+
+### Recommended next batch
+
+**B1 - geography foundation.** Create `Place`, `PlaceAlias`, `PlaceLink` with RLS; back-fill all 83 existing locations carrying `legacyLocationId` and verify 100% map; add `Business.placeId` alongside `locationId` **without reading from it**. Additive, reversible, no behaviour change, no pages, and it does not depend on D2, D3 or D4.
+
+It would pair well with matching GSS codes to the 33 London boroughs from ONS, which turns the blank `gss_code` column in `LOCATION_MASTER.csv` into real data and gives Phase B a test fixture.
+
+**Not started.**
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**
