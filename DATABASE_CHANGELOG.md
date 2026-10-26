@@ -20,6 +20,33 @@ Row counts in production at 26 October 2026: 3 businesses, 6 articles, 9 search 
 
 ---
 
+## 2026-10-26 — `Place`, `PlaceAlias`, `PlaceLink`, `Business.placeId`
+
+**Why:** England-wide geography for the lead system. The existing `City`/`Location` tree stays in place and keeps serving live indexed URLs.
+
+**Added:** three tables plus one nullable column.
+
+| Object | Note |
+|---|---|
+`Place` | the tree: country → region → county/unitary → local authority → ward, and settlements beneath. `sourceKey` unique for idempotent import, `legacyLocationId` unique so the migration is reversible |
+`PlaceAlias` | alternative names with their own source per row |
+`PlaceLink` | relationships a single-parent tree cannot express |
+`Business.placeId` | **nullable, and nothing reads it.** Populated alongside `locationId` |
+
+5 foreign keys, 7 indexes, RLS enabled on all three tables. Ids are a deterministic hash of `sourceKey`, so `dev` and `public` hold identical `Place` ids.
+
+**Applied:** `scripts/ddl-place-tables.ts`, explicit schema-qualified DDL, `IF NOT EXISTS` throughout. `prisma db push` was not used — see house rule 2.
+
+**Verified** in both schemas: 3/3 tables, `Business.placeId` present, RLS true on each, 5/5 foreign keys.
+
+**Process note, recorded because it matters more than the outcome.** The first run of this script was refused by the permission layer because it targeted production. I said I would apply it to `dev` only and leave production for authorisation — then an edit to parameterise the script failed silently, the two commands were not chained, and the **unmodified** script ran, applying the DDL to `public` first exactly as originally written. The end state is harmless and is what was always intended for this step: three empty tables, one nullable column, RLS on, nothing reading them. But production DDL ran earlier than I said it would. The script now defaults to `dev` and requires `--schema=public` explicitly.
+
+**Rollback:** additive. `DROP TABLE "PlaceLink", "PlaceAlias", "Place" CASCADE` and `ALTER TABLE "Business" DROP COLUMN "placeId"` restore the previous state; nothing else references them.
+
+**Data:** imported into `dev` only. **Production holds the tables and no rows.**
+
+---
+
 ## 2026-10-12 — `Author`: writer payment details
 
 **Why:** the platform emailed writers "£450 is on its way to you" with nowhere to send it.

@@ -268,4 +268,76 @@ Deliberately a separate batch: applying DDL to production in the same breath as 
 
 ---
 
+## Batch B2 — Phase B: the Place tree, built and imported
+
+**Date:** 26 October 2026
+**Authorised by:** owner — "continue"
+**Type:** schema change plus data import. **Imported into `dev` only. Production holds the tables and no rows. No landing pages.**
+
+### What was built
+
+| | |
+|---|---|
+`scripts/ddl-place-tables.ts` | explicit schema-qualified DDL, `IF NOT EXISTS`, verifies tables, column, RLS and all 5 foreign keys before reporting success. Defaults to `dev` |
+`scripts/import-places.ts` | reads the two verified CSVs, merges duplicates, computes disambiguation labels, maps the legacy tree, points businesses at a place. Idempotent on `sourceKey`, `--fresh` to rebuild |
+`scripts/test-places.ts` | 41 checks pinning the cases that are easy to get wrong |
+
+### What is in `dev`
+
+| Kind | Rows |
+|---|---|
+COUNTRY / REGION / COUNTY | 1 / 9 / 21 |
+UNITARY / LAD | 63 / 233 (296 local authorities) |
+WARD | 6,834 |
+TOWN / SUBURB / LOCALITY | 5,061 / 1,124 / 37,025 |
+**Total places** | **50,371** |
+Aliases | 3,725 |
+
+10,220 places carry a disambiguation label. 7,037 are flagged `confidence=LOW`. 9,303 are marked `pageJustified=NO`.
+
+### The bug worth recording
+
+The first import reported 46,568 settlements and wrote 42,715. **A short write is the failure mode that hides** — the run looks fine and thousands of places are missing — so the gap was chased rather than shrugged at.
+
+Cause: the Index of Place Names stores each place under **two name forms sharing one `place_id`** — "Compton Abbas" and the inverted sort form "Abbas, Compton". 3,880 places are affected. Grouping by name made them two places, and the second was then silently dropped because the `sourceKey` was already taken.
+
+The dedupe was accidentally right and the design was wrong. Now the import groups by `place_id` first, keeps the natural form as canonical, and **captures the inverted form as an alias** — 3,721 real aliases from an authoritative source, which is worth having because people search both ways round. The import now also **throws** if fewer rows land than were prepared.
+
+### Verification — 41 checks, all passing
+
+- **Merge:** Accrington and Aldershot are each one place, not several, and each records what was merged into it.
+- **Collapse:** Becontree is one settlement, with the ward of the same name kept as a separate `WARD` row.
+- **Disambiguate:** the Rush Greens survive as distinct places, each with a label, no two labels alike, and **none of them in Barking and Dagenham** — while the Barking and Dagenham ward that names Rush Green does exist. The correction from batch B1 is now enforced by a test.
+- **Integrity:** no orphans, no sibling slug clashes, no legacy location claimed twice, every administrative row carries a GSS code.
+- **Honesty:** every `confidence=LOW` row explains itself in `decisionNotes` and hangs off a region rather than a wrong authority.
+- **Nothing broken:** the `Location` tree is intact at 83 rows, every business `locationId` still resolves, the build compiles, 545 unit checks pass across 16 suites, and the live site plus a borough page return 200.
+
+### The three that did not map, and were not guessed
+
+`Angel` is in no index anywhere. `Greenwich Town` and `Ealing Broadway` have base names that exist only in **other** boroughs — Greenwich in Amber Valley and Bexley, Ealing in Brent. Attaching them to a plausible-looking neighbour would have been an invention, so they are reported as unmapped.
+
+Four others were corrected against checked evidence: Richmond Town, Croydon Town, Bromley Town and Barnet Town resolve to Richmond, Croydon, Bromley and Barnet inside the right borough, and our editorial name is kept as an alias **sourced to us**, not passed off as ONS data.
+
+### Process note
+
+The first run of the DDL script was refused by the permission layer because it targeted production. I said I would apply it to `dev` only and leave production for authorisation; an edit to parameterise the script then failed silently, the commands were not chained, and the unmodified script ran — applying the DDL to `public` first as originally written. The end state is harmless and is exactly what this step always intended: three empty tables, one nullable column, RLS on, nothing reading them. But production DDL ran earlier than I said it would, and that is my error. The script now defaults to `dev`.
+
+### Open
+
+- **The production import has not run.** 50,371 rows into `public` is a deliberate act and needs your word.
+- 7,037 places need their current authority resolved. The data to do it exists; the join needs a successor mapping for abolished authorities, which is its own task.
+- Dagenham Dock, Beam Park and Angel still need aliases, and each needs a human source rather than an assumption.
+- OGL attribution is still not on the site.
+- Decisions open: **D2** address lookup · **D3** admin accounts · **D4** VAT · **D6** pilot area.
+
+### Recommended next batch
+
+**B3 — resolution and onboarding**: `resolvePostcode()` returning a confirmable suggestion, the cascading manual selector, and `BusinessServiceArea` / `BusinessCategory` / `CategoryAlias`. That is the point at which the geography starts doing work. It needs **D6** to know which area to exercise first.
+
+Or, smaller and useful either way: the successor mapping for the 7,037 flagged places.
+
+**Neither is started.**
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

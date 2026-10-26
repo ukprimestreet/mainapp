@@ -11,24 +11,24 @@ datasource db {
 }
 
 model City {
-  id        String     @id @default(cuid())
-  slug      String     @unique // "london"
-  name      String
-  active    Boolean    @default(true)
-  status    String     @default("LIVE") // LIVE | COMING_SOON (coming soon pages are never indexed)
-  intro     String? // original editorial intro; required before the city hub may be indexed
-  region    String? // "Greater London"
-  country   String     @default("United Kingdom")
-  timezone  String     @default("Europe/London")
-  lat       Float? // city centre, for "near me" when we have no postcode
-  lng       Float?
+  id               String       @id @default(cuid())
+  slug             String       @unique // "london"
+  name             String
+  active           Boolean      @default(true)
+  status           String       @default("LIVE") // LIVE | COMING_SOON (coming soon pages are never indexed)
+  intro            String? // original editorial intro; required before the city hub may be indexed
+  region           String? // "Greater London"
+  country          String       @default("United Kingdom")
+  timezone         String       @default("Europe/London")
+  lat              Float? // city centre, for "near me" when we have no postcode
+  lng              Float?
   postcodePrefixes String? // JSON array of outward-code prefixes, e.g. ["E","EC","SW"] — used to detect a visitor's city
-  launchedAt DateTime?
-  sortOrder Int        @default(0)
-  locations Location[]
-  businesses Business[]
-  articles  Article[]
-  team      CityEditor[]
+  launchedAt       DateTime?
+  sortOrder        Int          @default(0)
+  locations        Location[]
+  businesses       Business[]
+  articles         Article[]
+  team             CityEditor[]
 }
 
 // Who covers a city editorially. Shown on city hubs so readers know who is behind the coverage.
@@ -75,109 +75,112 @@ model Category {
 }
 
 model Business {
-  id            String   @id @default(cuid())
-  slug          String   @unique
-  name          String
-  summary       String // one-line
-  description   String // original text only — never copied from other directories
-  cityId        String
-  city          City     @relation(fields: [cityId], references: [id])
-  locationId    String
-  location      Location @relation(fields: [locationId], references: [id])
-  categoryId    String
-  category      Category @relation(fields: [categoryId], references: [id])
-  areasServed   String? // comma separated location slugs / free text
-  address       String?
-  postcode      String?
-  phone         String?
-  website       String?
-  email         String? // never rendered publicly
-  instagram     String?
-  facebook      String?
-  linkedin      String?
-  openingHours  String? // JSON: {mon:"09:00-17:00",...}
-  services      String? // JSON string[]
-  founded       Int?
-  imageUrl      String?
+  id               String                 @id @default(cuid())
+  slug             String                 @unique
+  name             String
+  summary          String // one-line
+  description      String // original text only — never copied from other directories
+  cityId           String
+  city             City                   @relation(fields: [cityId], references: [id])
+  locationId       String
+  location         Location               @relation(fields: [locationId], references: [id])
+  /// The new geography. Populated alongside locationId during migration; not yet read anywhere.
+  placeId          String?
+  place            Place?                 @relation(fields: [placeId], references: [id])
+  categoryId       String
+  category         Category               @relation(fields: [categoryId], references: [id])
+  areasServed      String? // comma separated location slugs / free text
+  address          String?
+  postcode         String?
+  phone            String?
+  website          String?
+  email            String? // never rendered publicly
+  instagram        String?
+  facebook         String?
+  linkedin         String?
+  openingHours     String? // JSON: {mon:"09:00-17:00",...}
+  services         String? // JSON string[]
+  founded          Int?
+  imageUrl         String?
   // trust & status
-  claimStatus   String   @default("UNCLAIMED") // UNCLAIMED | PENDING | CLAIMED | VERIFIED
-  isSample      Boolean  @default(false) // demo data — shown with visible marker
-  isFeatured    Boolean  @default(false) // editorial feature (not paid)
-  normName      String   @default("") // normalised name for dedupe
-  websiteHost   String?  // normalised host for dedupe
-  source        String? // provenance: where the facts came from (owner, own research, Companies House...)
-  lat           Float?
-  lng           Float?
-  geoSource     String? // POSTCODE | AREA | MANUAL
-  gallery       String? // JSON string[] of https image URLs (Premium)
-  promoText     String? // short offer/announcement shown on the profile (Premium)
-  promoUrl      String?
-  ownerUpdatedAt DateTime? // last time a verified owner edited the profile
-  ratingAvg     Float?   // denormalised from PUBLISHED reviews only
-  ratingCount   Int      @default(0)
-  ownedByFounder Boolean @default(false) // editorial integrity: forces disclosure on coverage
-  published     Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  articles      ArticleBusiness[]
-  claims        ClaimRequest[]
-  reviews       Review[]
-  episodes      PodcastEpisode[]
-  owners        BusinessOwner[]
-  editLogs      BusinessEditLog[]
-  changeRequests ProfileChangeRequest[]
+  claimStatus      String                 @default("UNCLAIMED") // UNCLAIMED | PENDING | CLAIMED | VERIFIED
+  isSample         Boolean                @default(false) // demo data — shown with visible marker
+  isFeatured       Boolean                @default(false) // editorial feature (not paid)
+  normName         String                 @default("") // normalised name for dedupe
+  websiteHost      String? // normalised host for dedupe
+  source           String? // provenance: where the facts came from (owner, own research, Companies House...)
+  lat              Float?
+  lng              Float?
+  geoSource        String? // POSTCODE | AREA | MANUAL
+  gallery          String? // JSON string[] of https image URLs (Premium)
+  promoText        String? // short offer/announcement shown on the profile (Premium)
+  promoUrl         String?
+  ownerUpdatedAt   DateTime? // last time a verified owner edited the profile
+  ratingAvg        Float? // denormalised from PUBLISHED reviews only
+  ratingCount      Int                    @default(0)
+  ownedByFounder   Boolean                @default(false) // editorial integrity: forces disclosure on coverage
+  published        Boolean                @default(true)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  articles         ArticleBusiness[]
+  claims           ClaimRequest[]
+  reviews          Review[]
+  episodes         PodcastEpisode[]
+  owners           BusinessOwner[]
+  editLogs         BusinessEditLog[]
+  changeRequests   ProfileChangeRequest[]
   coverageRequests CoverageRequest[]
-  stats         BusinessStat[]
-  subscriptions Subscription[]
-  orders        Order[]
-  leads         Lead[]
-  campaigns     Campaign[]
+  stats            BusinessStat[]
+  subscriptions    Subscription[]
+  orders           Order[]
+  leads            Lead[]
+  campaigns        Campaign[]
+  teamInvites      TeamInvite[]
+  specialHours     SpecialHours[]
 
   @@index([locationId])
   @@index([categoryId])
-  teamInvites  TeamInvite[]
-  specialHours SpecialHours[]
 }
 
 model Author {
-  id       String    @id @default(cuid())
-  slug     String    @unique
-  name     String
-  role     String? // job title shown under the name
-  bio      String?
-  email    String?  @unique // the author's own account: identity + passwordless sign-in
-  imageUrl String? // portrait shown on the profile and as a byline avatar
+  id              String             @id @default(cuid())
+  slug            String             @unique
+  name            String
+  role            String? // job title shown under the name
+  bio             String?
+  email           String?            @unique // the author's own account: identity + passwordless sign-in
+  imageUrl        String? // portrait shown on the profile and as a byline avatar
   // Social links. Each is optional and its icon only appears when a link is present.
-  website   String?
-  x         String?
-  facebook  String?
-  instagram String?
-  linkedin  String?
-  youtube   String?
-  tiktok    String?
-  threads   String?
-  bluesky   String?
-  mastodon  String?
+  website         String?
+  x               String?
+  facebook        String?
+  instagram       String?
+  linkedin        String?
+  youtube         String?
+  tiktok          String?
+  threads         String?
+  bluesky         String?
+  mastodon        String?
   // Profile completeness gate: an author cannot submit work until these are filled in (see lib/author-profile.ts).
-  phone      String?
-  basedIn    String? // the London area or city they work from
-  experience String? // previous writing or professional experience
-  cvUrl      String? // uploaded CV (PDF or document)
-  expertise  String? // JSON string[] of the subjects they cover
-  portfolio  String? // JSON string[] of links to published work elsewhere
+  phone           String?
+  basedIn         String? // the London area or city they work from
+  experience      String? // previous writing or professional experience
+  cvUrl           String? // uploaded CV (PDF or document)
+  expertise       String? // JSON string[] of the subjects they cover
+  portfolio       String? // JSON string[] of links to published work elsewhere
   // How we pay them. The bank details and UTR are encrypted at rest (lib/secretbox.ts); the key lives in
   // FIELD_KEY, never in this database. bankLast4 is deliberately plain text so an admin can confirm an
   // account against a remittance without anything being decrypted.
-  payeeName     String? // who the money is paid to, which is not always their byline
-  payeeAddress  String? // needed on an invoice, and by us for our own records
-  vatRegistered Boolean @default(false)
-  vatNumber     String?
-  utrEnc        String? // self-assessment reference, encrypted
-  bankEnc       String? // { accountName, sortCode, accountNumber, iban?, swift? }, encrypted
-  bankLast4     String?
-  bankUpdatedAt DateTime?
+  payeeName       String? // who the money is paid to, which is not always their byline
+  payeeAddress    String? // needed on an invoice, and by us for our own records
+  vatRegistered   Boolean            @default(false)
+  vatNumber       String?
+  utrEnc          String? // self-assessment reference, encrypted
+  bankEnc         String? // { accountName, sortCode, accountNumber, iban?, swift? }, encrypted
+  bankLast4       String?
+  bankUpdatedAt   DateTime?
   // Account state
-  active          Boolean  @default(true)
+  active          Boolean            @default(true)
   passwordHash    String? // set by the author from the invitation link; null until then
   invitedAt       DateTime?
   invitedBy       String? // the admin who registered them
@@ -185,26 +188,26 @@ model Author {
   welcomedAt      DateTime? // the welcome email has gone out
   lastLoginAt     DateTime?
   emailVerifiedAt DateTime?
-  sessionVersion  Int      @default(1) // bump to sign the author out everywhere
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt @default(now())
-  articles    Article[]
-  cities      CityEditor[]
-  loginTokens AuthorLoginToken[]
-  commissions Commission[]
-  payments    WriterPayment[]
+  sessionVersion  Int                @default(1) // bump to sign the author out everywhere
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @default(now()) @updatedAt
+  articles        Article[]
+  cities          CityEditor[]
+  loginTokens     AuthorLoginToken[]
+  commissions     Commission[]
+  payments        WriterPayment[]
 }
 
 // Single-use emailed sign-in link for an author (same pattern as business owners: no passwords stored).
 model AuthorLoginToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   authorId  String
-  author    Author   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  tokenHash String   @unique
-  purpose   String   @default("LOGIN") // INVITE | RESET | LOGIN
+  author    Author    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  purpose   String    @default("LOGIN") // INVITE | RESET | LOGIN
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([authorId])
 }
@@ -223,41 +226,41 @@ model ArticleReview {
 }
 
 model Article {
-  id          String    @id @default(cuid())
-  slug        String    @unique
-  type        String // NEWS | STORY | INTERVIEW | GUIDE | BOTW | INSIGHT
-  disclosure  String    @default("EDITORIAL") // EDITORIAL | SPONSORED | PARTNER | ADVERTORIAL
-  title       String
-  standfirst  String
-  body        String // markdown-lite: the canonical TEXT of the piece. When `blocks` is set this is derived from it,
-                     // so search, reading time and the link audit keep working the same way for both kinds of article.
-  blocks      String? // JSON block document from the visual editor; null for pieces written as plain markdown
-  imageUrl    String?
-  imageAlt    String?
-  imageCredit String?
-  sponsorName String? // required when disclosure is not EDITORIAL
-  status      String    @default("DRAFT") // DRAFT | SUBMITTED | PUBLISHED (SUBMITTED = author sent it for review)
-  submittedAt DateTime? // when the author asked for review
-  isSample    Boolean   @default(false)
-  featured    Boolean   @default(false)
-  publishedAt DateTime?
-  seoTitle    String?
+  id             String            @id @default(cuid())
+  slug           String            @unique
+  type           String // NEWS | STORY | INTERVIEW | GUIDE | BOTW | INSIGHT
+  disclosure     String            @default("EDITORIAL") // EDITORIAL | SPONSORED | PARTNER | ADVERTORIAL
+  title          String
+  standfirst     String
+  body           String // markdown-lite: the canonical TEXT of the piece. When `blocks` is set this is derived from it,
+  // so search, reading time and the link audit keep working the same way for both kinds of article.
+  blocks         String? // JSON block document from the visual editor; null for pieces written as plain markdown
+  imageUrl       String?
+  imageAlt       String?
+  imageCredit    String?
+  sponsorName    String? // required when disclosure is not EDITORIAL
+  status         String            @default("DRAFT") // DRAFT | SUBMITTED | PUBLISHED (SUBMITTED = author sent it for review)
+  submittedAt    DateTime? // when the author asked for review
+  isSample       Boolean           @default(false)
+  featured       Boolean           @default(false)
+  publishedAt    DateTime?
+  seoTitle       String?
   seoDescription String?
-  authorId    String
-  author      Author    @relation(fields: [authorId], references: [id])
-  reviews     ArticleReview[]
-  cityId      String?
-  city        City?     @relation(fields: [cityId], references: [id])
-  locationId  String?
-  location    Location? @relation(fields: [locationId], references: [id])
-  businesses  ArticleBusiness[]
-  episode     PodcastEpisode?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  authorId       String
+  author         Author            @relation(fields: [authorId], references: [id])
+  reviews        ArticleReview[]
+  cityId         String?
+  city           City?             @relation(fields: [cityId], references: [id])
+  locationId     String?
+  location       Location?         @relation(fields: [locationId], references: [id])
+  businesses     ArticleBusiness[]
+  episode        PodcastEpisode?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  corrections    Correction[]
+  stats          ArticleStat[]
 
   @@index([type, status, publishedAt])
-  corrections Correction[]
-  stats       ArticleStat[]
 }
 
 model ArticleBusiness {
@@ -271,11 +274,11 @@ model ArticleBusiness {
 
 // One interview -> episode + written article + business link + quotes/clips (content reuse).
 model PodcastEpisode {
-  id          String    @id @default(cuid())
-  slug        String    @unique
+  id          String        @id @default(cuid())
+  slug        String        @unique
   number      Int
   season      Int?
-  episodeType String    @default("full") // full | trailer | bonus
+  episodeType String        @default("full") // full | trailer | bonus
   title       String
   description String // plain text: RSS summary, meta description
   showNotes   String? // markdown-lite
@@ -283,50 +286,50 @@ model PodcastEpisode {
   chapters    String? // JSON [{ t: seconds, title }]
   audioUrl    String? // externally hosted (https)
   audioBytes  Int? // required by Apple/Spotify enclosure
-  audioMime   String    @default("audio/mpeg")
+  audioMime   String        @default("audio/mpeg")
   videoUrl    String? // YouTube / Vimeo / direct mp4
   imageUrl    String?
   durationSec Int?
-  explicit    Boolean   @default(false)
+  explicit    Boolean       @default(false)
   guestName   String?
   guestRole   String?
-  isSample    Boolean   @default(false)
-  status      String    @default("DRAFT") // DRAFT | PUBLISHED (future publishedAt = scheduled)
+  isSample    Boolean       @default(false)
+  status      String        @default("DRAFT") // DRAFT | PUBLISHED (future publishedAt = scheduled)
   publishedAt DateTime?
-  articleId   String?   @unique
-  article     Article?  @relation(fields: [articleId], references: [id])
+  articleId   String?       @unique
+  article     Article?      @relation(fields: [articleId], references: [id])
   businessId  String?
-  business    Business? @relation(fields: [businessId], references: [id])
+  business    Business?     @relation(fields: [businessId], references: [id])
   clips       EpisodeClip[]
   stats       EpisodeStat[]
   plays       EpisodePlay[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now()) @updatedAt
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now()) @updatedAt
 
   @@index([status, publishedAt])
 }
 
 // Pull quotes (rendered as shareable brand cards) and clip requests (timestamps to cut for social/video).
 model EpisodeClip {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   episodeId String
   episode   PodcastEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
-  kind      String   // QUOTE | CLIP
+  kind      String // QUOTE | CLIP
   title     String?
-  quote     String?  // QUOTE: the words
+  quote     String? // QUOTE: the words
   speaker   String?
   startSec  Int?
   endSec    Int?
   note      String?
-  status    String   @default("TODO") // CLIP: TODO | DONE
-  url       String?  // CLIP: link to the produced clip
-  createdAt DateTime @default(now())
+  status    String         @default("TODO") // CLIP: TODO | DONE
+  url       String? // CLIP: link to the produced clip
+  createdAt DateTime       @default(now())
 }
 
 model EpisodeStat {
   episodeId String
   day       String
-  views     Int      @default(0)
+  views     Int            @default(0)
   episode   PodcastEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
 
   @@id([episodeId, day])
@@ -334,28 +337,28 @@ model EpisodeStat {
 
 // One row per (episode, anonymous listener, day): deduplicated play counts. key = sha256(secret|ip|episode|day).
 model EpisodePlay {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   episodeId String
   episode   PodcastEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
   day       String
-  key       String   @unique
+  key       String         @unique
 }
 
 // Show-level settings (single row, id "main").
 model PodcastShow {
-  id           String  @id @default("main")
-  title        String  @default("The PrimeStreet Podcast")
-  description  String  @default("Conversations with the founders and operators shaping London business.")
-  author       String  @default("PrimeStreet")
-  ownerEmail   String  @default("")
-  imageUrl     String?
-  language     String  @default("en-gb")
-  category     String  @default("Business")
-  explicit     Boolean @default(false)
-  copyright    String  @default("")
-  spotifyUrl   String?
-  appleUrl     String?
-  youtubeUrl   String?
+  id          String  @id @default("main")
+  title       String  @default("The PrimeStreet Podcast")
+  description String  @default("Conversations with the founders and operators shaping London business.")
+  author      String  @default("PrimeStreet")
+  ownerEmail  String  @default("")
+  imageUrl    String?
+  language    String  @default("en-gb")
+  category    String  @default("Business")
+  explicit    Boolean @default(false)
+  copyright   String  @default("")
+  spotifyUrl  String?
+  appleUrl    String?
+  youtubeUrl  String?
 }
 
 // Claim + dispute requests. Verification evidence accumulates on the request; an admin makes the final decision.
@@ -375,7 +378,7 @@ model ClaimRequest {
   tokenHash       String    @default("") // sha256 of the emailed status/confirm token
   emailVerifiedAt DateTime?
   domainMatch     Boolean   @default(false) // claimant email domain == business website domain
-  phoneCodeHash   String?   // admin reads a code to the business's LISTED number; claimant enters it
+  phoneCodeHash   String? // admin reads a code to the business's LISTED number; claimant enters it
   phoneCodeSetAt  DateTime?
   phoneAttempts   Int       @default(0)
   phoneVerifiedAt DateTime?
@@ -389,28 +392,28 @@ model ClaimRequest {
 
 // Owner accounts are passwordless (emailed sign-in link). One person can own several businesses.
 model Owner {
-  id             String   @id @default(cuid())
-  email          String   @unique
-  name           String
-  sessionVersion Int      @default(0) // bump to sign out every device
-  createdAt      DateTime @default(now())
-  lastLoginAt    DateTime?
+  id              String            @id @default(cuid())
+  email           String            @unique
+  name            String
+  sessionVersion  Int               @default(0) // bump to sign out every device
+  createdAt       DateTime          @default(now())
+  lastLoginAt     DateTime?
   // Marketing consent is separate from the account. Service emails (sign-in, claims, enquiries, receipts) always
   // send; anything promotional needs marketingOptIn and stops the moment unsubscribedAt is set. Under PECR a sole
   // trader or partnership counts as an individual, so we ask rather than assume.
-  marketingOptIn  Boolean   @default(false)
+  marketingOptIn  Boolean           @default(false)
   unsubscribedAt  DateTime?
   lastMarketingAt DateTime? // frequency cap: no more than one promotional email a fortnight
-  unsubToken      String?   @unique // one-click unsubscribe without signing in
-  businesses     BusinessOwner[]
-  loginTokens    OwnerLoginToken[]
+  unsubToken      String?           @unique // one-click unsubscribe without signing in
+  businesses      BusinessOwner[]
+  loginTokens     OwnerLoginToken[]
 }
 
 model BusinessOwner {
   ownerId    String
   businessId String
   role       String   @default("OWNER") // OWNER | MANAGER
-  claimId    String?  // the approved claim that granted access
+  claimId    String? // the approved claim that granted access
   grantedAt  DateTime @default(now())
   owner      Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -431,13 +434,13 @@ model OwnerLoginToken {
 
 // Owner edits go live immediately but are logged field-by-field so an admin can revert.
 model BusinessEditLog {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   ownerId    String
   changes    String // JSON { field: { from, to } }
   revertedAt DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   @@index([businessId])
 }
@@ -479,27 +482,27 @@ model BusinessStat {
 // Reviews. Nothing is public until an admin publishes it. Lifecycle:
 // UNVERIFIED (email not confirmed) -> PENDING (awaiting moderation) -> PUBLISHED | REJECTED; PUBLISHED -> HELD (hidden after reports) -> PUBLISHED
 model Review {
-  id              String    @id @default(cuid())
+  id              String         @id @default(cuid())
   businessId      String
-  business        Business  @relation(fields: [businessId], references: [id])
+  business        Business       @relation(fields: [businessId], references: [id])
   authorName      String
-  authorEmail     String    @default("") // personal data: never displayed; used for verification + decisions
+  authorEmail     String         @default("") // personal data: never displayed; used for verification + decisions
   authorEmailHash String // sha256(lowercased email) for duplicate detection
   rating          Int
   title           String?
   body            String
-  status          String    @default("UNVERIFIED")
+  status          String         @default("UNVERIFIED")
   flags           String? // comma-separated anti-abuse signals shown to moderators
-  ipHash          String    @default("")
-  bodyHash        String    @default("")
-  tokenHash       String    @default("") // sha256 of the emailed manage/verify token
+  ipHash          String         @default("")
+  bodyHash        String         @default("")
+  tokenHash       String         @default("") // sha256 of the emailed manage/verify token
   emailVerifiedAt DateTime?
   response        String? // business response (public)
   respondedAt     DateTime?
   moderationNote  String?
   moderatedAt     DateTime?
   editedAt        DateTime?
-  createdAt       DateTime  @default(now())
+  createdAt       DateTime       @default(now())
   reports         ReviewReport[]
 
   @@unique([businessId, authorEmailHash])
@@ -524,16 +527,16 @@ model ReviewReport {
 
 // Every email we try to send. With no provider configured this is the only record (admin can read links in dev).
 model EmailOutbox {
-  id        String    @id @default(cuid())
-  to        String
-  subject   String
-  body      String
-  purpose   String    @default("alerts") // which sender was used (see lib/mail.ts SENDERS)
+  id          String    @id @default(cuid())
+  to          String
+  subject     String
+  body        String
+  purpose     String    @default("alerts") // which sender was used (see lib/mail.ts SENDERS)
   fromAddress String? // the address it was sent from, recorded so the outbox shows it
-  replyTo   String?
-  createdAt DateTime  @default(now())
-  sentAt    DateTime?
-  error     String?
+  replyTo     String?
+  createdAt   DateTime  @default(now())
+  sentAt      DateTime?
+  error       String?
 
   @@index([purpose])
 }
@@ -582,13 +585,13 @@ model SeoPage {
 
 // Permanent redirects for moved/renamed URLs. Created automatically on slug changes, or by hand.
 model Redirect {
-  id        String   @id @default(cuid())
-  fromPath  String   @unique
+  id        String    @id @default(cuid())
+  fromPath  String    @unique
   toPath    String
   note      String?
-  hits      Int      @default(0)
+  hits      Int       @default(0)
   lastHitAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 }
 
 // ---- Search -------------------------------------------------------------------------------------------------------
@@ -596,9 +599,9 @@ model Redirect {
 // (Prisma can't manage virtual tables); its rowid = SearchDoc.rid. For PostgreSQL swap fts.ts for a tsvector implementation.
 model SearchDoc {
   rid             Int      @id @default(autoincrement())
-  kind            String   // BUSINESS | ARTICLE | EPISODE
+  kind            String // BUSINESS | ARTICLE | EPISODE
   refId           String
-  visible         Boolean  @default(true)  // published, not hidden
+  visible         Boolean  @default(true) // published, not hidden
   liveFrom        DateTime @default(now()) // scheduled content becomes searchable at this time
   isSample        Boolean  @default(false)
   citySlug        String? // lets search be scoped to one city
@@ -611,26 +614,26 @@ model SearchDoc {
 
 // Aggregated, anonymous query log (no IPs, no user ids). Used for zero-result analysis and synonyms.
 model SearchTerm {
-  day        String
-  q          String
-  count      Int     @default(0)
-  zeroCount  Int     @default(0)
+  day       String
+  q         String
+  count     Int    @default(0)
+  zeroCount Int    @default(0)
 
   @@id([day, q])
 }
 
 // ---- Newsletter ---------------------------------------------------------------------------------------------------
 model NewsletterSubscriber {
-  id          String    @id @default(cuid())
-  email       String    @unique
-  status      String    @default("PENDING") // PENDING | ACTIVE | UNSUBSCRIBED
-  confirmHash String    @default("")
-  unsubHash   String    @default("")
-  interests   String? // JSON { areas: string[], categories: string[] }
-  source      String?
-  ipHash      String    @default("")
-  createdAt   DateTime  @default(now())
-  confirmedAt DateTime?
+  id             String    @id @default(cuid())
+  email          String    @unique
+  status         String    @default("PENDING") // PENDING | ACTIVE | UNSUBSCRIBED
+  confirmHash    String    @default("")
+  unsubHash      String    @default("")
+  interests      String? // JSON { areas: string[], categories: string[] }
+  source         String?
+  ipHash         String    @default("")
+  createdAt      DateTime  @default(now())
+  confirmedAt    DateTime?
   unsubscribedAt DateTime?
 
   @@index([status])
@@ -653,33 +656,33 @@ model NewsletterIssue {
 
 // What can be bought. Prices are EDITABLE and start inactive — nothing is sold until an admin sets real prices and activates it.
 model Product {
-  id           String   @id @default(cuid())
-  key          String   @unique // premium_monthly | premium_yearly | featured_30d | ...
-  kind         String   // PREMIUM | FEATURED
-  name         String
-  description  String
-  pricePence   Int      @default(0) // ex VAT
-  interval     String   @default("ONE_OFF") // MONTH | YEAR | ONE_OFF
-  durationDays Int?     // FEATURED: how long the campaign runs
+  id            String  @id @default(cuid())
+  key           String  @unique // premium_monthly | premium_yearly | featured_30d | ...
+  kind          String // PREMIUM | FEATURED
+  name          String
+  description   String
+  pricePence    Int     @default(0) // ex VAT
+  interval      String  @default("ONE_OFF") // MONTH | YEAR | ONE_OFF
+  durationDays  Int? // FEATURED: how long the campaign runs
   stripePriceId String? // price id in Stripe (required for checkout)
-  active       Boolean  @default(false)
-  sortOrder    Int      @default(0)
+  active        Boolean @default(false)
+  sortOrder     Int     @default(0)
 }
 
 model Subscription {
-  id                   String   @id @default(cuid())
+  id                   String    @id @default(cuid())
   businessId           String
-  business             Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business             Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   productKey           String
-  status               String   @default("ACTIVE") // ACTIVE | PAST_DUE | CANCELED
-  provider             String   @default("STRIPE") // STRIPE | MANUAL (admin-granted / invoiced offline)
+  status               String    @default("ACTIVE") // ACTIVE | PAST_DUE | CANCELED
+  provider             String    @default("STRIPE") // STRIPE | MANUAL (admin-granted / invoiced offline)
   stripeCustomerId     String?
-  stripeSubscriptionId String?  @unique
+  stripeSubscriptionId String?   @unique
   currentPeriodEnd     DateTime?
-  cancelAtPeriodEnd    Boolean  @default(false)
+  cancelAtPeriodEnd    Boolean   @default(false)
   note                 String?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @default(now()) @updatedAt
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @default(now()) @updatedAt
 
   @@index([businessId, status])
 }
@@ -706,26 +709,26 @@ model StripeEvent {
 
 // Paid visibility. FEATURED = a business shown in a labelled slot on listing pages; AD = a direct-sold advertisement.
 model Campaign {
-  id           String   @id @default(cuid())
-  kind         String   // FEATURED | AD
-  status       String   @default("ACTIVE") // ACTIVE | PAUSED | ENDED
-  source       String   @default("MANUAL") // MANUAL | ORDER
-  orderId      String?
-  businessId   String?  // FEATURED: which business
-  business     Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  advertiser   String?  // AD: who is paying
-  headline     String?
-  body         String?
-  imageUrl     String?
-  linkUrl      String?  // AD: https destination (we redirect by campaign id only, never from a URL parameter)
-  placement    String   @default("LISTING") // LISTING | HOME | ARTICLE | PODCAST
-  categoryId   String?  // targeting (null = any)
-  locationId   String?
-  startsAt     DateTime @default(now())
-  endsAt       DateTime
+  id            String         @id @default(cuid())
+  kind          String // FEATURED | AD
+  status        String         @default("ACTIVE") // ACTIVE | PAUSED | ENDED
+  source        String         @default("MANUAL") // MANUAL | ORDER
+  orderId       String?
+  businessId    String? // FEATURED: which business
+  business      Business?      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  advertiser    String? // AD: who is paying
+  headline      String?
+  body          String?
+  imageUrl      String?
+  linkUrl       String? // AD: https destination (we redirect by campaign id only, never from a URL parameter)
+  placement     String         @default("LISTING") // LISTING | HOME | ARTICLE | PODCAST
+  categoryId    String? // targeting (null = any)
+  locationId    String?
+  startsAt      DateTime       @default(now())
+  endsAt        DateTime
   impressionCap Int?
-  createdAt    DateTime @default(now())
-  stats        CampaignStat[]
+  createdAt     DateTime       @default(now())
+  stats         CampaignStat[]
 
   @@index([kind, status, endsAt])
 }
@@ -743,7 +746,7 @@ model CampaignStat {
 // Direct-sold sponsorship deals (podcast / newsletter / article / section): a ledger, plus the visible "Sponsored by" label.
 model Sponsorship {
   id          String    @id @default(cuid())
-  kind        String    // ARTICLE | PODCAST | NEWSLETTER | OTHER
+  kind        String // ARTICLE | PODCAST | NEWSLETTER | OTHER
   sponsorName String
   website     String?
   pricePence  Int       @default(0)
@@ -788,7 +791,7 @@ model SalesEnquiry {
   name       String
   email      String
   company    String?
-  interest   String   // premium | featured | advertising | sponsorship | other
+  interest   String // premium | featured | advertising | sponsorship | other
   message    String
   businessId String?
   status     String   @default("NEW") // NEW | CONTACTED | WON | LOST
@@ -803,28 +806,28 @@ model SalesEnquiry {
 /// One automated email rule. The programme in docs/lifecycle.md is defined in code; this row is the switch,
 /// the record of what it has done, and the audit trail for turning it off.
 model Automation {
-  key         String   @id // matches a template id, e.g. "biz-claim-invite"
-  enabled     Boolean  @default(false) // off until a human turns it on, so nothing surprises anyone
-  lastRunAt   DateTime?
-  lastSent    Int      @default(0)
-  totalSent   Int      @default(0)
-  totalSkipped Int     @default(0)
-  lastError   String?
-  dailyCap    Int      @default(50) // never send more than this in one run
-  updatedAt   DateTime @updatedAt @default(now())
-  runs        AutomationRun[]
+  key          String          @id // matches a template id, e.g. "biz-claim-invite"
+  enabled      Boolean         @default(false) // off until a human turns it on, so nothing surprises anyone
+  lastRunAt    DateTime?
+  lastSent     Int             @default(0)
+  totalSent    Int             @default(0)
+  totalSkipped Int             @default(0)
+  lastError    String?
+  dailyCap     Int             @default(50) // never send more than this in one run
+  updatedAt    DateTime        @default(now()) @updatedAt
+  runs         AutomationRun[]
 }
 
 model AutomationRun {
-  id        String   @id @default(cuid())
-  key       String
+  id         String     @id @default(cuid())
+  key        String
   automation Automation @relation(fields: [key], references: [key], onDelete: Cascade)
-  sent      Int      @default(0)
-  skipped   Int      @default(0)
-  error     String?
-  dryRun    Boolean  @default(false)
-  startedAt DateTime @default(now())
-  byAdmin   String?
+  sent       Int        @default(0)
+  skipped    Int        @default(0)
+  error      String?
+  dryRun     Boolean    @default(false)
+  startedAt  DateTime   @default(now())
+  byAdmin    String?
 
   @@index([key, startedAt])
 }
@@ -847,47 +850,47 @@ model Correction {
 
 /// Work an editor has asked a writer to do.
 model Commission {
-  id          String   @id @default(cuid())
-  authorId    String
-  author      Author   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  title       String
-  brief       String
-  type        String   @default("NEWS")
-  feePence    Int? // agreed in writing before the work starts
-  dueAt       DateTime?
-  status      String   @default("OFFERED") // OFFERED | ACCEPTED | DECLINED | DELIVERED | CANCELLED
-  articleId   String? // filled in once the writer starts the piece
+  id             String    @id @default(cuid())
+  authorId       String
+  author         Author    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title          String
+  brief          String
+  type           String    @default("NEWS")
+  feePence       Int? // agreed in writing before the work starts
+  dueAt          DateTime?
+  status         String    @default("OFFERED") // OFFERED | ACCEPTED | DECLINED | DELIVERED | CANCELLED
+  articleId      String? // filled in once the writer starts the piece
   commissionedBy String
-  respondedAt DateTime?
-  note        String? // the writer's reply when declining
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt @default(now())
+  respondedAt    DateTime?
+  note           String? // the writer's reply when declining
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
 
   @@index([authorId, status])
 }
 
 /// What a writer is owed and whether it has been paid.
 model WriterPayment {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   authorId    String
-  author      Author   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author      Author    @relation(fields: [authorId], references: [id], onDelete: Cascade)
   amountPence Int
   description String
   articleId   String?
-  status      String   @default("DUE") // DUE | SUBMITTED | APPROVED | PAID
+  status      String    @default("DUE") // DUE | SUBMITTED | APPROVED | PAID
   reference   String? // the writer's own invoice number
   periodMonth String? // YYYY-MM
   approvedBy  String?
   paidAt      DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
 
   @@index([authorId, status])
 }
 
 /// In-app notifications, so a decision is not lost when an email is.
 model Notification {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   audience  String // AUTHOR | OWNER | ADMIN
   subjectId String // author id, owner id, or "admin"
   kind      String // DECISION | COMMISSION | ENQUIRY | REVIEW | PAYMENT | SYSTEM
@@ -895,7 +898,7 @@ model Notification {
   body      String?
   href      String?
   readAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([audience, subjectId, readAt])
 }
@@ -915,21 +918,21 @@ model ArticleStat {
 model Setting {
   key       String   @id
   value     String
-  updatedAt DateTime @updatedAt @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
   updatedBy String?
 }
 
 /// An invitation for a colleague to help manage a business listing.
 model TeamInvite {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   email      String
   invitedBy  String
-  tokenHash  String   @unique
+  tokenHash  String    @unique
   expiresAt  DateTime
   acceptedAt DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   @@index([businessId])
 }
@@ -948,4 +951,111 @@ model SpecialHours {
 
   @@unique([businessId, day])
   @@index([businessId, day])
+}
+
+// ============================================================================
+// England geography. One dataset behind business registration, service areas,
+// customer job requests, lead matching, admin filtering and location pages.
+//
+// Built from ONS Open Geography Portal data (see docs/leadgen/geography/), never
+// from recall. Additive: the existing City/Location tree stays in place and keeps
+// serving live indexed URLs until a later, separately approved batch retires it.
+// ============================================================================
+
+/// A place: a country, an administrative tier, or a settlement. Flexible depth, because the number of
+/// levels differs by nation and by place - a London address needs no county, a Berkshire one does.
+model Place {
+  id        String  @id @default(cuid())
+  /// Natural key for idempotent import: "GSS:E09000002", "IPN:123456", "LEGACY:<Location id>".
+  /// Re-running an import updates rather than duplicating.
+  sourceKey String  @unique
+  name      String
+  slug      String
+  /// COUNTRY | REGION | COUNTY | UNITARY | LAD | WARD | TOWN | SUBURB | LOCALITY
+  kind      String
+  parentId  String?
+  parent    Place?  @relation("PlaceTree", fields: [parentId], references: [id])
+  children  Place[] @relation("PlaceTree")
+
+  /// ONS GSS code where the level has one. The canonical identifier - matching never uses names.
+  gssCode    String?
+  /// OS Open Names identifier, where the row came from the place index.
+  osId       String?
+  lat        Float?
+  lng        Float?
+  population Int?
+
+  /// The shortest parent that makes this name unique ("Havering"), null when the name stands alone.
+  disambiguation String?
+  /// What a human should see: the name, or "name, disambiguation".
+  label          String
+
+  source        String // ONS_IPN_GB | ONS_WD26_LOOKUP | PRIMESTREET_EXISTING | MANUAL
+  sourceDate    String // YYYY-MM-DD, when it was taken from that source
+  confidence    String  @default("MEDIUM") // HIGH | MEDIUM | LOW
+  evidenceNotes String?
+
+  /// Can work genuinely be delivered here? Separate from whether the place exists.
+  serviceable   Boolean @default(true)
+  /// YES | NO | UNREVIEWED - whether a distinct landing page is justified, with the reason below.
+  pageJustified String  @default("UNREVIEWED")
+  decisionNotes String?
+  active        Boolean @default(true)
+
+  /// The Location row this replaces, so the migration is reversible and auditable.
+  legacyLocationId String? @unique
+  /// JSON array of the source keys merged into this row - boundary-straddling duplicates and
+  /// the same place recorded at two geography levels.
+  mergedFrom       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  aliases    PlaceAlias[]
+  linksFrom  PlaceLink[]  @relation("PlaceLinkFrom")
+  linksTo    PlaceLink[]  @relation("PlaceLinkTo")
+  businesses Business[]
+
+  @@unique([parentId, slug])
+  @@index([kind])
+  @@index([name])
+  @@index([gssCode])
+  @@index([parentId])
+}
+
+/// Alternative names, spellings and local names the official index does not recognise - Dagenham Dock
+/// and Beam Park are real to the people who live there. Each carries its own source: an alias is never
+/// invented, and never silently promoted to the status of an ONS locality.
+model PlaceAlias {
+  id         String   @id @default(cuid())
+  placeId    String
+  place      Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  alias      String
+  normalised String // lowercased, punctuation stripped - what lookups actually match on
+  /// SPELLING | FORMER_NAME | COLLOQUIAL | LOCAL_NAME | ABBREVIATION
+  kind       String   @default("COLLOQUIAL")
+  source     String
+  sourceDate String
+  createdAt  DateTime @default(now())
+
+  @@unique([placeId, alias])
+  @@index([normalised])
+}
+
+/// Relationships the single-parent tree cannot express. The locality Rush Green is in Havering, while
+/// Barking and Dagenham has a ward called "Eastbrook & Rush Green": one name, two authorities, two
+/// different senses. A tree forces a false choice; this records the association instead.
+model PlaceLink {
+  id        String   @id @default(cuid())
+  fromId    String
+  from      Place    @relation("PlaceLinkFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toId      String
+  to        Place    @relation("PlaceLinkTo", fields: [toId], references: [id], onDelete: Cascade)
+  /// ALSO_ASSOCIATED_WITH | ADJACENT_TO | POSTAL_TOWN_OF | SAME_PLACE_OTHER_LEVEL
+  relation  String
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@unique([fromId, toId, relation])
+  @@index([toId])
 }
