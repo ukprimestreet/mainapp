@@ -495,4 +495,38 @@ Two lessons worth keeping: `cat >` on a path I have not read is destructive, and
 
 ---
 
+## Decision record — D4 (VAT) and D5 (registration flow)
+
+**Date:** 26 October 2026 · **Not a batch.** Decisions recorded; no code written.
+
+**A correction to the numbering.** The owner's message labelled the VAT decision D5 and the registration decision D6. They are **D4** and **D5**; D6 is the pilot area and is still open. The selected option row came from D5's own options table, so it is recorded as the answer to D5.
+
+### D4 — VAT
+
+**£1 per credit is the price excluding VAT.** VAT is added at checkout when it legally applies: at 20%, one credit is charged at £1.20 and 100 credits at £120.
+
+VAT may only be charged once PrimeStreet is VAT-registered and the supply is taxable; HMRC requires registration above £90,000 of taxable turnover on a rolling 12 months, or when that is expected within 30 days.
+
+In code: the base price stays ex-VAT, the rate and registration status are **settings rather than constants**, and the default is **off** — a misconfiguration must mean "no VAT charged", never "VAT charged while unregistered". Prices on screen state which they are, receipts show net, VAT and gross separately, and the rate and threshold are checked against HMRC at implementation rather than hard-coded from this note.
+
+### D5 — a new registration flow
+
+The owner chose **build a new registration flow**, which is the option I advised against. Recorded as their decision, with the risk I raised handled in the design rather than left standing:
+
+| The risk | How the design answers it |
+|---|---|
+Two ways of becoming an owner | Both routes converge on **`grantOwnership()`**, the only code that creates an `Owner` and a `BusinessOwner` link |
+A duplicated evidence model | The new flow reuses **`claimEvidence()`** — registration cannot be a softer route to `VERIFIED` than claiming |
+Two approval screens to keep in step | Both routes feed the **existing `/admin/moderation` queue** |
+The five free credits being farmable | Granted when ownership is granted, on a **verified account**, never at form submission |
+A duplicate listing for a business already in the directory | Detected with the existing **`findDuplicate()`** on name, website host and postcode, and the person is routed into **claiming** instead |
+
+That last one is the specific failure the warning was about. It is handled by detection, not by hope.
+
+### Open
+
+**D6 — pilot area** is the only decision left: Barking and Dagenham (my recommendation) or the Newbury cluster the master plan suggests.
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

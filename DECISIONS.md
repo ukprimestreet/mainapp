@@ -4,7 +4,7 @@ The decisions only you can make, in one place. Settled ones are kept with their 
 
 **Written for:** the owner. Each open decision states the question, what it changes, the options, and my recommendation. Answer by editing this file or just telling me.
 
-**Status: 3 settled · 3 open.** D4, D5 and D6 remain. None blocks the current work.
+**Status: 5 settled · 1 open.** Only D6, the pilot area, remains.
 
 ---
 
@@ -30,8 +30,6 @@ It gives selectable individual addresses plus UDPRN/UPRN, which postcodes.io can
 
 ---
 
-## Open
-
 ### D3 — Individual admin accounts ✅ 26 October 2026
 
 **Answer: the `AdminUser` model with role-based permissions.** No new vendor.
@@ -42,43 +40,47 @@ The migration completes itself: the shared `ADMIN_PASSWORD` keeps working while 
 
 *Still needs from you:* run `npm run admin:ddl -- --schema=public` and create the first production account with `npm run admin:create`. Then remove `ADMIN_PASSWORD` once you have signed in with your own account.
 
-### D4 — VAT on £1 lead credits
+### D4 — VAT on £1 lead credits ✅ 26 October 2026
 
-**The question:** is £1 per credit inclusive or exclusive of VAT?
+**Answer: £1 per credit is the price EXCLUDING VAT. VAT is added at checkout when it legally applies.**
 
-**What it changes.** The displayed price, the checkout line, the invoice, and what a business can reclaim. Getting it wrong after you have sold credits means re-issuing invoices.
+At the 20% standard rate, one credit is charged as:
 
-This is not a technical decision and I should not guess at it. It depends on your VAT registration status and when you expect to cross the threshold. **Your accountant, not me.**
-
-| If | Then |
+| | |
 |---|---|
-Not VAT registered | £1 is simply £1. Show "no VAT is charged" so a business is not left wondering |
-VAT registered, £1 inclusive | 50 credits = £50, of which £8.33 is VAT. Simpler for the buyer |
-VAT registered, £1 exclusive | 50 credits = £50 + £10 = £60. The displayed price must say "+ VAT" everywhere |
+Lead credit | £1.00 |
+VAT at 20% | £0.20 |
+**Charged** | **£1.20** |
 
-**What I will build meanwhile:** the ledger stores pence with a VAT field, and nothing on screen pre-judges the answer. The credit purchase flow cannot go live until this is settled — it is the one thing that would require re-issuing invoices to fix.
+So 100 credits costs £120 including VAT, at the standard rate.
 
-**Needed before:** Phase E (credits and payments) goes live. Does not block building it.
+**The condition that matters:** VAT may only be charged once PrimeStreet is VAT-registered and the supply is taxable. Adding VAT to a customer's bill before registration is not permitted. HMRC requires registration when taxable turnover passes **£90,000** over a rolling 12 months, or when it is expected to pass it within the next 30 days; voluntary registration below the threshold is also possible.
 
----
+**What this means in code:**
 
-### D5 — Where business registration lives
+- The base price stays **£1 per credit, excluding VAT**. `Product.pricePence` is already documented as ex-VAT, so nothing changes there.
+- VAT is applied at checkout **at the applicable rate**, not baked into the price.
+- VAT handling is **configurable** — registration status, VAT number and rate are settings, not constants, so the same build is correct before and after registration.
+- **It defaults to off.** A misconfiguration must mean "no VAT charged", never "VAT charged while unregistered".
+- Prices on screen say which they are: *"£1 per credit + VAT"* once registered, *"£1 per credit, no VAT charged"* before.
+- Receipts show net, VAT and gross separately, with our VAT number once we have one.
+- The rate and the threshold are checked against HMRC at implementation rather than hard-coded from this note — both have changed before.
 
-**The question:** how does a business get a live listing and its five free credits?
+### D5 — Where business registration lives ✅ 26 October 2026
 
-**What it changes.** There is no self-service "register and go live" flow today. All three existing routes pass through admin review: editorial import, public submission (`/businesses/submit` → admin approval), and claiming an existing listing (`/claim` → evidence check → `grantOwnership()`).
+**Answer: build a new registration flow.** This is the option I advised against; it is your call and it is recorded as yours, along with how the risk I raised gets handled.
 
-| Option | Trade-off |
-|---|---|
-**Extend the existing claim/owner flow** *(recommended)* | An authenticated owner already exists there, and the credit grant can be tied to a verified account. No second source of truth |
-Extend public submission | Lower friction, but a submission is not an authenticated account, so the five free credits become easy to farm |
-Build a new registration flow | Cleanest on paper; duplicates the claim evidence model and risks two ways of becoming an owner |
+**The risk I flagged, and how it is addressed.** The concern was two ways of becoming an owner, and a duplicated evidence model. The design therefore makes the new flow a **new front door onto the existing machinery**, not a second machine:
 
-**My recommendation: extend the claim/owner flow.** The five-credit grant has to hang off a verified account or it will be abused, and that verification already exists.
+- **One primitive grants ownership.** Both the new flow and the existing claim converge on `grantOwnership()` in `src/lib/owner.ts`, which is the only code that creates an `Owner` and a `BusinessOwner` link. No second path to becoming an owner.
+- **One evidence model.** The new flow reuses `claimEvidence()`: email verification is required to approve at all; a business-domain email **or** a phone call-back is required to reach `VERIFIED`. Registration cannot be a softer route to the same badge than claiming.
+- **One admin queue.** Both routes produce rows the existing `/admin/moderation` queue already handles. No second approval screen to keep in step.
+- **The five free credits hang off a verified account**, granted at the moment ownership is granted — not at form submission. Otherwise the grant is farmable by anyone with an email address.
+- **If the business already exists in the directory, registration becomes a claim.** The flow detects it by name, website host and postcode using the existing `findDuplicate()` and routes the person into claiming rather than creating a duplicate listing. That is the specific failure the warning was about, and it is handled by detection rather than by hoping.
 
-**Needed before:** Phase B onboarding is finished. I have a recommendation and will proceed on it unless you say otherwise.
+**What gets built:** a public registration flow that takes the business through its details, its location (postcode lookup, or the manual selector), its service categories and its service areas, then into the existing verification steps. Phase B onboarding.
 
----
+## Open
 
 ### D6 — Pilot area
 
