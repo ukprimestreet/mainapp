@@ -81,7 +81,11 @@ Place
 - **Aliases in their own table**, with a unique constraint, so "Saint Albans"/"St Albans" resolve to one place and cannot become two records.
 - **`serviceable`** answers "should this place ever get a page or a lead?" separately from "does this place exist?".
 
-**A place may belong to more than one functional area** (prompt §6 warns against forcing a single parent). The tree holds the *administrative* parent; additional relationships go in a `PlaceLink` edge table (`fromId`, `toId`, `relation`) so "Rush Green is commonly associated with Romford as well as Dagenham" is expressible without corrupting the hierarchy.
+**A place may belong to more than one functional area** (prompt §6 warns against forcing a single parent). The tree holds the *administrative* parent; additional relationships go in a `PlaceLink` edge table (`fromId`, `toId`, `relation`).
+
+**A worked example, corrected by the data.** An earlier draft of this spec said Rush Green was "administratively in Barking and Dagenham but commonly associated with Romford". The authoritative index says otherwise: the **locality** Rush Green is in **Havering**, and what Barking and Dagenham has is a *ward* named "Eastbrook & Rush Green". There are six Rush Greens in England. So one name is attached to two authorities in two different senses — locality and ward — and that is precisely what a single-parent tree cannot express and `PlaceLink` can.
+
+It is also why nothing may match on a place **name**: one in five English place names (9,747 of 48,894) occurs in more than one place. Matching keys on `place_id` and GSS codes only.
 
 ### Migration of the 83 existing locations
 

@@ -197,4 +197,75 @@ It would pair well with matching GSS codes to the 33 London boroughs from ONS, w
 
 ---
 
+## Batch B1 — Phase B: England geography acquired from authoritative sources
+
+**Date:** 26 October 2026
+**Authorised by:** owner — "continue", with the requirement that every local area in England is covered
+**Type:** data acquisition, verification and documentation. **No schema change applied. No landing pages. No application code changed.**
+
+### The requirement, and the one thing I refused to do
+
+The instruction was to cover every local area in England and produce a file of regions, cities, towns, local towns, villages and wards. The only dishonest way to do that would have been to write place names from memory — fabrication across tens of thousands of rows that nobody could audit, and forbidden twice over by the master plan. It was fetched from the ONS Open Geography Portal instead.
+
+### What was produced
+
+`scripts/fetch-england-places.mjs` — idempotent, paginated, retrying, and it **refuses to write a short file**: if the fetched row count does not match the count the server reports, it throws rather than leaving a silently truncated dataset.
+
+| File | Rows | Size | Source |
+|---|---|---|---|
+| `docs/leadgen/geography/ENGLAND_PLACES.csv` | **70,657** | 16 MB | Index of Place Names in Great Britain, July 2016 (hosted 2022) |
+| `docs/leadgen/geography/ENGLAND_ADMIN.csv` | **6,834** | 974 KB | `WD26_LAD26_CTYUA26_RGN26_CTRY26_UK_LU`, 2026 |
+| `docs/leadgen/geography/FETCH_SUMMARY.json` | — | 509 B | machine-readable verification record |
+| `docs/leadgen/geography/README.md` | — | — | what the files are, the licence, the caveats |
+
+**Coverage:** 43,084 localities (villages, hamlets, named settlements) · 5,376 built-up areas (towns and cities) · 1,797 built-up-area sub-divisions (suburbs) · 11,068 civil parishes · 8,040 wards · 562 non-metropolitan districts · 214 unitary authorities · 178 metropolitan districts · 97 London boroughs · 49 counties · 15 national parks · 9 regions. 48,894 distinct names. **0 rows missing coordinates.**
+
+Current administrative skeleton: **9 regions, 153 counties and unitary authorities, 296 local authorities, 6,834 wards**, every tier with its GSS code.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| Fetched rows vs server count | 70,657 = 70,657 and 6,834 = 6,834 |
+| Rows missing coordinates | **0** |
+| Stable pagination | ordered by `objectid` / `ObjectId`, so pages cannot repeat or drop rows |
+| Spot checks against the brief | 12 of 14 named places found; the 2 absent are reported below rather than hidden |
+
+### Findings
+
+**1. Four of the nine Dagenham names in the master plan are confirmed; five are not.**
+
+| Name | Result |
+|---|---|
+| Becontree, Chadwell Heath, Becontree Heath, Marks Gate | **confirmed** localities in Barking and Dagenham |
+| Rush Green | exists — **in Havering**, plus three other authorities. Not a Barking and Dagenham locality |
+| Castle Green | exists — **in Barnsley, Surrey Heath and Warwick**. Not in Barking and Dagenham |
+| Dagenham Dock, Dagenham Green, Beam Park | **not in the index at all** |
+
+This is the caution in the master plan proved right. Dagenham Dock is a real place to anyone who lives there and Beam Park was built after 2016; both need to exist as **aliases with a recorded source**, never invented and never silently promoted to the status of an ONS locality. The alias layer is therefore essential rather than optional.
+
+**2. One in five English place names is ambiguous.** 9,747 of 48,894 names occur in more than one place. There are six Rush Greens. Matching on a name would send a Havering lead to a Hertfordshire business, so everything keys on `place_id` and GSS codes.
+
+**3. A correction to my own spec.** It said Rush Green was administratively in Barking and Dagenham but commonly associated with Romford. Backwards: the locality is in Havering, and what Barking and Dagenham has is a *ward* called "Eastbrook & Rush Green". Corrected, and kept in the document as the worked example of why `PlaceLink` exists.
+
+**4. Two vintages, and only one is authoritative for parentage.** The place index is July 2016; English local government has been reorganised repeatedly since. Names and types come from the places file, current parentage from the admin file, and joining them must **flag** rather than guess where a 2015 LAD code no longer exists.
+
+### Open issues
+
+- **OGL attribution is not yet on the site.** The licence requires it wherever the data is published. It must ship with the first page that uses this data.
+- `ENGLAND_PLACES.csv` is 16 MB. Acceptable for reference data that changes rarely, and regenerable with one command, but re-fetches should be deliberate rather than routine.
+- Boundaries are not included — one point per place, no polygons. Point-in-polygon locality resolution would need the much larger ONS boundary products.
+- Address-level selection still needs licensed data (**D2**).
+- Four decisions remain open: **D2** address lookup · **D3** admin accounts · **D4** VAT · **D6** pilot area. D1 is settled (Supabase `pg_cron`); D5 has a recommendation awaiting confirmation.
+
+### Recommended next batch
+
+**B2 — the `Place` tables and the import.** Create `Place` / `PlaceAlias` / `PlaceLink` with RLS; back-fill the 83 existing PrimeStreet locations carrying `legacyLocationId` and verify 100% map; import the administrative skeleton first (9 → 153 → 296 → 6,834, all with GSS codes) because it is small, current and self-verifying; then the settlement layer, flagging rather than guessing every stale parent. Add `Business.placeId` alongside `locationId` **without reading from it**.
+
+Deliberately a separate batch: applying DDL to production in the same breath as a 70,000-row acquisition is how the earlier outage on this project happened. The data is now on disk, verified, and can be imported with the row counts known in advance.
+
+**Not started.**
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

@@ -1,0 +1,27 @@
+{
+  "fetched": "2026-10-26",
+  "places_total": 70657,
+  "places_by_type": {
+    "LOC": 43084,
+    "PAR": 11068,
+    "WD": 8040,
+    "BUA": 5376,
+    "BUASD": 1797,
+    "NMD": 562,
+    "UA": 214,
+    "MD": 178,
+    "LONB": 97,
+    "CTYHIST": 96,
+    "CTYLT": 72,
+    "CTY": 49,
+    "NPARK": 15,
+    "RGN": 9
+  },
+  "distinct_place_ids": 63901,
+  "distinct_place_names": 48894,
+  "admin_wards": 6834,
+  "admin_lads": 296,
+  "admin_counties_or_unitaries": 153,
+  "admin_regions": 9,
+  "missing_coordinates": 0
+}

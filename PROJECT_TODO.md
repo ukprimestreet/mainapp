@@ -37,12 +37,15 @@
 
 ---
 
-## Phase B — geography and business onboarding · NOT STARTED
+## Phase B — geography and business onboarding · IN PROGRESS
 
 - [ ] `Place`, `PlaceAlias`, `PlaceLink` tables — additive, RLS enabled
 - [ ] Backfill all 83 `Location` rows to `Place`, carrying `legacyLocationId`; verify 100% mapped
 - [ ] `Business.placeId` alongside `locationId`; **do not drop `locationId`** (indexed URLs depend on it)
-- [ ] Source and import geography under its licence (ONS for codes, OS Open Names for place names) — record source and date per row
+- [x] **Acquire England geography from authoritative sources** — `docs/leadgen/geography/`: 70,657 place rows (43,084 localities, 5,376 built-up areas, 1,797 sub-divisions, 11,068 parishes, 8,040 wards, plus every administrative tier) and the current 2026 skeleton (9 regions, 153 counties/unitaries, 296 local authorities, 6,834 wards). Every row carries its source and fetch date; `node scripts/fetch-england-places.mjs` regenerates it
+- [ ] Add the OGL attribution to the site — required wherever this data is published, and not yet present
+- [ ] Join the 2016 place index to the 2026 administrative skeleton; **flag, never guess**, where a 2015 LAD code no longer exists
+- [ ] Alias layer for real names the index does not recognise (Dagenham Dock, Beam Park), each with a recorded source
 - [ ] `resolvePostcode()` returning a **confirmable suggestion**, never a silent assignment
 - [ ] Manual cascading selectors (country → region → authority → town → locality), searchable, usable on mobile
 - [ ] Mandatory location confirmation in onboarding, per D5
