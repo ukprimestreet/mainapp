@@ -19,10 +19,10 @@
 | A5 | Propose the geography model, lead model, credit ledger and matching engine | **COMPLETED** — `LOCATION_AND_LEAD_SYSTEM_SPEC.md` |
 | A6 | Record the migration order and rollback position | **COMPLETED** — `DATABASE_CHANGELOG.md` |
 | A7 | Recommend a pilot grounded in provider supply, not keyword demand | **COMPLETED** — spec §8 |
-| A8 | Obtain `UK_Local_Services_Lead_Generation_SEO_Master_Plan.docx` | **BLOCKED** — not in the repository; requested from the owner |
-| A9 | Owner decisions D1–D5 | **AWAITING APPROVAL** — see below |
+| A8 | Obtain and read `UK_Local_Services_Lead_Generation_SEO_Master_Plan.docx` and the platform `.txt` | **COMPLETED** — both found in `docs/` on 26 October and read in full. The `.txt` is identical to the pasted prompt; the `.docx` adds England-first scope, per-category keyword scope, named demand sources, and a different suggested pilot area |
+| A9 | Owner decisions D1–D6 | **AWAITING APPROVAL** — see below |
 
-### A9 — the five decisions that gate Phase B
+### A9 — the six decisions that gate Phase B
 
 | ID | Decision | Why it blocks | Recommendation |
 |---|---|---|---|
@@ -31,6 +31,7 @@
 | D3 | Individual admin accounts | One shared password makes role-based PII restriction and per-admin audit impossible | Add an `AdminUser` model with a `role` field |
 | D4 | VAT treatment of £1 credits | Changes the displayed price and the invoice. Cannot sell before it is settled | Owner to confirm with an accountant |
 | D5 | Where business registration lives | No self-service go-live flow exists today | Extend the existing claim/owner flow |
+| D6 | **Pilot area**: West Berkshire (master plan §12) or Barking and Dagenham (this spec §8) | Decides whether Phase B imports a whole new region or extends existing geography | Barking and Dagenham first, West Berkshire as market two |
 
 ---
 

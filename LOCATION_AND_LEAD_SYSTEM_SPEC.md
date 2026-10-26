@@ -265,6 +265,21 @@ Production holds **3 businesses and 0 owners**. A lead system with no providers 
 
 **I would not pick a pilot on keyword demand alone.** Demand is useless without supply, and the prompt agrees (§20: "Do not assume that a particular service is the best pilot without evaluating provider availability").
 
+### D6 — the master plan suggests a different area, and this needs your decision
+
+`docs/UK_Local_Services_Lead_Generation_SEO_Master_Plan.docx` §12 suggests piloting removals, cleaning or gardening in **a cluster around Thatcham, Newbury, Wash Common, Speen and Donnington** — West Berkshire. My recommendation above is **cleaning in Barking and Dagenham**. Both follow the same rule the master plan sets — "the best pilot category should be chosen after checking which providers can buy and fulfil leads" — and reach different answers from different starting facts:
+
+| | West Berkshire (master plan) | Barking and Dagenham (this spec) |
+|---|---|---|
+| Geography already in the database | **None.** PrimeStreet holds one city, London | Borough and neighbourhoods already exist |
+| Known provider supply | **None identified** | One real cleaning business in the family, plus a local market |
+| Platform work needed first | A new `City`, a new region, a fresh locality import, new directory URLs | Extend what is already live |
+| Fit with the existing brand | PrimeStreet is a **London** publication; a Newbury section is a positioning decision, not just a data one | Native |
+
+**Recommendation: Barking and Dagenham for the pilot, West Berkshire as the second market.** It tests the whole commercial loop against geography and supply that already exist, which is what a pilot is for. Standing up a new region *and* a new lead system at once means that if the pilot fails you cannot tell which half failed.
+
+If the Newbury cluster matters commercially for a reason outside this repository, say so and I will plan it as the pilot instead — it is a larger Phase B, not an impossible one.
+
 ---
 
 ## 9. What I am deliberately not doing in this spec

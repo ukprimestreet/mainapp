@@ -628,4 +628,4 @@ Location-aware registration, automated lead distribution, lead credits and admin
 `PROJECT_TODO.md`, with the audit in `EXISTING_PLATFORM_AUDIT.md`, the design in `LOCATION_AND_LEAD_SYSTEM_SPEC.md`,
 migrations in `DATABASE_CHANGELOG.md` and batch history in `BATCH_LOG.md`.
 - [x] Phase A: audit and architecture (batch A1, 26 October 2026)
-- [ ] Phase B onwards: blocked on five owner decisions (scheduler, address-lookup provider, admin accounts, VAT, where registration lives)
+- [ ] Phase B onwards: blocked on six owner decisions (scheduler, address-lookup provider, admin accounts, VAT, where registration lives, pilot area)

@@ -68,6 +68,61 @@ It does not depend on D1, D2 or D4. It would be the safest first code change.
 
 **Not started, and will not be, without authorisation.**
 
+
+
+---
+
+## Batch A2 — Phase A addendum: the master plan, read
+
+**Date:** 26 October 2026
+**Authorised by:** owner instruction to re-check for the two reference documents
+**Type:** reading and reconciliation. **No code, no pages, no schema change.**
+
+### What was done
+
+Searched beyond the repository and found both documents, now present in `docs/` (placed there after batch A1's search, which is why that pass reported them missing):
+
+| File | Size | Modified | Read how |
+|---|---|---|---|
+| `docs/UK_Local_Services_Lead_Generation_SEO_Master_Plan.docx` | 53 KB | 25 Oct 23:23 | extracted `word/document.xml`, 469 paragraphs |
+| `docs/UK-WIDE LOCAL SERVICES LEAD-GENERATION PLATFORM.txt` | 37 KB | 26 Oct 00:19 | read directly, 1,152 lines |
+
+A copy of the `.docx` also sits in `~/Downloads` alongside a `~$` Word lock file, which means it may be open in Word; the repository copy is byte-identical.
+
+### Verification
+
+- **The `.txt` was diffed against the prompt already in `nextbigprojectforprimestreet.md`** (lines 939–2088). Identical apart from four lines of whitespace handling. **It introduces no instruction that was not already being followed.**
+- The `.docx` was read in full before any document was edited.
+
+### What the master plan changed
+
+1. **England first**, with "a documented route to the rest of the UK if later approved" — narrower than the first prompt's "UK-wide", and the shape the data model should be built for.
+2. **The 50-category order is stated as a hypothesis**, with named sources to validate against (SearchHawk, PHAM News, Airtasker) and a per-category keyword scope the bare list omitted.
+3. **It independently confirms the audit's postcode finding**: "Do not equate postcode areas with neighbourhoods."
+4. **It suggests a different pilot area** — Thatcham / Newbury / Wash Common / Speen / Donnington — against this spec's Barking and Dagenham. Recorded as decision **D6** with a comparison table and a recommendation rather than silently overriding either.
+5. **Authoritative sources named**: ONS geography, OS Open Names.
+6. Confirms the document set for the second project, all of which remain uncreated pending authorisation.
+
+### Files updated
+
+`EXISTING_PLATFORM_AUDIT.md` (§12 rewritten), `LOCATION_AND_LEAD_SYSTEM_SPEC.md` (§8 gains D6), `PROJECT_TODO.md` (A8 completed, D6 added), `projecttodolist.md` (cross-reference), `BATCH_LOG.md` (this entry).
+
+### Open issues
+
+Six owner decisions now gate Phase B: D1 scheduler · D2 address-lookup provider · D3 admin accounts · D4 VAT · D5 registration flow · **D6 pilot area**.
+
+Still outstanding: legal review of the privacy notice, business terms and credit terms before any live lead distribution.
+
+### Recommended next batch
+
+**Either** B1 — geography foundation (`Place` / `PlaceAlias` / `PlaceLink`, back-fill the 83 locations, add `Business.placeId` unread), which needs only D6;
+
+**or** A3 — create the second project's planning documents now that the master plan can be read: `MASTER_PLAN.md`, `SERVICE_RANKING.md`, `GEOGRAPHY_SCHEMA.md`, `LOCATION_MASTER.csv`, `KEYWORD_DATABASE.csv`, `PAGE_QUEUE.csv`, `TECHNICAL_SEO_CHECKLIST.md`, `LEAD_ROUTING_AND_PRIVACY.md`, `SEO_EXPERIMENTS.md`, `CONTENT_BRIEFS/`.
+
+On A3, one commitment: the CSVs would ship with **headers and no invented rows**. Real keyword volumes need Keyword Planner and Search Console access; real locality rows need ONS and OS Open Names imports. I will not populate them from memory, and the master plan forbids it twice.
+
+**Neither is started.**
+
 ---
 
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

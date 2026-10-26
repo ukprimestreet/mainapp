@@ -231,6 +231,19 @@ Not set: **anything Stripe**.
 
 ## 12. Documents referenced but not found
 
-`UK_Local_Services_Lead_Generation_SEO_Master_Plan.docx` — required reading by the second prompt, §2. **It is not in the repository.** I searched the whole tree. Per that section's own instruction I am not pretending to have read it: **please provide it** before the standalone lead-generation site's Phase 0 begins. Everything in this audit concerns the first prompt, whose Phase A does not depend on it.
+**Resolved on 26 October 2026.** Both documents were placed in `docs/` after this audit's first pass and have now been read in full:
+
+- `docs/UK_Local_Services_Lead_Generation_SEO_Master_Plan.docx` (v1.0, prepared 25 October 2026) — read by extracting `word/document.xml`; 469 paragraphs.
+- `docs/UK-WIDE LOCAL SERVICES LEAD-GENERATION PLATFORM.txt` — diffed against the prompt already supplied in `nextbigprojectforprimestreet.md`. **Identical apart from four lines of whitespace handling.** It contains no instruction that was not already being followed.
+
+What the master plan **adds** to this audit:
+
+1. **Scope is England first,** not the whole UK immediately: "Make the geography database expandable across England, with a documented route to the rest of the UK if later approved." The first prompt says UK-wide. England-first is the narrower, safer reading and is what the data model should be built for.
+2. **The 50-category order is explicitly a hypothesis,** not a ranking: "There is no single authoritative public UK ranking that combines every local service category." Named sources to verify against: SearchHawk UK trade search data, PHAM News, Airtasker UK trends. Each category also carries a keyword/service scope, which the prompt's bare list omitted.
+3. **It independently confirms this audit's postcode finding:** "Do not equate postcode areas with neighbourhoods." That is precisely why postcodes.io returning the ward "Eastbrook & Rush Green" cannot be treated as a locality.
+4. **It suggests a different pilot area** from the one recommended here — a cluster around Thatcham, Newbury, Wash Common, Speen and Donnington. See the spec, §8, for the reconciliation; this is now decision **D6**.
+5. **Authoritative sources named:** ONS geography (`ons.gov.uk/methodology/geography`) and OS Open Names (`ordnancesurvey.co.uk/products/os-open-names`), both to be used subject to licence.
+
+Existing documents that are the equivalents the prompts ask for, and should be updated rather than duplicated: `phases.md` (platform phases 1–11), `projecttodolist.md` (platform task history), and the 19 files now in `docs/`.
 
 Existing documents that are the equivalents the prompts ask for, and should be updated rather than duplicated: `phases.md` (platform phases 1–11), `projecttodolist.md` (platform task history), and the 17 files in `docs/`.

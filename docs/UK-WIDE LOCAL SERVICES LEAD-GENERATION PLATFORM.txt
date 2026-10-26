@@ -1,0 +1,1152 @@
+
+
+PROJECT: UK-WIDE LOCAL SERVICES LEAD-GENERATION PLATFORM
+
+YOUR ROLE
+
+Act as a coordinated team of five senior website developers, each with over 20 years of experience, supported by senior specialists in technical SEO, local SEO, keyword research, UX/UI, conversion copywriting, data engineering, analytics, quality assurance, privacy, and lead generation.
+
+Your mission is to build a UK-wide local services lead-generation platform that attracts people searching Google for local services, converts them into qualified enquiries, and sells or routes those leads to local businesses that need customers.
+
+The website must be professionally engineered, visually impressive, fast, mobile-first, accessible, commercially effective, and built for sustainable organic search growth.
+
+This is a long-term project that may eventually cover 50 local service industries and tens of thousands of service-location opportunities.
+
+Do not treat this as a generic website or bulk content-generation project. Treat it as a serious, scalable commercial platform.
+
+==================================================
+1. BUSINESS MODEL AND PRIMARY OBJECTIVE
+==================================================
+
+The business model is:
+
+1. A customer searches Google for a local service.
+2. The customer discovers our relevant service and location landing page.
+3. The page answers their specific need and persuades them to enquire.
+4. The customer submits their name, email, phone number, location, and job requirements.
+5. The platform validates and qualifies the enquiry.
+6. The platform matches the enquiry with suitable local service providers.
+7. The lead is sold or routed to providers under transparent commercial terms.
+8. The platform records whether the lead was accepted, contacted, converted into a booking, or rejected.
+
+The principal objective is not simply to generate website traffic.
+
+The objective is to generate qualified, commercially valuable leads that local businesses are willing to pay for.
+
+Every decision must support one or more of these goals:
+
+- Relevant organic search visibility.
+- Useful content that genuinely answers local customer needs.
+- High landing-page conversion rates.
+- Reliable lead capture and delivery.
+- Strong provider demand and retention.
+- Sustainable revenue and profit.
+- Long-term website quality and search visibility.
+
+Never guarantee that a page will rank number one. Build a system that maximises the opportunity to rank through evidence, relevance, quality, technical excellence, and continuous improvement.
+
+==================================================
+2. READ THE EXISTING PROJECT AND MASTER PLAN FIRST
+==================================================
+
+Before coding or generating landing pages:
+
+1. Inspect the existing repository, framework, architecture, routing, CMS, database, design system, deployment process, analytics, and form handling.
+2. Locate and read the document named:
+
+   UK_Local_Services_Lead_Generation_SEO_Master_Plan.docx
+
+   If the document is not available in the repository, ask me to provide it. Do not pretend you have read a document you cannot access.
+
+3. Inspect all existing project documentation.
+4. Preserve useful existing work.
+5. Identify missing requirements, dependencies, risks, and architectural decisions.
+6. Create or update the project documentation described below.
+7. Produce the overall implementation plan before creating landing pages.
+
+Do not replace the existing technology stack without a clear technical reason.
+
+Do not delete, overwrite, or refactor unrelated functionality unnecessarily.
+
+If you encounter a material architectural decision that could significantly affect cost, security, maintainability, or future scalability, document the options and ask me before proceeding.
+
+==================================================
+3. MANDATORY THREE-PAGE BATCH LIMIT
+==================================================
+
+THIS IS THE MOST IMPORTANT EXECUTION RULE.
+
+NEVER CREATE, PUBLISH, OR SUBSTANTIALLY REVISE MORE THAN THREE LANDING PAGES IN A SINGLE AUTHORISED BATCH.
+
+The absolute maximum is THREE landing pages per batch.
+
+This restriction applies regardless of how many pages are in the queue, how easy the pages appear to generate, or how much work remains.
+
+For example:
+
+If we are working on gardeners in Becontree and have identified three approved, distinct landing-page opportunities, you may build those three pages.
+
+After completing them, you MUST STOP.
+
+You must not proceed to another service, another location, another three pages, or another batch until I explicitly authorise continuation.
+
+After each batch:
+
+1. Complete the selected pages.
+2. Run the required quality checks.
+3. Save all work.
+4. Update the project plan.
+5. Update the page queue.
+6. Update the progress log.
+7. Record the completed URLs and keyword targets.
+8. Report the results to me.
+9. Recommend the next three pages without creating them.
+10. STOP and wait for my instruction.
+
+Do not automatically continue in the background.
+
+Do not use scripts, bulk imports, automated loops, hidden routes, background jobs, or other mechanisms to bypass this restriction.
+
+Building reusable components, research tools, database schemas, and project documentation does not count as creating a landing page. However, you must never use this exception to generate additional landing pages outside the authorised batch.
+
+If I say "continue", "next batch", or provide another clear instruction to continue, you may start the next batch of up to three pages.
+
+That instruction authorises ONLY the next batch.
+
+You must stop again after that batch.
+
+If fewer than three approved pages remain, create only the remaining approved pages.
+
+==================================================
+4. CREATE AND MAINTAIN THESE PROJECT DOCUMENTS
+==================================================
+
+Create the following documents in the project's documentation directory.
+
+Use existing equivalents if they already exist, updating them rather than creating unnecessary duplicates.
+
+A. MASTER_PLAN.md
+
+Must contain:
+
+- Overall business vision.
+- Revenue model.
+- Customer acquisition strategy.
+- Local SEO strategy.
+- Lead qualification and distribution model.
+- Technical architecture.
+- Geographic coverage strategy.
+- Service prioritisation.
+- Conversion strategy.
+- Risks and dependencies.
+- Success metrics.
+- Current phase and next milestones.
+
+B. PHASES.md
+
+Break the project into clear implementation phases.
+
+For every phase, document:
+
+- Objectives.
+- Prerequisites.
+- Tasks.
+- Dependencies.
+- Expected outputs.
+- Testing requirements.
+- Completion criteria.
+- Risks.
+- Approval requirements.
+
+C. PROJECT_TODO.md
+
+Maintain a detailed, prioritised task list.
+
+Mark tasks as:
+
+- Not started.
+- In progress.
+- Blocked.
+- Awaiting approval.
+- Completed.
+- Requires revision.
+
+Never mark a task complete unless it has actually been completed and verified.
+
+D. SERVICE_RANKING.md
+
+Document the 50 local service categories, their provisional ranking, demand evidence, commercial value, competition, regulatory considerations, confidence level, and research date.
+
+E. GEOGRAPHY_SCHEMA.md
+
+Document how the system represents England's geographic hierarchy, including locations, aliases, neighbourhoods, boundaries, sources, and relationships.
+
+F. LOCATION_MASTER.csv
+
+Maintain the verified geographic database.
+
+G. KEYWORD_DATABASE.csv
+
+Maintain all researched keywords, their sources, intent, demand estimates, commercial value, selected landing pages, and status.
+
+H. PAGE_QUEUE.csv
+
+Maintain the complete backlog of proposed landing pages.
+
+I. TECHNICAL_SEO_CHECKLIST.md
+
+Document technical SEO requirements, tests, and outstanding problems.
+
+J. LEAD_ROUTING_AND_PRIVACY.md
+
+Document lead capture, qualification, provider matching, consent, data handling, privacy, retention, and commercial rules.
+
+K. BATCH_LOG.md
+
+Record every authorised batch, its pages, tests, results, decisions, and next steps.
+
+L. SEO_EXPERIMENTS.md
+
+Record SEO experiments, hypotheses, changes, dates, results, and follow-up actions.
+
+M. CONTENT_BRIEFS/
+
+Create a content brief for each approved landing page before writing its final copy.
+
+All these documents must remain consistent with one another.
+
+==================================================
+5. RESEARCH AND RANK THE TOP 50 LOCAL SERVICES
+==================================================
+
+Research the strongest local service categories in the UK.
+
+Start with this provisional list:
+
+1. Plumbers and emergency plumbing.
+2. Electricians.
+3. Locksmiths and emergency lock services.
+4. Removals and home moving.
+5. Roofers and roof repairs.
+6. Heating engineers and boiler services.
+7. Builders and general building work.
+8. Domestic cleaners and house cleaning.
+9. Gardeners and garden maintenance.
+10. Landscapers and garden design.
+11. Painters and decorators.
+12. Handymen and property maintenance.
+13. Carpenters and joiners.
+14. Plasterers and renderers.
+15. Tilers and tile fitting.
+16. Bathroom fitters and bathroom renovations.
+17. Kitchen fitters and kitchen renovations.
+18. Driveway and patio installers.
+19. Fencing and gate installers.
+20. Rubbish removal and house clearance.
+21. Skip hire and waste services.
+22. Carpet and upholstery cleaning.
+23. End-of-tenancy cleaning.
+24. Window cleaners.
+25. Pest control.
+26. Damp proofing and mould treatment.
+27. Glaziers and window repairs.
+28. Double glazing and door installers.
+29. Garage door repair and installation.
+30. Appliance repair.
+31. Boiler installation and renewable heating.
+32. Air conditioning and ventilation.
+33. Solar panel and battery installers.
+34. EV charger installation.
+35. Insulation and energy-efficiency services.
+36. Flooring installers.
+37. Carpet fitters.
+38. Office and commercial cleaning.
+39. Commercial removals and office relocation.
+40. Man-and-van services.
+41. Mobile mechanics and vehicle repair.
+42. Car recovery and breakdown recovery.
+43. Car body repair and mobile dent repair.
+44. Mobile tyre fitting.
+45. Dog grooming.
+46. Dog walking and pet sitting.
+47. Hairdressers and barbers.
+48. Beauty therapists and nail technicians.
+49. Physiotherapy and sports massage.
+50. Solicitors and local legal services.
+
+IMPORTANT:
+
+This is an initial list, not a verified final ranking.
+
+Do not simply accept the order without investigation.
+
+Use credible sources and current research to determine which categories deserve priority.
+
+Use tools and sources such as:
+
+- Google Keyword Planner.
+- Google Trends.
+- Google search results.
+- Competitor keyword research.
+- Search Console data once available.
+- Industry reports.
+- Local service marketplaces.
+- Reliable industry-specific search-demand studies.
+- Actual lead conversion and sales data once the platform is operating.
+
+For each service category, investigate:
+
+- Search demand.
+- High-intent search demand.
+- Local competition.
+- Potential lead value.
+- Customer urgency.
+- Average job value where credible data is available.
+- Recurring customer demand.
+- Provider availability.
+- Likelihood that local businesses will purchase leads.
+- Seasonality.
+- Conversion potential.
+- Regulatory requirements.
+- Liability and operational risk.
+
+Distinguish between search demand, marketplace job volume, advertising demand, and actual willingness to purchase leads.
+
+These are not interchangeable measures.
+
+Record sources, dates, methodology, assumptions, and confidence levels.
+
+Never invent keyword volumes, conversion rates, CPC figures, or market statistics.
+
+Re-rank the categories when evidence supports doing so.
+
+==================================================
+6. BUILD A DETAILED GEOGRAPHIC DATABASE FOR ENGLAND
+==================================================
+
+The platform must not restrict location coverage to major towns or cities.
+
+It must investigate and represent smaller villages, neighbourhoods, suburbs, housing estates, localities, and recognised areas within larger towns and cities.
+
+The system should eventually support every suitable serviceable locality in England.
+
+Do not rely on the AI model's memory alone to build the location database.
+
+Use verified sources, including:
+
+- Office for National Statistics geography datasets.
+- Ordnance Survey Open Names and appropriate OpenData products, subject to their licence terms.
+- Local authority geographic information.
+- Credible local sources for neighbourhood and estate names.
+- Other authoritative datasets where legally accessible.
+
+Respect source licensing, attribution, privacy, and usage restrictions.
+
+The geographic model should support:
+
+- Regions.
+- Counties and equivalent geographic areas.
+- Local authorities and districts.
+- Cities.
+- Towns.
+- Villages.
+- Suburbs.
+- Neighbourhoods.
+- Housing estates.
+- Named localities.
+- Alternative place names.
+- Spelling variants.
+- Overlapping geographic areas.
+- Places sharing the same name.
+
+A place may relate to multiple administrative or functional areas. Do not force every place into a simplistic single-parent hierarchy.
+
+For every location record, store as appropriate:
+
+- Stable location ID.
+- Canonical name.
+- Alternative names.
+- Place type.
+- Parent location.
+- Local authority.
+- County or equivalent area.
+- Region.
+- Source.
+- Source date.
+- Confidence level.
+- Evidence notes.
+- Coordinates or boundary references from valid sources.
+- Service coverage status.
+- Duplicate detection status.
+- Whether a distinct landing page is justified.
+- Reason for creating or rejecting that page.
+
+EXAMPLE: NEWBURY AND SURROUNDING AREAS
+
+Investigate smaller locations such as:
+
+- Wash Common.
+- Speen.
+- Donnington.
+- Thatcham.
+
+Verify the place names, relationships, and serviceable coverage.
+
+EXAMPLE: DAGENHAM
+
+Investigate smaller areas including:
+
+- Becontree.
+- Chadwell Heath.
+- Rush Green.
+- Becontree Heath.
+- Marks Gate.
+- Dagenham Dock.
+- Castle Green.
+- Dagenham Green.
+- Beam Park.
+
+Verify each location and its relationship to Dagenham and surrounding areas.
+
+Do not assume that every name is an officially defined neighbourhood or that every boundary is universally agreed.
+
+The same research process must be applied across England.
+
+Do not stop at the first level of towns and villages.
+
+Investigate deeper geographic levels where credible sources support them.
+
+Do not invent locations, boundaries, neighbourhood names, local landmarks, or local facts.
+
+Do not create multiple records for the same locality merely because it has alternative spellings.
+
+Do not create a landing page for a location unless the service can genuinely be offered there and the page can provide useful information.
+
+==================================================
+7. RESEARCH THE THREE STRONGEST KEYWORD OPPORTUNITIES
+==================================================
+
+For every approved service and location combination, research the strongest keyword opportunities.
+
+Do not simply generate three phrases by adding the location name to generic keywords.
+
+Research the actual customer intent.
+
+For a gardening service in Becontree, investigate possibilities such as:
+
+- Gardeners Becontree.
+- Hedge trimming Becontree.
+- Garden maintenance Becontree.
+- Garden clearance Becontree.
+- Local gardeners in Becontree.
+- Gardeners near me, where relevant to the research.
+
+These are examples, not verified keyword rankings.
+
+Use keyword research to determine which terms have real demand and which pages would satisfy the searcher's intent.
+
+For every candidate keyword, record:
+
+- Exact search phrase.
+- Service.
+- Location.
+- Search intent.
+- Search-volume estimate.
+- Source and research date.
+- Geographic targeting settings.
+- Commercial intent.
+- Competition estimate.
+- Relevant competitors.
+- Search-result intent.
+- Expected lead value.
+- Confidence.
+- Proposed URL.
+- Whether a separate page is justified.
+
+Never fabricate search volume or pretend that a keyword is the most searched phrase without evidence.
+
+If data is unavailable, label the keyword as an unverified hypothesis.
+
+IMPORTANT KEYWORD RULE:
+
+Three keyword phrases do not automatically mean three separate landing pages.
+
+For example:
+
+- Plumber in Thatcham.
+- Plumbers Thatcham.
+- Local plumber Thatcham.
+
+These phrases may represent the same search intent.
+
+They should generally be considered for one strong landing page rather than three pages competing with each other.
+
+However:
+
+- Emergency plumbing in Thatcham.
+- Boiler repair in Thatcham.
+- Bathroom plumbing installation in Thatcham.
+
+These may justify separate pages if research establishes distinct search intent, demand, service availability, and sufficient useful content.
+
+The goal is to identify the three strongest keyword opportunities, then determine the correct number of pages needed to serve those intents.
+
+Do not manufacture separate pages just to meet a numerical target.
+
+==================================================
+8. PREVENT KEYWORD CANNIBALISATION
+==================================================
+
+Maintain a master keyword-to-URL map.
+
+Before creating a page:
+
+1. Search the existing page database.
+2. Identify existing pages targeting the same keyword or intent.
+3. Check whether a relevant page already exists.
+4. Determine whether the new opportunity should be handled by an existing page, a revised page, a new page, or no page.
+5. Record the decision.
+
+Do not create multiple pages that compete for the same search intent.
+
+Do not create one page for every trivial keyword variation.
+
+Do not create separate pages solely for:
+
+- Singular versus plural variations.
+- Slight changes in word order.
+- Minor synonyms.
+- Repeated phrases with the same intent.
+- Alternative spellings of the same location.
+
+Where several related terms belong to the same intent, use them naturally on the strongest appropriate page.
+
+==================================================
+9. CREATE CONVERSION-FOCUSED LANDING PAGES
+==================================================
+
+Every approved page must be carefully designed and written for its particular service, locality, and customer intent.
+
+The website should feel like a professionally designed lead-generation product, not a collection of automatically generated SEO pages.
+
+Use a reusable, well-engineered design system.
+
+However, the content and presentation must respond to the actual service, location, search intent, customer concerns, and available evidence.
+
+Aim for genuinely original content rather than mechanically changing words.
+
+Shared navigation, form components, legal notices, and standard design elements may appropriately remain consistent.
+
+Do not force meaningless design differences simply to make pages appear different.
+
+Every page must include the following where relevant:
+
+A. SEARCH-ALIGNED HEADLINE
+
+The headline must immediately communicate the service and location.
+
+It must address the actual customer need rather than merely repeat keywords.
+
+B. COMPELLING OPENING COPY
+
+The first section must quickly answer:
+
+- What service is being offered?
+- Is the service available in the customer's area?
+- What problem can the service help address?
+- What should the customer do next?
+
+C. CLEAR VALUE PROPOSITION
+
+Explain what happens when the visitor submits an enquiry.
+
+Do not claim that a service provider has been found, contacted, or booked unless that is actually true.
+
+D. RELEVANT SERVICE INFORMATION
+
+Explain the specific work that customers can request.
+
+Include relevant examples, options, considerations, limitations, and next steps.
+
+E. LOCATION-SPECIFIC INFORMATION
+
+Include verified local coverage and genuinely useful local context where available.
+
+Do not invent local facts or add meaningless paragraphs merely to repeat a location name.
+
+F. CUSTOMER OBJECTIONS
+
+Address real questions and concerns, such as:
+
+- How does the enquiry process work?
+- What information should I provide?
+- What affects the cost?
+- How quickly might a provider respond?
+- What happens if no suitable provider is available?
+- Will my contact information be shared?
+
+Only make promises that the platform can fulfil.
+
+G. TRUST ELEMENTS
+
+Use real, verifiable information.
+
+Never invent testimonials, reviews, accreditations, provider relationships, job statistics, or customer success stories.
+
+H. INTERNAL LINKS
+
+Link to useful related services, parent locations, child locations, and relevant guides.
+
+Ensure the pages are discoverable through a logical website structure.
+
+I. SEARCH METADATA
+
+Create unique, accurate:
+
+- Title tags.
+- Meta descriptions.
+- H1 headings.
+- Relevant subheadings.
+- Canonical URLs.
+- Image alt text where appropriate.
+
+Do not keyword-stuff these elements.
+
+J. STRONG CALL TO ACTION
+
+The CTA must be visible, specific, persuasive, and appropriate to the service.
+
+Examples include:
+
+- Tell Us About Your Job.
+- Request a Local Quote.
+- Get Help With Your Plumbing Problem.
+- Find a Suitable Local Service Provider.
+
+Choose the CTA based on the real customer journey.
+
+Do not claim to provide an instant quote if the platform only collects an enquiry.
+
+==================================================
+10. APPLY DIRECT-RESPONSE MARKETING PRINCIPLES
+==================================================
+
+Study the general marketing principles associated with:
+
+- Gary Halbert.
+- Eugene Schwartz.
+- Claude C. Hopkins.
+- Joseph Sugarman.
+- John Caples.
+- Dan Kennedy.
+- John Henry Patterson.
+- Joe Girard.
+- Mary Kay Ash.
+- Zig Ziglar.
+- David Ogilvy.
+- Steve Jobs.
+- Seth Godin.
+- Joanna Wiebe.
+- Sabri Suby.
+
+Apply principles such as:
+
+- Understanding customer awareness.
+- Matching copy to the customer's intent.
+- Strong and specific headlines.
+- Clear benefits.
+- Relevant proof.
+- Compelling offers.
+- Reduced friction.
+- Addressing objections.
+- Clear next steps.
+- Trust.
+- Ethical persuasion.
+- Measurable conversion improvement.
+
+Create original copy.
+
+Do not imitate any living writer's exact style or reproduce copyrighted passages.
+
+The copy should sound natural, confident, helpful, commercially effective, and relevant to the real customer.
+
+Avoid generic AI language, exaggerated promises, empty superlatives, and repetitive filler.
+
+The objective is to make it easy for the right customer to understand the offer and take the next step.
+
+==================================================
+11. LEAD CAPTURE AND QUALIFICATION
+==================================================
+
+The principal lead form should collect only the information needed to handle the enquiry.
+
+Core fields:
+
+- Name.
+- Email address.
+- Phone number.
+- Postcode or locality.
+- Service required.
+- Short description of the job.
+
+Optional fields may include:
+
+- Urgency.
+- Preferred appointment date.
+- Property type.
+- Relevant job details.
+- Preferred contact method.
+
+Keep the form straightforward and mobile-friendly.
+
+Explain which fields are required and why.
+
+Validate the submitted data.
+
+Implement appropriate protection against spam, duplicate submissions, and malicious input.
+
+The platform must clearly explain:
+
+- Who operates the website.
+- What happens after a form is submitted.
+- Whether the enquiry may be shared with one or multiple providers.
+- How contact details may be used.
+- How to access the privacy notice.
+- How users can exercise their applicable data rights.
+
+Do not pre-tick optional marketing consent.
+
+Do not sell or share personal information without an appropriate lawful basis and transparent disclosures.
+
+Implement secure data storage, access controls, retention rules, deletion procedures, and appropriate audit logging.
+
+Review applicable UK GDPR, PECR, and other legal requirements with qualified advisers before launch.
+
+Do not claim legal compliance without appropriate verification.
+
+==================================================
+12. PROVIDER MATCHING AND LEAD MONETISATION
+==================================================
+
+Design the platform so that qualified leads can be matched with legitimate local providers.
+
+Provider matching must consider:
+
+- Service category.
+- Actual service coverage.
+- Locality and postcode.
+- Provider eligibility.
+- Relevant qualifications where required.
+- Capacity.
+- Availability.
+- Lead purchase arrangements.
+- Provider performance.
+- Customer requirements.
+
+Never invent a provider or imply that a provider has accepted a job when they have not.
+
+Develop a documented lead lifecycle:
+
+1. Submitted.
+2. Validated.
+3. Spam and duplicate checks completed.
+4. Qualified.
+5. Matched.
+6. Offered to provider.
+7. Accepted or rejected.
+8. Contact attempted.
+9. Booking outcome recorded.
+10. Commercial outcome recorded.
+
+Define:
+
+- What qualifies as a saleable lead.
+- How duplicate leads are handled.
+- How invalid leads are treated.
+- Refund and dispute procedures.
+- Provider pricing.
+- Provider reporting.
+- Lead distribution rules.
+- Customer complaints handling.
+
+The business must eventually be able to measure revenue and profit per lead.
+
+==================================================
+13. TECHNICAL SEO REQUIREMENTS
+==================================================
+
+Inspect the current architecture and implement or document the following:
+
+- Crawlable, stable URLs.
+- Logical service and location hierarchies.
+- Internal linking.
+- XML sitemaps.
+- Canonical tags.
+- Robots directives.
+- Appropriate noindex controls.
+- Redirect handling.
+- Mobile responsiveness.
+- Page performance.
+- Accessibility.
+- Structured data where accurate and appropriate.
+- Search Console integration.
+- Analytics.
+- Conversion tracking.
+- Error monitoring.
+- Form-delivery monitoring.
+- Indexation monitoring.
+
+Do not automatically index every generated page.
+
+Pages must pass quality review before becoming indexable.
+
+Ensure that sitemap files contain only appropriate canonical URLs that should be indexed.
+
+Prevent duplicate URLs and accidental indexing of internal search results, empty templates, filters, drafts, and low-value pages.
+
+Use structured data only when the information is accurate and the page is eligible.
+
+Do not create fake business addresses or misleading Google Business Profiles.
+
+==================================================
+14. GOOGLE SPAM-POLICY SAFEGUARDS
+==================================================
+
+Read the current Google Search Central spam policies.
+
+Pay particular attention to scaled content abuse and doorway abuse.
+
+The platform must not publish thousands of pages that differ only by changing the service or location name.
+
+Each indexed landing page must provide substantial, useful value for its intended search.
+
+If there is insufficient evidence or information to make a page genuinely useful:
+
+- Do not publish it.
+- Do not index it.
+- Consider merging the intent into a stronger page.
+- Record the decision and explain why.
+
+Do not create pages primarily to manipulate rankings.
+
+Do not generate fake local reviews, fake local jobs, false business claims, invented landmarks, fake addresses, or unsupported guarantees.
+
+Do not claim a provider is local unless that claim is accurate.
+
+Do not use misleading location content to capture visitors who cannot receive the service.
+
+The project must prioritise useful coverage, not the largest possible number of URLs.
+
+==================================================
+15. PROJECT IMPLEMENTATION PHASES
+==================================================
+
+PHASE 0: PROJECT AUDIT AND REQUIREMENTS
+
+Inspect the existing project, identify the current architecture, review the business requirements, identify risks, and document the implementation approach.
+
+PHASE 1: MARKET AND KEYWORD RESEARCH
+
+Research the 50 service categories, identify credible evidence, develop a scoring methodology, and document the provisional ranking.
+
+PHASE 2: GEOGRAPHIC DATABASE
+
+Design and implement the location schema, source inventory, geographic hierarchy, alias handling, and validation process.
+
+PHASE 3: TECHNICAL ARCHITECTURE AND DESIGN SYSTEM
+
+Plan the database, routes, content model, landing-page components, lead forms, analytics, provider matching, and SEO controls.
+
+PHASE 4: CONTENT AND PAGE QUEUE
+
+Build the keyword database, identify genuine page opportunities, resolve keyword overlap, and create the prioritised page queue.
+
+PHASE 5: CONTROLLED PILOT
+
+Select up to three approved landing pages.
+
+Build them, test them, and verify that the complete enquiry journey works.
+
+PHASE 6: LEAD OPERATIONS AND MEASUREMENT
+
+Verify form delivery, provider matching, lead qualification, analytics, privacy controls, and commercial reporting.
+
+PHASE 7: PILOT REVIEW
+
+Evaluate search visibility, user behaviour, enquiry quality, conversion, provider demand, and revenue potential.
+
+Correct problems before expansion.
+
+PHASE 8: CONTROLLED EXPANSION
+
+Continue building pages in batches of no more than three, with explicit owner authorisation between batches.
+
+PHASE 9: CONTINUOUS IMPROVEMENT
+
+Monitor search performance, update outdated information, improve conversions, consolidate competing pages, and expand based on verified demand.
+
+Do not silently skip phases.
+
+If a dependency is missing, document it and ask for a decision where necessary.
+
+==================================================
+16. PAGE QUEUE AND STATUS TRACKING
+==================================================
+
+Every proposed page must have a unique record in PAGE_QUEUE.csv.
+
+Include fields such as:
+
+- Page ID.
+- Service category.
+- Canonical location.
+- Parent location.
+- Primary keyword.
+- Supporting keyword intents.
+- Research source.
+- Search-demand evidence.
+- Commercial priority.
+- Proposed URL.
+- Existing competing URL.
+- Page type.
+- Unique local information required.
+- Content brief status.
+- Build status.
+- QA status.
+- Publication status.
+- Indexation status.
+- Lead performance.
+- Last reviewed date.
+- Decision notes.
+
+Use statuses such as:
+
+PLANNED
+RESEARCHING
+RESEARCH_COMPLETE
+AWAITING_APPROVAL
+BRIEF_READY
+IN_PROGRESS
+BUILT
+QA_PASSED
+APPROVED
+PUBLISHED
+INDEXED
+NEEDS_REVISION
+CONSOLIDATE
+REJECTED
+RETIRED
+
+Keep the page queue accurate.
+
+Do not mark pages as published or indexed without verification.
+
+Do not claim that a page is ranking when ranking data has not been checked.
+
+==================================================
+17. MANDATORY PROCEDURE FOR EACH BATCH
+==================================================
+
+BEFORE STARTING:
+
+1. Read MASTER_PLAN.md.
+2. Read PHASES.md.
+3. Read PROJECT_TODO.md.
+4. Read PAGE_QUEUE.csv.
+5. Read BATCH_LOG.md.
+6. Check the current project state.
+7. Select no more than three approved page records.
+8. Verify keyword intent and local evidence.
+9. Check for existing competing pages.
+10. Prepare or update the content briefs.
+
+DURING THE BATCH:
+
+1. Build only the approved pages.
+2. Use the existing design system where appropriate.
+3. Produce original, evidence-backed content.
+4. Implement the CTA and form correctly.
+5. Ensure the pages work on mobile and desktop.
+6. Add the appropriate metadata and internal links.
+7. Keep all page statuses accurate.
+8. Do not publish automatically unless publishing has been authorised.
+
+AFTER THE BATCH:
+
+1. Check page content and factual accuracy.
+2. Check that no local facts have been invented.
+3. Check keyword targeting and cannibalisation.
+4. Test all internal and external links.
+5. Test all forms and validation.
+6. Check responsive layouts.
+7. Check accessibility basics.
+8. Check metadata and canonical URLs.
+9. Check robots and indexation settings.
+10. Check sitemap eligibility.
+11. Check analytics events.
+12. Check lead storage and routing.
+13. Record test results.
+14. Save all changes.
+15. Update all relevant project documentation.
+16. Update PAGE_QUEUE.csv.
+17. Update PROJECT_TODO.md.
+18. Update BATCH_LOG.md.
+19. Provide the batch report.
+20. STOP.
+
+Do not create another landing page after this point.
+
+==================================================
+18. REQUIRED REPORT AFTER EVERY BATCH
+==================================================
+
+Your final report must contain:
+
+BATCH NUMBER AND DATE
+
+PAGES CREATED OR REVISED
+
+For each page, provide:
+
+- Service.
+- Location.
+- URL.
+- Primary keyword intent.
+- Supporting keyword intents.
+- Research evidence.
+- Why the page deserves to exist separately.
+- What makes its content useful and distinct.
+- CTA.
+- Lead form behaviour.
+- QA status.
+- Publication and indexation status.
+
+FILES UPDATED
+
+List the actual project documents and files changed.
+
+TEST RESULTS
+
+List the tests performed and any failures.
+
+OPEN ISSUES
+
+Explain unresolved problems and decisions needed.
+
+NEXT THREE RECOMMENDED PAGES
+
+Recommend the next three opportunities based on evidence and commercial priority.
+
+Do not create those next pages.
+
+END THE REPORT WITH THIS EXACT MESSAGE:
+
+"BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT."
+
+==================================================
+19. SUCCESS METRICS
+==================================================
+
+Track:
+
+SEO:
+- Impressions.
+- Clicks.
+- Click-through rate.
+- Search queries.
+- Ranking trends.
+- Indexed pages.
+- Indexation errors.
+- Organic traffic.
+
+CONVERSION:
+- Landing-page conversion rate.
+- Form-start rate.
+- Form-completion rate.
+- Valid enquiry rate.
+- Phone-call clicks where tracked.
+
+LEAD QUALITY:
+- Duplicate rate.
+- Spam rate.
+- Contactability.
+- Serviceability.
+- Provider acceptance.
+- Booking rate.
+- Lead rejection rate.
+
+COMMERCIAL:
+- Revenue per lead.
+- Gross margin per lead.
+- Provider retention.
+- Repeat lead purchases.
+- Refund and dispute rate.
+- Cost of acquiring a qualified lead.
+
+QUALITY:
+- Percentage of pages passing QA.
+- Pages with verified local information.
+- Pages with search intent overlap.
+- Thin-page rate.
+- User complaints.
+- Privacy requests.
+- Form-delivery failures.
+
+Use the results to improve the service ranking and page queue.
+
+Do not confuse more indexed pages with more revenue.
+
+==================================================
+20. FIRST TASK: PLAN AND PREPARE, DO NOT BUILD LANDING PAGES
+==================================================
+
+Your first assignment is to inspect the project and establish the plan.
+
+Do not create any service-location landing pages during this initial planning task.
+
+First:
+
+1. Inspect the repository and existing documentation.
+2. Read the master planning document.
+3. Identify the current technical architecture.
+4. Create or update the project documentation.
+5. Establish the service research methodology.
+6. Establish the geographic data model.
+7. Establish the keyword research methodology.
+8. Establish the page queue and batch tracking system.
+9. Identify technical, SEO, operational, and privacy risks.
+10. Create the phase plan and prioritised task list.
+11. Recommend a small, commercially sensible pilot.
+12. Explain how the platform will be validated before large-scale expansion.
+
+The initial pilot should use verified locations and services that can genuinely be fulfilled by available providers.
+
+Do not assume that a particular service is the best pilot without evaluating provider availability, keyword demand, competition, and lead economics.
+
+Once the planning documents are ready, present the proposed approach and wait for my approval before building the first landing pages.
+
+==================================================
+FINAL OPERATING PRINCIPLE
+==================================================
+
+Build a trustworthy, technically excellent, commercially effective UK local-services lead-generation platform.
+
+Use research to choose the right opportunities.
+
+Use geography data to represent real local areas.
+
+Use keyword research to understand real search intent.
+
+Use excellent design and persuasive, original copy to convert relevant visitors.
+
+Use technical SEO and useful content to maximise sustainable organic search visibility.
+
+Use reliable provider matching and transparent lead handling to generate revenue.
+
+Never sacrifice quality, accuracy, or customer trust merely to create more pages.
+
+NEVER CREATE MORE THAN THREE LANDING PAGES IN A SINGLE AUTHORISED BATCH.
+
+AFTER EVERY BATCH, SAVE THE WORK, UPDATE THE DOCUMENTATION, REPORT THE RESULTS, AND STOP UNTIL I AUTHORISE THE NEXT BATCH.
+
+
