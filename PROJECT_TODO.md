@@ -24,7 +24,12 @@
 | A8 | Obtain and read `UK_Local_Services_Lead_Generation_SEO_Master_Plan.docx` and the platform `.txt` | **COMPLETED** — both found in `docs/` on 26 October and read in full. The `.txt` is identical to the pasted prompt; the `.docx` adds England-first scope, per-category keyword scope, named demand sources, and a different suggested pilot area |
 | A9 | Owner decisions D3, D4, D6 (D1 and D2 decided) | **AWAITING APPROVAL** — see below |
 
-### A9 — the decisions that gate Phase B (D1 and D2 settled, three open plus D5 recommended)
+### A9 — owner decisions
+
+**The live list is `DECISIONS.md` in the repository root.** Summarised here; that file is the one to edit.
+
+D1 scheduler and D2 address lookup are settled. D3 admin accounts, D4 VAT, D5 registration flow and D6 pilot
+area are open. **None of them blocks batch B3** — the resolver and the geography schema are area-agnostic.
 
 | ID | Decision | Why it blocks | Recommendation |
 |---|---|---|---|
