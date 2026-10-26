@@ -141,6 +141,7 @@ model Business {
   specialHours     SpecialHours[]
   serviceAreas     BusinessServiceArea[]
   categories       BusinessCategory[]
+  creditAccount    CreditAccount?
 
   @@index([locationId])
   @@index([categoryId])
@@ -563,7 +564,31 @@ model BusinessSubmission {
   businessId     String?
   createdAt      DateTime @default(now())
 
+  // ---- registration (decision D5). A submission from /register carries everything needed to create the
+  // listing AND grant ownership in one approval, so there is only ever one queue and one approval screen.
+  /// SUBMISSION (someone telling us about a business) | REGISTRATION (the owner signing their own up)
+  kind            String    @default("SUBMISSION")
+  /// The resolved place, from Ideal Postcodes plus postcodes.io. Matched on GSS codes, never on a name.
+  placeId         String?
+  place           Place?    @relation(fields: [placeId], references: [id], onDelete: SetNull)
+  /// UDPRN of the address the person actually picked, so we know which building they chose.
+  udprn           String?
+  /// JSON string[] of Category ids: a business can offer more than one trade.
+  categoryIds     String?
+  /// JSON string[] of Place ids they will work in, with one mode for all of them.
+  serviceAreaIds  String?
+  serviceAreaMode String    @default("EXACT") // EXACT | INCLUDES_CHILDREN
+  ownerRole       String?
+  /// Email verification: the same bar claiming has to clear before anything is approved.
+  emailTokenHash  String?   @unique
+  emailVerifiedAt DateTime?
+  /// Set when the business turned out to be listed already. The person is sent to claim it instead.
+  duplicateOfId   String?
+  reviewedBy      String?
+  reviewNote      String?
+
   @@index([status])
+  @@index([kind, status])
 }
 
 model AuditLog {
@@ -728,16 +753,16 @@ model Order {
 /// A manually recorded operating cost. Phase 2 of the admin growth dashboard — see admin-dashboard-audit.md.
 /// Separate from WriterPayment, which stays the editorial-freelancer ledger it already was.
 model Expense {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   /// HOSTING | MARKETING | SALES | CONTENT | CONTRACTORS | PAYMENT_FEES | OTHER
   category    String
   description String
   amountPence Int
   date        DateTime
-  recurring   Boolean   @default(false)
+  recurring   Boolean  @default(false)
   createdBy   String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now()) @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 
   @@index([date])
   @@index([category])
@@ -1064,11 +1089,12 @@ model Place {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  aliases      PlaceAlias[]
-  linksFrom    PlaceLink[]           @relation("PlaceLinkFrom")
-  linksTo      PlaceLink[]           @relation("PlaceLinkTo")
-  businesses   Business[]
-  serviceAreas BusinessServiceArea[]
+  aliases             PlaceAlias[]
+  linksFrom           PlaceLink[]           @relation("PlaceLinkFrom")
+  linksTo             PlaceLink[]           @relation("PlaceLinkTo")
+  businesses          Business[]
+  serviceAreas        BusinessServiceArea[]
+  businessSubmissions BusinessSubmission[]
 
   @@unique([parentId, slug])
   @@index([kind])
@@ -1228,4 +1254,46 @@ model AdminLoginAttempt {
 
   @@index([emailHash, createdAt])
   @@index([ipHash, createdAt])
+}
+
+/// A business's lead-credit balance. `balance` is a cached sum of the ledger below, never the source of
+/// truth, so any figure can be recomputed and any dispute answered from the transactions.
+model CreditAccount {
+  id           String    @id @default(cuid())
+  businessId   String    @unique
+  business     Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  balance      Int       @default(0)
+  /// Non-null means the once-only welcome grant has happened. This is the guard that stops it being farmed
+  /// by re-registering or editing a profile.
+  freeGrantAt  DateTime?
+  lowWarnedAt  DateTime?
+  zeroWarnedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  transactions CreditTransaction[]
+}
+
+/// Every credit movement, with its reason and the balance it produced. A ledger, not a mutable number:
+/// losing the audit trail on something that is money in all but name is not a trade worth making.
+model CreditTransaction {
+  id           String        @id @default(cuid())
+  accountId    String
+  account      CreditAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  businessId   String // denormalised so a business's history is one indexed read
+  /// Signed: +5 for the welcome grant, -1 for a lead, +1 for a reversal.
+  delta        Int
+  balanceAfter Int
+  /// FREE_GRANT | PURCHASE | CONSUMPTION | REFUND | ADJUSTMENT | REVERSAL
+  kind         String
+  reason       String
+  /// What caused it, where there is something to point at.
+  assignmentId String?
+  orderId      String?
+  /// Which administrator, for an ADJUSTMENT. Never null for one.
+  adminId      String?
+  createdAt    DateTime      @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([kind])
 }

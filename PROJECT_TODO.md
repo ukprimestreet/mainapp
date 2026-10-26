@@ -57,10 +57,11 @@ area are open. **None of them blocks batch B3** — the resolver and the geograp
 - [x] Set `IDEAL_POSTCODES_KEY` on Vercel production (26 Oct). Not set on preview, so preview cannot spend money
 - [ ] **Confirm the PAF caching terms** before building any postcode-to-address cache. Storing the address a user selected is normally fine; a general cache to avoid paying for lookups generally is not
 - [ ] Manual cascading selectors (country → region → authority → town → locality), searchable, usable on mobile
-- [ ] Mandatory location confirmation in onboarding, per D5
+- [x] Server-side registration: validation, duplicate detection, email verification, one-approval creation of listing + ownership + credits (`src/lib/registration.ts`). **The forms themselves are not built yet**
 - [x] `BusinessServiceArea` with `EXACT` / `INCLUDES_CHILDREN` — table live in dev; the owner-facing selector is still to build
 - [x] `BusinessCategory` and `CategoryAlias` — 36 search terms mapped, 0 ambiguous. **The taxonomy is the problem, not the mapping: see below**
 - [ ] Businesses can edit their location later, with the change recorded in `BusinessEditLog`
+- [ ] The registration UI: postcode and address picker, cascading fallback, category and service-area selectors
 - [ ] Tests: spec §18 items 1–7
 
 ### The two real blockers now that the decisions are done
@@ -117,14 +118,14 @@ A category is an editorial decision about what the directory covers and it chang
 - [ ] Never mark a lead assigned when assignment failed
 - [ ] Tests: spec §18 items 8–15, 18–19 — **including concurrency**
 
-## Phase E — credits and payments · NOT STARTED
+## Phase E — credits and payments · PARTLY DONE
 
-- [ ] `CreditAccount`, `CreditTransaction` — a ledger, not a mutable number
-- [ ] Five free credits, granted **once**, guarded by `freeGrantAt` + unique account row
-- [ ] Atomic reserve → confirm → reverse, inside one transaction with a conditional balance update
+- [x] `CreditAccount`, `CreditTransaction` — a ledger, not a mutable number
+- [x] Five free credits, granted **once**, guarded three ways: `freeGrantAt`, a partial unique index, and a conditional update. Proven against three simultaneous calls
+- [x] Atomic spend with the balance check **in the same statement** as the decrement; reversal and adjustment as their own ledger rows. Proven against 8 concurrent spends of 5 credits
 - [ ] `Product` row `kind = "CREDITS"`; one new branch in `processEvent()`
 - [ ] Purchase UI: quantity × £1, plain calculation, 5/10/25/50/custom
-- [ ] Credits added **only** on verified webhook confirmation; duplicate webhooks grant nothing
+- [x] `creditPurchase()` is idempotent per order, so a duplicate webhook grants nothing. **Not yet wired to Stripe**
 - [ ] Zero credits: listing stays live, automatic paid assignment stops
 - [ ] **BLOCKED on Stripe keys in production** and on D4 (VAT)
 - [ ] Tests: spec §18 items 21–28

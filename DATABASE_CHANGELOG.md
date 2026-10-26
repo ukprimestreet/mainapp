@@ -20,6 +20,39 @@ Row counts in production at 26 October 2026: 3 businesses, 6 articles, 9 search 
 
 ---
 
+## 2026-10-26 — registration columns, and the lead-credit ledger
+
+**Why:** batch B4. Decision D5 (a new registration flow) and the five-credit welcome grant it promises.
+
+**`BusinessSubmission` gains 12 columns** so a registration carries everything needed to create the listing *and* grant ownership in **one** approval — which is what keeps there being one queue and one approval screen:
+
+`kind` (`SUBMISSION` | `REGISTRATION`) · `placeId` · `udprn` · `categoryIds` · `serviceAreaIds` · `serviceAreaMode` · `ownerRole` · `emailTokenHash` (unique) · `emailVerifiedAt` · `duplicateOfId` · `reviewedBy` · `reviewNote`
+
+The public submission route is untouched: its rows have `kind = 'SUBMISSION'` and leave the new columns null.
+
+**Two tables for credits:**
+
+| Table | Note |
+|---|---|
+`CreditAccount` | one per business, `businessId` **unique**. `balance` is a cached sum, never the source of truth. `freeGrantAt` is the welcome-grant guard |
+`CreditTransaction` | every movement with its reason and resulting balance |
+
+**Three guards on the welcome grant**, because "five free credits" is exactly what gets farmed:
+
+1. `freeGrantAt` on the account.
+2. A **partial unique index** — `CreditTransaction_one_free_grant` on `("businessId") WHERE kind = 'FREE_GRANT'` — so the database allows at most one, whatever the code does.
+3. A conditional update claiming `freeGrantAt` from null, so two simultaneous calls cannot both pass the check.
+
+Spending uses the same technique: `WHERE balance >= amount` in the **same statement** that decrements it, so two concurrent assignments cannot both take the last credit. Checking first and writing afterwards is the bug this avoids.
+
+**Applied:** `scripts/ddl-registration.ts`, explicit schema-qualified DDL, additive, `IF NOT EXISTS`. **`dev` only.**
+
+**Verified:** 12/12 columns, 2/2 tables, RLS on both, 3 foreign keys, and the one-free-grant index present.
+
+**Rollback:** additive. Dropping the two tables and the twelve columns restores the previous state; the public submission route is unaffected either way.
+
+---
+
 ## 2026-10-26 — `AdminUser`, `AdminLoginAttempt`, and an actor on every audit row
 
 **Why:** decision D3. Individual administrator accounts, so a role can attach to a person and an audit entry can name who acted.

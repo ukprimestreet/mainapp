@@ -566,4 +566,65 @@ D1 Supabase `pg_cron` · D2 Ideal Postcodes · D3 `AdminUser` with roles · D4 �
 
 ---
 
+## Batch B4 — the registration flow and the credit ledger
+
+**Date:** 26 October 2026
+**Authorised by:** owner — "continue"
+**Type:** schema plus server-side logic. **`dev` only. Production untouched. No landing pages. The registration forms are not built — this is everything behind them.**
+
+### Built
+
+| | |
+|---|---|
+`src/lib/credits.ts` | the ledger: welcome grant, spend, reverse, adjust, purchase, reconcile |
+`src/lib/registration.ts` | validation, duplicate detection, submission, email verification, approval, rejection |
+`scripts/ddl-registration.ts` | 12 columns on `BusinessSubmission`, plus `CreditAccount` and `CreditTransaction` |
+`scripts/test-registration.ts` | 61 checks |
+
+### How D5's risks are answered in code, not in prose
+
+The option chosen was the one I advised against. Each risk I raised is handled:
+
+| The risk | What answers it |
+|---|---|
+Two ways of becoming an owner | `approveRegistration()` calls **`grantOwnership()`** — still the only code that creates an `Owner` and a `BusinessOwner` link |
+A duplicated evidence model | `registrationEvidence()` delegates to **`claimEvidence()`**. A test asserts that asking for `VERIFIED` without domain or phone evidence is **refused**, so registering cannot be a softer route than claiming |
+Two approval screens drifting apart | A registration **is** a `BusinessSubmission`, so the existing moderation queue handles it. A test asserts it lands in the same queue |
+Five free credits being farmable | Granted inside `approveRegistration()`, after ownership, on a verified email. A test asserts approval is **refused** before verification, and that no credit account exists at submission |
+A duplicate listing for a business already listed | `checkExisting()` uses the same `findDuplicate()` the admin import uses, plus a wider name/host match, and returns **why** so the person can be told |
+
+### The bug this batch found in existing code
+
+`findDuplicate()` returns **`{ business, reason }`**, not a `Business` — and its phone branch returns only a partial `select` of four fields. My `checkExisting()` assumed a `Business`, so duplicate detection silently returned something truthy with no `id` and the test failed with "got nothing".
+
+Worth recording because the failure mode is the dangerous one: **it would have let a registration create a duplicate of a business we already list**, which is the exact failure D5's warning was about. `checkExisting()` now re-reads the business by id and returns a consistent `{ business, reason }`, so a caller cannot be caught by the heterogeneous shape.
+
+### Verification — 61 checks
+
+Validation (thin description, HTML, bad email, invented category or place id, unsafe website, missing role) · duplicate detection both ways · the token stored only as a hash · approval refused before verification · `VERIFIED` refused without evidence · approval creating the listing, the category join, the service area with its mode, the owner, and the credits · approving twice refused · rejection needing a reason and not repeatable.
+
+**The concurrency checks are the ones that matter**, because a bug in either is money:
+
+- **Three simultaneous welcome grants** → all three refuse, balance stays at exactly 5, exactly one `FREE_GRANT` row.
+- **Eight concurrent spends against 5 credits** → exactly 5 succeed, 3 are refused, the balance is 0 and never negative.
+- A duplicate purchase webhook for the same order credits nothing.
+- The ledger reconciles against the cached balance after every one of those.
+
+**788 unit checks across 20 suites.** Typecheck and build clean.
+
+### Open
+
+- **The registration UI is not built.** Everything behind it is, and tested. That is the next batch.
+- Production has none of B4.
+- Stripe is still not configured, so `creditPurchase()` has nothing calling it. VAT is decided (D4: £1 ex-VAT, configurable, default off) but not implemented.
+- Still the two real blockers: **the 18 missing trade categories** and **provider supply**.
+
+### Recommended next batch
+
+**B5 — the registration UI**: the postcode and address picker on top of `/api/address/lookup`, the cascading selector as its fallback, the category and service-area selectors, and the verification email. Buildable against `cleaning` and `removals`.
+
+**Not started.**
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**
