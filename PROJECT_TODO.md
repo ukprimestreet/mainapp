@@ -22,7 +22,7 @@
 | A10 | Create the second project's planning documents (master plan now readable) | **COMPLETED** — `docs/leadgen/`: MASTER_PLAN, GEOGRAPHY_SCHEMA, LEAD_ROUTING_AND_PRIVACY, TECHNICAL_SEO_CHECKLIST, SEO_EXPERIMENTS, CONTENT_BRIEFS/, and four CSVs |
 | A11 | Verify Supabase can host the fine-grained cron | **COMPLETED** — pg_cron 1.6.4 + pg_net 0.20.4 available, Postgres 17.11, no `cron` schema yet; role is `postgres` with `supabase_privileged_role`, not superuser |
 | A8 | Obtain and read `UK_Local_Services_Lead_Generation_SEO_Master_Plan.docx` and the platform `.txt` | **COMPLETED** — both found in `docs/` on 26 October and read in full. The `.txt` is identical to the pasted prompt; the `.docx` adds England-first scope, per-category keyword scope, named demand sources, and a different suggested pilot area |
-| A9 | Owner decision D6 only (D1–D5 decided) | **AWAITING APPROVAL** — see `DECISIONS.md` |
+| A9 | Owner decisions D1–D6 | **COMPLETED** — all six settled, see `DECISIONS.md` |
 
 ### A9 — owner decisions
 
@@ -38,7 +38,7 @@ area are open. **None of them blocks batch B3** — the resolver and the geograp
 | D3 | Individual admin accounts | One shared password makes role-based PII restriction and per-admin audit impossible | Add an `AdminUser` model with a `role` field |
 | ~~D4~~ | ~~VAT treatment~~ | **DECIDED 26 Oct: £1 is the price EXCLUDING VAT.** VAT added at checkout when it legally applies, configurable, defaulting to off. Only charged once VAT-registered (HMRC threshold £90,000 rolling 12 months) | — |
 | ~~D5~~ | ~~Where registration lives~~ | **DECIDED 26 Oct: build a new registration flow.** It converges on `grantOwnership()`, reuses `claimEvidence()`, feeds the existing moderation queue, grants credits only on a verified account, and detects an existing listing so registration becomes a claim rather than a duplicate | — |
-| D6 | **Pilot area**: West Berkshire (master plan §12) or Barking and Dagenham (this spec §8) | Decides whether Phase B imports a whole new region or extends existing geography | Barking and Dagenham first, West Berkshire as market two |
+| ~~D6~~ | ~~Pilot area~~ | **DECIDED 26 Oct: the whole of East London** — Tower Hamlets, Hackney, Newham, Waltham Forest, Redbridge, Barking and Dagenham, Havering. 193 settlements, 148 wards, all imported. The customer form opens borough by borough as providers exist | — |
 
 ---
 
@@ -62,6 +62,21 @@ area are open. **None of them blocks batch B3** — the resolver and the geograp
 - [x] `BusinessCategory` and `CategoryAlias` — 36 search terms mapped, 0 ambiguous. **The taxonomy is the problem, not the mapping: see below**
 - [ ] Businesses can edit their location later, with the change recorded in `BusinessEditLog`
 - [ ] Tests: spec §18 items 1–7
+
+### The two real blockers now that the decisions are done
+
+Neither is a decision about design. Both are about there being something to route a lead to.
+
+| Blocker | Why it stops Phase D | Who |
+|---|---|---|
+**No trade categories** | Nothing can match a plumbing lead until `plumbing` exists. A category changes live URLs, so it is an editorial call | owner |
+**No provider supply** | Production: 3 businesses, 0 owners, 1 of them in East London and it is a bakery. Two paying recipients per lead needs two providers in that trade and area | owner |
+
+- [ ] Add the trade categories (owner decision, affects live URLs)
+- [ ] Recruit providers, Barking and Dagenham first
+- [ ] Per-borough, per-trade switch so the form only opens where providers exist
+
+---
 
 ### Blocker found in B3: the taxonomy is a directory taxonomy, not a trades one
 

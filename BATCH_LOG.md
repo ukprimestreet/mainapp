@@ -529,4 +529,41 @@ That last one is the specific failure the warning was about. It is handled by de
 
 ---
 
+## Decision record — D6: the pilot area is the whole of East London
+
+**Date:** 26 October 2026 · **Not a batch.** Decision recorded and measured against the data; no code written.
+
+**East London had to be defined, not assumed.** There is no ONS region, borough group or GSS code for it. The recorded definition is the seven boroughs normally meant: Tower Hamlets, Hackney, Newham, Waltham Forest, Redbridge, Barking and Dagenham, Havering — **193 settlements, 148 wards**, all already imported with GSS codes, 12 localities already editorially live.
+
+Greenwich, Bexley and Lewisham were deliberately excluded despite appearing in the GLA London Plan's east sub-region: they are south-east London, and a reader in Bexley would not call themselves east London. Islington is inner north. Those four would add 108 settlements and can be included on request.
+
+### A correction to my own first answer
+
+My first query reported **0 businesses** in East London. That was wrong: it only matched businesses whose place sits *under* a borough, and most are sited *at* borough level. Re-checked properly: 11 in development, of which **3 are published and not sample**, and some of those are test fixtures I created myself. Production holds **3 businesses and 0 owners**, exactly one in East London, and it is a bakery rather than a trade.
+
+### What the decision commits us to
+
+The geography is ready and costs nothing to configure. **Supply is the entire problem.** Seven boroughs is roughly 2 million people, and two paying businesses per lead is impossible with fewer than two providers in a trade and an area. A form opened across all of East London on day one produces enquiries nobody can service, and the customer blames us rather than the empty directory.
+
+**So: East London is the market from the start, and the customer form opens borough by borough and trade by trade, only where providers exist.** A trade with fewer than two providers in a borough stays shut and says so, rather than taking an enquiry it cannot route. Barking and Dagenham remains the sensible first borough because there is a real cleaning business there to be provider one — but nothing needs re-scoping later, because the market was always the whole of East London.
+
+### All six decisions are now settled
+
+D1 Supabase `pg_cron` · D2 Ideal Postcodes · D3 `AdminUser` with roles · D4 £1 ex-VAT, configurable · D5 a new registration flow converging on `grantOwnership()` · D6 the whole of East London.
+
+### The two blockers are no longer decisions
+
+| Blocker | Why it stops Phase D |
+|---|---|
+**No trade categories** | 18 of them missing. Nothing can match a plumbing lead until `plumbing` exists, and a category changes live URLs, so it is an editorial call |
+**No provider supply** | 3 businesses and 0 owners in production. Recruitment is a business task, not an engineering one |
+
+### Recommended next batch
+
+**B4 — the registration flow** (D5), which is the thing that turns a recruited provider into a listed, verified, credit-holding business. It needs the trade categories to be useful but can be built and tested against `cleaning` and `removals`, which exist.
+
+**Not started.**
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

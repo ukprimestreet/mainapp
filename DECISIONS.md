@@ -4,7 +4,7 @@ The decisions only you can make, in one place. Settled ones are kept with their 
 
 **Written for:** the owner. Each open decision states the question, what it changes, the options, and my recommendation. Answer by editing this file or just telling me.
 
-**Status: 5 settled · 1 open.** Only D6, the pilot area, remains.
+**Status: all 6 settled.** The blockers now are supply and the trade categories, not decisions.
 
 ---
 
@@ -80,26 +80,44 @@ So 100 credits costs £120 including VAT, at the standard rate.
 
 **What gets built:** a public registration flow that takes the business through its details, its location (postcode lookup, or the manual selector), its service categories and its service areas, then into the existing verification steps. Phase B onboarding.
 
-## Open
+### D6 — Pilot area ✅ 26 October 2026
 
-### D6 — Pilot area
+**Answer: the whole of East London.**
 
-**The question:** which service and area do we prove the whole loop on first?
+**"East London" is not an administrative unit,** so it has to be defined rather than assumed. There is no ONS region, borough group or GSS code for it. Recorded definition, the seven boroughs normally meant by the term:
 
-**What it changes.** Which geography gets exercised, and where providers get recruited. **Correction to something I said earlier:** I claimed this blocked batch B3. It does not — the resolver and the schema are area-agnostic, and I will test against both candidates. It blocks the *pilot*, not the code.
+| Borough | GSS | Settlements | Wards | Already live on PrimeStreet |
+|---|---|---|---|---|
+Tower Hamlets | E09000030 | 33 | 20 | 4 |
+Hackney | E09000012 | 35 | 21 | 4 |
+Newham | E09000025 | 26 | 24 | 2 |
+Waltham Forest | E09000031 | 23 | 22 | 2 |
+Redbridge | E09000026 | 29 | 22 | 0 |
+Barking and Dagenham | E09000002 | 15 | 19 | 0 |
+Havering | E09000016 | 32 | 20 | 0 |
+**Total** | | **193** | **148** | **12** |
 
-| | West Berkshire (master plan §12) | Barking and Dagenham (my recommendation) |
-|---|---|---|
-Geography in the database | Now imported — Thatcham, Newbury, Wash Common, Speen and Donnington all verified present | Imported, and already live on the site |
-Known provider supply | None identified | One real cleaning business in the family, plus a local market |
-Platform work first | A new `City`, new directory URLs, a positioning decision about a London publication covering Newbury | Extends what is already live |
-Brand fit | PrimeStreet is a **London** title today | Native |
+**Deliberately excluded, and why.** Greenwich, Bexley and Lewisham appear in some "East London" groupings — the GLA London Plan's east sub-region reaches across the river — but they are south-east London and a reader in Bexley would not describe themselves as east London. Islington is usually inner north. Those four would add 108 settlements. If you want any of them, say so and it is one line.
 
-**My recommendation: Barking and Dagenham first, West Berkshire as market two.** A pilot that stands up a new region *and* a new lead system at the same time cannot tell you which half failed. If the Newbury cluster matters commercially for a reason outside this repository, say so and I will plan it as the pilot instead — it is a larger Phase B, not an impossible one.
+### What this commits us to, honestly
 
-**Needed before:** recruiting providers, and the first landing page.
+The geography is **ready** — 193 settlements and 148 wards, all with GSS codes, already imported and tested. Configuring the market costs nothing.
 
----
+**The supply is the entire problem.** Checked against the database rather than assumed:
+
+- **Production holds 3 businesses and 0 owners.** Exactly one of them is in East London, and it is a bakery, not a trade.
+- Development holds 11 businesses in East London, of which **3 are published and not sample data**, and some of those are my own test fixtures.
+- **None of the 18 trades the lead system needs exists as a category yet**, so even a willing plumber in Romford cannot currently be listed.
+
+Seven boroughs is roughly 2 million people. Two paying businesses per lead is impossible with fewer than two providers in a trade and an area, so a form opened across all of East London on day one would produce enquiries nobody can service — and the customer blames us, not the empty directory.
+
+### So: East London is the market, and the form opens borough by borough
+
+- **Scope: all seven boroughs.** That is what gets configured, what the geography covers, and what we recruit into.
+- **The customer form opens per borough and per trade, only where providers exist.** A trade in a borough with fewer than two providers stays shut, and says so honestly rather than taking an enquiry it cannot route.
+- **Recruit first, open second.** Barking and Dagenham remains the sensible first borough — there is a real cleaning business in the family to be provider one — but the market is East London from the start, so nothing has to be re-scoped later.
+
+That honours the decision as made: the market is the whole of East London, and the switch for each part of it is provider supply rather than a smaller plan.
 
 ## Also waiting on you, but not decisions
 
