@@ -124,6 +124,9 @@ export async function collectIndexable(): Promise<IndexableSet> {
   const pages: SitemapEntry[] = [
     { path: "/", priority: 1 }, { path: "/businesses", priority: 0.9 }, { path: "/podcast", priority: 0.7 },
     { path: "/about", priority: 0.5 }, { path: "/privacy", priority: 0.2 }, { path: "/advertise", priority: 0.4 }, { path: "/claim", priority: 0.7 }, { path: "/businesses/submit", priority: 0.5 },
+    // The two sides of the lead system. Both are real pages people act on, so both belong in the sitemap;
+    // their confirmation pages carry noindex and are deliberately absent.
+    { path: "/get-quotes", priority: 0.9 }, { path: "/register", priority: 0.7 },
     ...Object.values(ARTICLE_TYPES).map((t) => ({ path: `/${t.path}`, priority: 0.8 })),
   ];
   // /locations is a city chooser: with a single city it redirects to that city's hub, so it is not a page of its own.

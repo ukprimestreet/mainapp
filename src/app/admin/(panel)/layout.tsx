@@ -23,6 +23,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     db.writerPayment.count({ where: { status: { in: ["SUBMITTED", "APPROVED"] } } }),
   ]);
 
+  // Migration boundary: `JobRequest` reaches production after this code does, and a failed count here
+  // would 500 every page in the panel rather than one badge. No badge is the right degradation.
+  const openLeads = await db.jobRequest.count({ where: { status: { not: "CLOSED" } } }).catch(() => 0);
+
   const canManageAdmins = await adminCan("admins.manage");
   const pendingAdmins = canManageAdmins ? await db.adminUser.count({ where: { passwordHash: null, active: true } }) : 0;
 
@@ -38,6 +42,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       { href: "/admin/corrections", label: "Corrections", icon: "shield" },
     ] },
     { title: "Directory", items: [
+      { href: "/admin/leads", label: "Leads", icon: "bolt", badge: openLeads || undefined },
       { href: "/admin/moderation", label: "Moderation", icon: "inbox", badge: ratings + claims + subs + inbox },
       { href: "/admin/registrations", label: "Registrations", icon: "shop", badge: registrations || undefined },
       { href: "/admin/businesses", label: "Businesses", icon: "shop" },

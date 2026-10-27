@@ -6,8 +6,8 @@ import { NewsletterForm } from "./NewsletterForm";
 import { formToken } from "@/lib/antispam";
 
 const NAV = [
-  ["News", "/news"], ["Businesses", "/businesses"], ["Locations", "/locations"], ["Stories", "/stories"],
-  ["Interviews", "/interviews"], ["Guides", "/guides"], ["Podcast", "/podcast"],
+  ["News", "/news"], ["Businesses", "/businesses"], ["Get quotes", "/get-quotes"], ["Locations", "/locations"],
+  ["Stories", "/stories"], ["Interviews", "/interviews"], ["Guides", "/guides"], ["Podcast", "/podcast"],
 ] as const;
 
 export function Header() {
@@ -51,7 +51,7 @@ export function Footer() {
           <p className="mt-3 text-sm text-white/70">London&apos;s Businesses. Stories. People.</p>
         </div>
         {col("Read", [["News", "/news"], ["Stories", "/stories"], ["Interviews", "/interviews"], ["Guides", "/guides"], ["Business of the Week", "/business-of-the-week"], ["Insights", "/insights"], ["RSS feed", "/feed.xml"]])}
-        {col("Discover", [["Businesses", "/businesses"], ["Locations", "/locations"], ["Categories", "/categories"], ["Search", "/search"], ["Saved", "/saved"], ["Suggest a business", "/businesses/submit"], ["Podcast", "/podcast"]])}
+        {col("Discover", [["Businesses", "/businesses"], ["Locations", "/locations"], ["Categories", "/categories"], ["Get quotes", "/get-quotes"], ["Search", "/search"], ["Saved", "/saved"], ["Suggest a business", "/businesses/submit"], ["Podcast", "/podcast"]])}
         {col("PrimeStreet", [["About", "/about"], ["Claim your business", "/claim"], ["Advertise", "/advertise"], ["Owner sign in", "/owner/login"], ["Editorial standards", "/about#standards"], ["Privacy", "/privacy"]])}
       </Container>
       <Container className="border-t border-white/15 py-10"><div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-center [&>*]:min-w-0"><div><h2 className="font-display text-2xl font-extrabold text-yellow">Get the weekly digest</h2><p className="mt-1 text-sm text-white/70">London business news, new interviews and new businesses — once a week.</p></div><NewsletterForm formToken={formToken()} source="footer" dark /></div></Container>

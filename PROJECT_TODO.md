@@ -106,15 +106,18 @@ A category is an editorial decision about what the directory covers and it chang
 
 ---
 
-## Phase C — lead creation and admin dashboard · NOT STARTED
+## Phase C — lead creation and admin dashboard · MOSTLY DONE
 
-- [ ] `JobRequest` with `consentVersion`, `consentAt`, `idempotencyKey`
-- [ ] Customer job-request form: reuse the existing anti-abuse controls verbatim (honeypot, form-token timing, disposable-email check, IP/email/business rate limits, `ipHash`)
-- [ ] Customer never needs to understand the hierarchy; **never asked for a full address**
-- [ ] Idempotency against double-submit, refresh and network retry
-- [ ] `/admin/leads` — every lead immediately, assigned or not
-- [ ] Lead detail: resolved place chain, every `MatchDecision` with its reason, notification outcomes, credit movements, full audit
-- [ ] Tests: spec §18 items 16, 20
+- [x] `JobRequest` with `consentVersion`, `consentAt`, `idempotencyKey` — in `dev`, **not yet in production**
+- [x] Customer job-request form at `/get-quotes`: the existing anti-abuse controls reused verbatim (honeypot, four-second form-token floor, disposable-email check, five-a-day per email, `ipHash`)
+- [x] Customer never needs to understand the hierarchy; **never asked for a full address** — postcode optional, and the borough alone is accepted
+- [x] Idempotency against double-submit, refresh and network retry — keyed on the content, so all three collapse to one job. Proven with three simultaneous submissions and with a browser resubmit
+- [x] The supply check runs **before** contact details are asked for. Where nobody covers the area the form says so and the rest of it stays shut until the customer says to send it anyway
+- [x] `/admin/leads` — every lead immediately, with the supply that existed when it arrived and the supply now
+- [x] Customer contact details behind `leads.customer_contact`, revealed one at a time, every reveal audited with the administrator's identity and never the details themselves
+- [x] Closing a lead requires a reason; `NO_PROVIDER` is counted, because it is the recruiting signal
+- [ ] Lead detail: every `MatchDecision` with its reason, notification outcomes, credit movements — **waits on Phase D**, which is where those records start existing
+- [x] Tests: 53 unit checks (`test-leads.ts`) and 38 browser checks (`e2e-leads.mjs`)
 
 ## Phase D — matching and assignment · NOT STARTED
 

@@ -74,6 +74,7 @@ model Category {
   businesses    Business[]
   aliases       CategoryAlias[]
   businessLinks BusinessCategory[]
+  jobRequests   JobRequest[]
 }
 
 model Business {
@@ -1095,6 +1096,7 @@ model Place {
   businesses          Business[]
   serviceAreas        BusinessServiceArea[]
   businessSubmissions BusinessSubmission[]
+  jobRequests         JobRequest[]
 
   @@unique([parentId, slug])
   @@index([kind])
@@ -1296,4 +1298,57 @@ model CreditTransaction {
 
   @@index([businessId, createdAt])
   @@index([kind])
+}
+
+/// A customer's job enquiry. The demand side.
+///
+/// Deliberately NOT the existing `Lead`, which is a direct message to one Premium business from its own
+/// profile page. This is a job that gets routed to up to two paying businesses, and conflating the two would
+/// break a working feature and muddle two different lifecycles.
+model JobRequest {
+  id        String @id @default(cuid())
+  /// Short, human-usable, and safe to read out on the phone: PS-7F3K2.
+  reference String @unique
+
+  name  String
+  email String
+  phone String
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  placeId    String
+  place      Place    @relation(fields: [placeId], references: [id])
+  /// Optional, and never a full street address: a customer should not have to say where they live to ask
+  /// what something costs.
+  postcode   String?
+
+  description String
+  /// EMERGENCY | WITHIN_A_WEEK | FLEXIBLE | PLANNING
+  urgency     String  @default("FLEXIBLE")
+  contactTime String? // free text: "evenings", "weekday mornings"
+
+  /// Which privacy notice they agreed to, and when. A change in wording must never retroactively
+  /// re-characterise what somebody consented to.
+  consentVersion String
+  consentAt      DateTime @default(now())
+  /// Separate, opt-in, never bundled with the enquiry itself.
+  marketingOptIn Boolean  @default(false)
+
+  ipHash         String @default("")
+  /// Stops a double-click, a refresh or a retry after a dropped connection creating two jobs.
+  idempotencyKey String @unique
+
+  /// NEW | MATCHING | PARTIALLY_ASSIGNED | ASSIGNED | UNASSIGNED | ESCALATED | CLOSED | REJECTED
+  status              String  @default("NEW")
+  /// How many businesses could have taken it when it arrived. Recorded at creation, because it is the
+  /// honest measure of whether we had supply at the moment the customer asked.
+  providersAtCreation Int     @default(0)
+  closedReason        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([status, createdAt])
+  @@index([categoryId, placeId])
+  @@index([createdAt])
 }

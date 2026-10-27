@@ -117,7 +117,31 @@ Server-side authorisation on every read; rate limiting and honeypot on the form;
 
 A named route — `hello@primestreet.uk`, the one monitored address — for: "a business contacted me and I did not ask", "I want my details deleted", "I was contacted by more than two", "the business was not what it claimed". Logged, answered by a person, and the pattern reviewed. If a provider generates complaints, it stops receiving leads; that rule belongs in the business terms from day one rather than being invented under pressure.
 
-## 8. What needs legal review before launch
+## 8. What is actually built, as of 27 October 2026
+
+The plan above is the design. This section is the state of the code, so the two cannot drift silently.
+
+**Built and tested (Phase C):**
+
+| Promise in this document | Where it lives | How it is proven |
+|---|---|---|
+No full address for a quote | `/get-quotes` asks for a postcode, optionally, and accepts a borough alone | `e2e-leads.mjs`: the stored row has a postcode and no address |
+Consent is versioned | `PRIVACY_NOTICE_VERSION` in `src/lib/leads.ts`, stored per request with its timestamp | unit and browser checks |
+Marketing consent is separate | A second, unticked box that nothing depends on | browser check that it stays false when untouched |
+Contact details are restricted | `leads.customer_contact`, enforced in `revealCustomer()` on the server | browser check: the details are absent from the page, present only after an audited reveal |
+The audit log holds no PII | `audit()` is given the reference, never the name, email or phone | both suites assert the detail field contains neither |
+A customer is told the truth about supply | the supply check runs before any contact field is rendered | browser check that `#phone` does not exist until the answer is in |
+No duplicate leads from one submission | content-derived `idempotencyKey` with a unique index | three simultaneous submissions produce one job |
+
+**Deliberately not built yet, and why:**
+
+- **Matching, `MatchDecision`, the two-paying-business limit and the credit charge** are Phase D. Until then a lead is recorded and worked by hand from `/admin/leads`, which is an honest state rather than a queue that silently fills.
+- **No email to the customer on submission.** The only thing we could say is "a business will contact you", and until matching runs we do not know that. The confirmation page says exactly what is known, including "we cannot promise you a quote" where supply is zero.
+- **Retention deletion is not automated.** The schedule in §5 is a policy, not yet a cron job. It needs `pg_cron` enabling in Supabase, which is still outstanding.
+
+---
+
+## 9. What needs legal review before launch
 
 1. The lawful basis for sharing contact details with providers.
 2. The privacy notice wording and its retention schedule.

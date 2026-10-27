@@ -12,6 +12,26 @@ Every schema change to PrimeStreet, newest first. One entry per applied change, 
 
 ---
 
+## 2026-10-27 — `JobRequest`: the customer's side of the lead system
+
+**Applied to `dev` only.** `scripts/ddl-job-requests.ts` — explicit, schema-qualified, additive and self-verifying. It reported `table: 1/1 · indexes: 6 (2/2 unique) · RLS: true · foreign keys: 2/2` before exiting.
+
+| Column | Why it exists |
+|---|---|
+`reference` (unique) | Quoted to the customer and read out on the phone. The alphabet excludes O/0 and I/1 |
+`idempotencyKey` (unique) | Derived from the content, not from a nonce the browser sends, so a double-click, a refresh and a retry after a dropped connection all produce the same key. The unique index is what makes the second one a no-op rather than a second set of phone calls to the customer |
+`consentVersion`, `consentAt` | What they agreed to, and when. A later change to the wording cannot retroactively re-characterise it |
+`marketingOptIn` | Separate from the consent to be contacted about the job, and never pre-ticked |
+`providersAtCreation` | How much supply existed at that moment. The row is a record, not an estimate; current supply is counted fresh when the admin screen renders |
+`postcode` (nullable) | A postcode is enough to route a job. **No street address is asked for or stored** |
+`ipHash` | The hash, never the address |
+
+**Production (`public`) has NOT been touched.** `JobRequest` does not exist there, so the deployed code must not read it before the DDL runs — house rule 1, which this project has already broken once at the cost of an outage. The admin layout's lead badge is wrapped in `.catch(() => 0)` for exactly that boundary: a missing table costs a badge, not every page in the panel.
+
+**To apply when authorised:** `npm run leads:ddl -- --schema=public`, then `npm run schema:check -- --all`.
+
+---
+
 ## 2026-10-27 — production brought in line, after an outage caused by not doing it sooner
 
 **What happened.** `/admin/login` returned **500 to everybody in production**. Code that reads `AdminUser` had been deployed while that table existed only in `dev`. House rule 1 — schema before code — was already written in this file. Writing it down was not enough.

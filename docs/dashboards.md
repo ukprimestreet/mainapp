@@ -26,6 +26,7 @@ Everything on every dashboard is counted from rows. Nothing is sampled, modelled
 
 Grouped Overview / Editorial / Directory / Revenue / Reach / System.
 
+- **Leads** is every customer job request, oldest first, from the moment it arrives — including the ones nobody can service, which are marked `UNASSIGNED` rather than hidden. Each card shows the supply that existed when the request arrived *and* the supply now, because somebody may have registered since. Customer contact details are not on the page: they are revealed one request at a time through an audited action, gated on `leads.customer_contact`. A panel at the top lists demand we could not service, by trade and area — the clearest signal of where recruiting a business pays for itself.
 - **Moderation** is one queue instead of four (pending reviews, claims, submissions, owner change requests), oldest first, with anything stale flagged. Four separate queues meant the quiet one was never looked at.
 - **Money** shows MRR, at-risk subscriptions, churn, failed and abandoned checkouts, and what is owed to writers.
 - **Automations** is the lifecycle programme's control panel: every rule off by default, a per-run cap, a dry run that lists the actual recipients before anything sends, run now, run history, and one button that stops everything.

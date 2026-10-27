@@ -791,4 +791,72 @@ Owners cannot edit service areas or categories after registration · provider su
 
 ---
 
+## Batch C1 — Phase C: lead creation, the demand side
+
+**Date:** 27 October 2026
+**Authorised by:** owner — "continue"
+**Pages added to the public site:** 2 (`/get-quotes`, `/get-quotes/sent`). Within the three-page limit.
+
+### What this batch is
+
+The supply side was finished and proven last batch: a business can register itself, be approved, and hold credits. This is the other half — a customer asking for work — and the point where the two meet.
+
+| Added | What it does |
+|---|---|
+`JobRequest` (dev only) | the request itself, with versioned consent, a readable reference and a content-derived idempotency key |
+`src/lib/leads.ts` | category resolution, the supply count, validation, creation, and the demand-without-supply report |
+`/get-quotes` | the customer form |
+`/api/jobs/supply` | the supply count, so the form can be honest before it asks for anything |
+`/admin/leads` | every lead the moment it exists |
+`src/app/admin/lead-actions.ts` | the audited reveal, close-with-a-reason, and reopen |
+
+### The decision this batch turned on
+
+**A lead nobody can service is worse than no lead.** The customer blames us, not the empty directory.
+
+So the form counts the businesses who cover that trade in that area **before** it renders a single contact field. Where the answer is zero it says so in plain words — "we cannot promise you a quote, and if the job is urgent you should not wait on us" — and the rest of the form stays shut until the customer presses *Send it anyway*. The request is still recorded, because unmet demand is the most useful number in the system for deciding where to recruit, and `/admin/leads` leads with it.
+
+My own browser test caught me here: I had written that claim in the file's own documentation and then built a form that showed the contact fields regardless. The test failed on the sentence I had written. The gate is the fix.
+
+### Privacy, as built rather than as promised
+
+- **No street address is asked for or stored.** A postcode is optional and a borough alone is accepted — a postcode is enough to route a job.
+- **Consent is versioned**, with its timestamp, so changing the wording later cannot re-characterise what somebody agreed to.
+- **Marketing consent is a separate, unticked box** that nothing depends on.
+- **Contact details are not on the admin page.** They are revealed one request at a time, through `revealCustomer()`, which checks `leads.customer_contact` **on the server** — the page also hides the button, but hiding a button is a courtesy, not a control. Every reveal is audited with the administrator's identity and the lead's reference; the audit row never holds the details themselves, and both suites assert that.
+
+### Idempotency
+
+The key is derived from the content, not from a nonce the browser sends, so a double-click, a refresh and a retry after a dropped connection all produce the same key. Three simultaneous submissions produce one job; a browser resubmit of the identical request produces one job; a genuinely different job from the same person is created normally.
+
+### Verification
+
+- **53 unit checks** (`npm run test:unit` — `test-leads.ts`), including that `INCLUDES_CHILDREN` coverage of a borough reaches a locality inside it while `EXACT` does not, and that unpublished and sample businesses are not counted as supply.
+- **38 browser checks** (`node scripts/e2e-leads.mjs`) covering the whole loop: the honest supply message, the gate, server-side validation, submission, the confirmation, the admin queue, the audited reveal, closing with a reason, reopening, and the answer changing when the only provider is unpublished.
+- **Full unit suite** (25 files) re-run and green · **full a11y sweep** clean at 390px and 1440px, with the three new pages added to the slice · typecheck and build clean · `schema:check` clean on dev.
+
+One honest limit: the a11y sweep audits `/get-quotes` in its initial state. The second and third sections of the form render after a choice is made, so they are covered by the browser suite's label-and-role usage rather than by axe.
+
+### Production
+
+**`JobRequest` is in `dev` only.** Production does not have the table, which is why the admin layout's lead badge is wrapped in `.catch(() => 0)`: a missing table should cost a badge, not every page in the panel. The DDL is ready — `npm run leads:ddl -- --schema=public` — and needs your authorisation.
+
+**That is the second thing production needs.** The first is still `import-places.ts --schema=public`: production `Place` has **0 rows**, so both `/register` and `/get-quotes` render but offer no areas, and neither can be completed. The page is live and unusable. That import was refused four times by the permission layer, so it needs you.
+
+### Deliberately not built
+
+- **Matching, `MatchDecision`, the two-paying-business limit and the credit charge** are Phase D. A lead is recorded and worked by hand until then, which is an honest state rather than a queue that silently fills.
+- **No email to the customer on submission.** The only thing we could truthfully say is "a business will contact you", and until matching runs we do not know that.
+- The lead *detail* page waits on Phase D, because the records it would show do not exist yet.
+
+### Still open, unchanged
+
+`ddl-finance.ts` and `ddl-sales-crm.ts` against `public` · owners cannot edit service areas or categories after registration · no intro copy for the 18 trade categories, so they remain non-indexable · provider recruitment · `pg_cron` for retention deletion · the parallel finance/growth/sales work is still uncommitted.
+
+### What I would do next
+
+**Phase D — matching and assignment.** It is the one piece that turns everything built so far into revenue, and the one with the most ways to be wrong: the two-paying-business limit has to hold at the database level under concurrency, every inclusion and exclusion needs a recorded reason, and a lead must never be marked assigned when the assignment failed.
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**
