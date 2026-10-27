@@ -61,7 +61,7 @@ area are open. **None of them blocks batch B3** — the resolver and the geograp
 - [x] `BusinessServiceArea` with `EXACT` / `INCLUDES_CHILDREN` — table live in dev; the owner-facing selector is still to build
 - [x] `BusinessCategory` and `CategoryAlias` — 36 search terms mapped, 0 ambiguous. **The taxonomy is the problem, not the mapping: see below**
 - [ ] Businesses can edit their location later, with the change recorded in `BusinessEditLog`
-- [ ] The registration UI: postcode and address picker, cascading fallback, category and service-area selectors
+- [x] The registration UI: `/register` with postcode and address picker, manual selector always available, category and service-area selectors, verification email, `/register/sent`, `/register/verify/[token]`
 - [ ] Tests: spec §18 items 1–7
 
 ### The two real blockers now that the decisions are done
@@ -94,6 +94,15 @@ A category is an editorial decision about what the directory covers and it chang
 
 - [ ] Decide and add the trade categories (owner decision, affects live URLs)
 - [ ] Re-run `npm run geo:aliases` once they exist
+
+---
+
+### Registration is live end to end (dev)
+
+- [x] `/register` → verification email → `/admin/registrations` → one approval creating listing + ownership + 5 credits
+- [x] Registrations share the existing moderation queue, flagged with whether the email is confirmed and whether it looks like a duplicate
+- [ ] Owner-facing editing of service areas and categories after registration
+- [ ] An e2e suite driving the whole form in a browser (unit-tested server-side today)
 
 ---
 

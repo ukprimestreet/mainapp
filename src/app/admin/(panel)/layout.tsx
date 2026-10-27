@@ -11,12 +11,13 @@ export const metadata: Metadata = { title: "Admin", robots: { index: false, foll
 export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [review, ratings, claims, inbox, subs, enquiries, offered, invoices] = await Promise.all([
+  const [review, ratings, claims, inbox, subs, registrations, enquiries, offered, invoices] = await Promise.all([
     queueCount(),
     db.review.count({ where: { status: "PENDING" } }),
     db.claimRequest.count({ where: { status: { in: ["PENDING", "NEEDS_INFO"] } } }),
     db.profileChangeRequest.count({ where: { status: "OPEN" } }),
     db.businessSubmission.count({ where: { status: "PENDING" } }),
+    db.businessSubmission.count({ where: { status: "PENDING", kind: "REGISTRATION" } }),
     db.salesEnquiry.count({ where: { status: "NEW" } }),
     db.commission.count({ where: { status: "OFFERED" } }),
     db.writerPayment.count({ where: { status: { in: ["SUBMITTED", "APPROVED"] } } }),
@@ -38,11 +39,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ] },
     { title: "Directory", items: [
       { href: "/admin/moderation", label: "Moderation", icon: "inbox", badge: ratings + claims + subs + inbox },
+      { href: "/admin/registrations", label: "Registrations", icon: "shop", badge: registrations || undefined },
       { href: "/admin/businesses", label: "Businesses", icon: "shop" },
       { href: "/admin/cities", label: "Cities", icon: "map" },
       { href: "/admin/import", label: "Import", icon: "upload" },
     ] },
     { title: "Revenue", items: [
+      { href: "/admin/growth", label: "Growth", icon: "bolt" },
+      { href: "/admin/finance", label: "Finance", icon: "chart" },
+      { href: "/admin/membership", label: "Membership", icon: "users" },
+      { href: "/admin/sales", label: "Sales CRM", icon: "inbox" },
+      { href: "/admin/costs", label: "Costs & cash flow", icon: "chart" },
       { href: "/admin/money", label: "Money", icon: "chart" },
       { href: "/admin/payments", label: "Writer payments", icon: "card", badge: invoices },
       { href: "/admin/commerce", label: "Commerce", icon: "card", badge: enquiries },

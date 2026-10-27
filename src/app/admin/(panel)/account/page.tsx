@@ -66,7 +66,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
         <p className="mt-5 text-[14px] font-bold">What you may do</p>
         <ul className="mt-2 space-y-1 text-[14px]">
           {(Object.keys(PERMISSIONS) as (keyof typeof PERMISSIONS)[]).map((p) => (
-            <li key={p} className={granted.includes(p) ? "" : "text-grey/70"}>
+            <li key={p} className={granted.includes(p) ? "font-semibold" : "text-grey"}>
               <span aria-hidden className="mr-2">{granted.includes(p) ? "✓" : "—"}</span>
               <span className="sr-only">{granted.includes(p) ? "Allowed: " : "Not allowed: "}</span>
               {PERMISSIONS[p]}

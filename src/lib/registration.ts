@@ -1,4 +1,5 @@
 import { randomBytes } from "crypto";
+import type { Business, Owner } from "@prisma/client";
 import { db } from "./db";
 import { sha256 } from "./antispam";
 import { findDuplicate, normPhone, safeUrl, websiteHost, uniqueSlug, normName } from "./business";
@@ -196,28 +197,36 @@ export function registrationEvidence(row: { emailVerifiedAt: Date | null; websit
  * after it — never at submission, because five free credits tied to an unverified email address is a thing
  * to be farmed rather than a feature.
  */
-export async function approveRegistration(submissionId: string, opts: { verified: boolean; reviewedBy: string }) {
+export type ApproveResult = {
+  error?: string;
+  /** The full row, so a caller can check what was actually created rather than a trimmed shape. */
+  business?: Business;
+  owner?: Owner;
+  credits?: { granted: boolean; credits?: number; balance: number };
+};
+
+export async function approveRegistration(submissionId: string, opts: { verified: boolean; reviewedBy: string }): Promise<ApproveResult> {
   const row = await db.businessSubmission.findUnique({ where: { id: submissionId }, include: { place: { include: { parent: true } } } });
-  if (!row) return { error: "That registration no longer exists." as const };
-  if (row.status !== "PENDING") return { error: "That registration has already been handled." as const };
+  if (!row) return { error: "That registration no longer exists." };
+  if (row.status !== "PENDING") return { error: "That registration has already been handled." };
 
   const evidence = registrationEvidence(row);
-  if (!evidence.canApprove) return { error: "The email address has not been verified yet, so there is nothing proving we can reach this person." as const };
-  if (opts.verified && !evidence.canVerify) return { error: "There is not enough evidence to mark this verified: that needs a business-domain email or a phone call-back." as const };
+  if (!evidence.canApprove) return { error: "The email address has not been verified yet, so there is nothing proving we can reach this person." };
+  if (opts.verified && !evidence.canVerify) return { error: "There is not enough evidence to mark this verified: that needs a business-domain email or a phone call-back." };
 
   // The legacy Location the directory still routes on.
   const place = row.place;
   const locationId = place?.legacyLocationId
     ?? (place?.parentId ? (await db.place.findUnique({ where: { id: place.parentId }, select: { legacyLocationId: true } }))?.legacyLocationId : null);
-  if (!locationId) return { error: "That location is not yet mapped to a directory area, so a listing cannot be created there." as const };
+  if (!locationId) return { error: "That location is not yet mapped to a directory area, so a listing cannot be created there." };
 
   const categoryIds: string[] = (() => { try { return JSON.parse(row.categoryIds ?? "[]"); } catch { return []; } })();
   const serviceAreaIds: string[] = (() => { try { return JSON.parse(row.serviceAreaIds ?? "[]"); } catch { return []; } })();
   const primaryCategoryId = categoryIds[0];
-  if (!primaryCategoryId) return { error: "No service category was recorded on this registration." as const };
+  if (!primaryCategoryId) return { error: "No service category was recorded on this registration." };
 
   const location = await db.location.findUnique({ where: { id: locationId }, select: { cityId: true } });
-  if (!location) return { error: "That directory area no longer exists." as const };
+  if (!location) return { error: "That directory area no longer exists." };
 
   const business = await db.business.create({
     data: {
@@ -272,11 +281,11 @@ export async function approveRegistration(submissionId: string, opts: { verified
   return { business, owner, credits };
 }
 
-export async function rejectRegistration(submissionId: string, reason: string, reviewedBy: string) {
-  if (reason.trim().length < 5) return { error: "Give a reason: the person is told why." as const };
+export async function rejectRegistration(submissionId: string, reason: string, reviewedBy: string): Promise<{ error?: string; ok?: true }> {
+  if (reason.trim().length < 5) return { error: "Give a reason: the person is told why." };
   const row = await db.businessSubmission.findUnique({ where: { id: submissionId } });
-  if (!row || row.status !== "PENDING") return { error: "That registration has already been handled." as const };
+  if (!row || row.status !== "PENDING") return { error: "That registration has already been handled." };
   await db.businessSubmission.update({ where: { id: submissionId }, data: { status: "REJECTED", reviewedBy, reviewNote: reason.trim() } });
   await audit({ action: "Business registration rejected", targetType: "BusinessSubmission", targetId: submissionId, detail: reason.trim() });
-  return { ok: true as const, row };
+  return { ok: true };
 }

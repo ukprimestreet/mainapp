@@ -93,7 +93,7 @@ export default async function Admins({ searchParams }: { searchParams: Promise<{
                 <Cell>
                   <form action={setAdminRole} className="flex items-center gap-2">
                     <input type="hidden" name="id" value={a.id} />
-                    <select name="role" defaultValue={a.role} className="min-h-9 rounded-lg border-2 border-line px-2 text-sm">
+                    <select name="role" defaultValue={a.role} aria-label={`Role for ${a.name}`} className="min-h-9 rounded-lg border-2 border-line px-2 text-sm">
                       {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                     </select>
                     <button className="text-sm font-bold underline">Set</button>
@@ -137,7 +137,7 @@ export default async function Admins({ searchParams }: { searchParams: Promise<{
                 <p className="mt-1 text-[14px] text-grey">{ROLES[role].blurb}</p>
                 <ul className="mt-4 space-y-1.5 text-[14px]">
                   {(Object.keys(PERMISSIONS) as (keyof typeof PERMISSIONS)[]).map((p) => (
-                    <li key={p} className={granted.includes(p) ? "" : "text-grey/70"}>
+                    <li key={p} className={granted.includes(p) ? "font-semibold" : "text-grey"}>
                       <span aria-hidden className="mr-2">{granted.includes(p) ? "✓" : "—"}</span>
                       <span className="sr-only">{granted.includes(p) ? "Allowed: " : "Not allowed: "}</span>
                       {PERMISSIONS[p]}

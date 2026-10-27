@@ -29,7 +29,18 @@ export default async function Moderation() {
     ...ratings.map((r) => ({ kind: "Rating", tone: "review" as const, what: `${r.rating}★ on ${r.business.name}`, detail: r.title, at: r.createdAt, href: "/admin/reviews?tab=pending" })),
     ...reported.map((r) => ({ kind: "Reported", tone: "bad" as const, what: `${r.rating}★ on ${r.business.name}`, detail: r.title, at: r.createdAt, href: "/admin/reviews?tab=reported" })),
     ...claims.map((c) => ({ kind: "Claim", tone: "quiet" as const, what: c.business.name, detail: c.email, at: c.createdAt, href: "/admin/claims" })),
-    ...subs.map((s) => ({ kind: "Submission", tone: "quiet" as const, what: s.name, detail: s.submitterName ? `${s.submitterName} · ${s.description.slice(0, 60)}` : s.description.slice(0, 80), at: s.createdAt, href: "/admin/submissions" })),
+    ...subs.map((s) => ({
+      // A registration is a submission with kind=REGISTRATION, so it shares this queue rather than having
+      // its own. One queue was the point of decision D5.
+      kind: s.kind === "REGISTRATION" ? "Registration" : "Submission",
+      tone: s.kind === "REGISTRATION" ? ("review" as const) : ("quiet" as const),
+      what: s.name,
+      detail: s.kind === "REGISTRATION"
+        ? `${s.submitterName} · ${s.emailVerifiedAt ? "email confirmed" : "email NOT confirmed"}${s.duplicateOfId ? " · possible duplicate" : ""}`
+        : s.submitterName ? `${s.submitterName} · ${s.description.slice(0, 60)}` : s.description.slice(0, 80),
+      at: s.createdAt,
+      href: s.kind === "REGISTRATION" ? "/admin/registrations" : "/admin/submissions",
+    })),
     ...changes.map((c) => ({ kind: "Change request", tone: "quiet" as const, what: c.business.name, detail: c.message.slice(0, 80), at: c.createdAt, href: "/admin/owner-inbox" })),
     ...pitches.map((c) => ({ kind: "Story pitch", tone: "quiet" as const, what: c.business.name, detail: `${c.topic}: ${c.details.slice(0, 60)}`, at: c.createdAt, href: "/admin/owner-inbox" })),
   ].sort((a, b) => a.at.getTime() - b.at.getTime());

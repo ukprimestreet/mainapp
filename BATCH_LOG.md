@@ -627,4 +627,60 @@ Validation (thin description, HTML, bad email, invented category or place id, un
 
 ---
 
+## Batch B5 — the registration UI, end to end
+
+**Date:** 27 October 2026
+**Authorised by:** owner — "START another batch"
+**Type:** user-facing pages and admin review. **`dev` only. Production untouched. No landing pages.**
+
+### Built
+
+| | |
+|---|---|
+`/register` | the public flow: business, location, services, areas, you |
+`src/app/register/RegisterForm.tsx` | the one client component, because the address lookup needs a fetch |
+`src/app/register/actions.ts` | server action: anti-abuse, validation, duplicate check, verification email |
+`/register/sent`, `/register/verify/[token]` | confirmation and the verification landing |
+`/admin/registrations` | review, approve, approve-and-verify, reject with a reason |
+`src/app/admin/registration-actions.ts` | the approval path, and the emails either way |
+
+### Decisions in the interface worth keeping
+
+**The location step confirms rather than guesses.** The postcode gives real addresses to pick from; the chosen address gives a council area; the person then **confirms** their local area from nearby candidates. Nothing is auto-selected, because the data genuinely cannot tell us — postcodes.io returns a *ward*, not a neighbourhood. The form says so: *"We cannot tell this from a postcode reliably, so please confirm it."*
+
+**Manual selection sits alongside the postcode route, not behind a failure.** Some people know their area better than a postcode does, and every lookup costs money. Choosing by hand is one click away at every point, including from each error state.
+
+**"Already listed" is answered honestly.** If the duplicate check matches, the form stops and offers to claim the existing listing instead, naming *why* it matched — "you keep any reviews and search history it already has". Registering anyway is possible, behind a second deliberate click, and the registration is flagged for the administrator with a link to the existing listing. Two listings for one business split its reviews, so it is worth the interruption.
+
+**The promises on the form are ones the system keeps.** "Usually within a working day" is on the page, so the admin queue shows how long the oldest has waited and warns past two days. "Five lead credits" is granted by the approval itself. "Listing is free and stays free" is true: credits are never required to keep a listing.
+
+**Service areas are honest about what they mean.** *"Only areas you would genuinely go to. We will not send you work you do not want, and we will not send a customer a business that was never going to turn up."* Whole boroughs by default, individual localities if wanted.
+
+### Verification
+
+- **29 pages × 2 widths: no status errors, no overflow, no axe violations.**
+- 788 unit checks across 20 suites; typecheck and build clean; all four new routes in the manifest and returning 200.
+
+### Two a11y bugs found and fixed — both mine, from batch D3
+
+1. **`color-contrast` ×8** on `/admin/admins` and `/admin/account`: not-granted permissions were rendered `text-grey/70`, which fails contrast. The tick-or-dash marker and the screen-reader text already carry the meaning, so full-contrast text loses nothing and gains everybody who could not read it.
+2. **`select-name`, critical**: the per-row role `<select>` had a `name` but no accessible name, so a screen-reader user heard an unlabelled control. Given `aria-label="Role for <person>"`.
+
+Worth recording that the a11y audit caught both in code that had already been committed and reported as clean — because the pages it covers were only added to the audit in this batch.
+
+### Open
+
+- **No browser-driven e2e for the form yet.** The server side is unit-tested (61 checks) and the pages are axe-clean, but nothing yet drives the multi-step form end to end in a browser. That is a real gap and it is the obvious next test to write.
+- Production has none of B4 or B5.
+- Owners cannot yet edit their service areas or categories after registration — they choose them once, at sign-up.
+- Still the two blockers: **the 18 missing trade categories**, which is why registration currently offers sectors like "Technology" rather than "Plumbing"; and **provider supply**.
+
+### Recommended next batch
+
+**B6 — an e2e suite for registration**, driving the real form: postcode lookup against the free test postcode, address selection, locality confirmation, the duplicate interruption, verification, approval, and the credits landing. It would also be the first test of the whole commercial loop end to end.
+
+**Not started.**
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

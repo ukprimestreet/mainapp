@@ -96,7 +96,7 @@ async function main() {
   t("it lands in the SAME queue as a public submission", (await db.businessSubmission.count({ where: { status: "PENDING", id: submission.id } })) === 1);
 
   const early = await approveRegistration(submission.id, { verified: false, reviewedBy: "test" });
-  t("it cannot be approved before the email is verified", "error" in early && /not been verified/i.test(early.error ?? ""));
+  t("it cannot be approved before the email is verified", /not been verified/i.test(early.error ?? ""));
 
   t("a wrong verification token is invalid", (await verifyRegistrationEmail("wrong")).state === "invalid");
   t("the real token verifies", (await verifyRegistrationEmail(token)).state === "ok");
@@ -106,11 +106,11 @@ async function main() {
   t("after verification it may be approved", ev.canApprove);
   t("…but not marked verified without domain or phone evidence", !ev.canVerify);
   const overreach = await approveRegistration(submission.id, { verified: true, reviewedBy: "test" });
-  t("…and asking for verified anyway is refused", "error" in overreach && /not enough evidence/i.test(overreach.error ?? ""));
+  t("…and asking for verified anyway is refused", /not enough evidence/i.test(overreach.error ?? ""));
 
   const approved = await approveRegistration(submission.id, { verified: false, reviewedBy: "test" });
-  t("approval creates the listing", !("error" in approved) && !!approved.business.id, "error" in approved ? approved.error : "");
-  if ("error" in approved) throw new Error("cannot continue: " + approved.error);
+  t("approval creates the listing", !approved.error && !!approved.business, approved.error ?? "");
+  if (!approved.business) throw new Error("cannot continue: " + (approved.error ?? "no business returned"));
 
   const biz = approved.business;
   t("…published and marked claimed", biz.published && biz.claimStatus === "CLAIMED");
@@ -122,7 +122,7 @@ async function main() {
   t("the welcome credits were granted", (await creditBalance(biz.id)) === WELCOME_CREDITS);
   t("…recorded as a FREE_GRANT in the ledger", (await db.creditTransaction.count({ where: { businessId: biz.id, kind: "FREE_GRANT" } })) === 1);
   t("…and the ledger agrees with the balance", (await reconcile(biz.id)).agrees);
-  t("approving twice is refused", "error" in (await approveRegistration(submission.id, { verified: false, reviewedBy: "test" })));
+  t("approving twice is refused", !!(await approveRegistration(submission.id, { verified: false, reviewedBy: "test" })).error);
 
   // ---------------- the welcome grant is once only, three ways
   const again = await grantWelcomeCredits(biz.id, "trying it on");
@@ -160,9 +160,9 @@ async function main() {
 
   // ---------------- rejection
   const { submission: s2 } = await submitRegistration({ ...base, businessName: "Regtest Rejected Ltd", contactEmail: `reject@${MARK}.example` });
-  t("a rejection needs a reason", "error" in (await rejectRegistration(s2.id, "no", "test")));
-  t("a rejection with a reason works", "ok" in (await rejectRegistration(s2.id, "Not a real business we can verify.", "test")));
-  t("…and cannot be repeated", "error" in (await rejectRegistration(s2.id, "Not a real business we can verify.", "test")));
+  t("a rejection needs a reason", !!(await rejectRegistration(s2.id, "no", "test")).error);
+  t("a rejection with a reason works", (await rejectRegistration(s2.id, "Not a real business we can verify.", "test")).ok === true);
+  t("…and cannot be repeated", !!(await rejectRegistration(s2.id, "Not a real business we can verify.", "test")).error);
   t("…and created no listing", (await db.businessSubmission.findUnique({ where: { id: s2.id } }))?.businessId === null);
 
   await cleanup();
