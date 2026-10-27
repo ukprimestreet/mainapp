@@ -1132,4 +1132,106 @@ is on that list, and it is not a thing to discover after the first hundred leads
 
 ---
 
+## Batch G1 — Phase G: the gap between "works in dev" and "safe to switch on"
+
+**Date:** 27 October 2026
+**Authorised by:** owner — "continue"
+**Pages added to the public site:** 0. `/privacy` was rewritten in part; `/get-quotes` and `/register` gained breadcrumb data.
+
+### The thing I found first, and the most serious
+
+**The privacy notice did not mention the lead system at all.** Not a word about job requests, about passing a
+customer's name and phone number to two businesses, about retention, or about how to have it deleted.
+
+Meanwhile the consent box on `/get-quotes` says "see our privacy notice", and **every job request stores
+`consentVersion`** — so the system has been recording, precisely and durably, consent to a document that did
+not describe the processing. The record was honest about the version; the version was not honest about the
+processing.
+
+`/privacy` now sets it out in full: what is collected, that we never ask for a full address, that it goes to
+**at most two** named businesses and nobody else, what those businesses may do with it, that marketing is a
+separate unticked box, the retention periods, and how to have it deleted — including the honest part, that we
+cannot delete what a business already holds, but we will tell you who they were.
+
+The page now prints the version **from the code**, and a test fails if it is ever hardcoded. So bumping
+`PRIVACY_NOTICE_VERSION` forces the wording to be looked at, and changing the wording without bumping the
+version is visible too.
+
+### `npm run release:check`
+
+Read-only, writes nothing, prints no secret values. Separates **blockers** — a customer could fill in the
+form and nothing would happen — from things that merely work badly, and exits non-zero on any blocker.
+
+It checks the partial unique indexes **by their predicates**, not by name, because `schema:check` compares
+tables and columns and would happily pass a database where the two-business limit had quietly become
+code-only.
+
+**Production reports 9 blockers.** Honestly: none of them is new, and all of them are either a command you
+have to run or a business task:
+
+| | |
+|---|---|
+`JobRequest`, `LeadAssignment`, `MatchDecision` | not in production |
+`Place` | **0 rows**, so neither form can be completed |
+trade categories, aliases | not in production (12 top-level sectors, none of the 18 trades) |
+administrator accounts | **0 active**, so the shared password is still the only way in |
+`CRON_SECRET` | not set, so nothing would ever be notified or escalated |
+businesses able to receive a job | **0** |
+
+### A mistake in the check itself, caught before it could mislead
+
+My first version tested environment variables by names I had invented — `FIELD_ENCRYPTION_KEY`,
+`SECRETBOX_KEY` — and reported field encryption as missing when it is present as `FIELD_KEY` and working.
+
+A check that is wrong about configuration is worse than no check, because it gets believed. Every
+configuration line now asks the library that owns the setting (`encryptionReady()`, `mailConfigured()`,
+`billingConfigured()`, `addressLookupConfigured()`), so it cannot drift from the code.
+
+It also now says out loud, every run, that **configuration is read from the shell and not from the
+deployment** — pointing it at production from a laptop tells you nothing about Vercel's variables — and
+points at `GET /api/cron` for the deployment's own view.
+
+### Two documents for people who are not me
+
+- **`RELEASE_CHECKLIST.md`** — every step between here and taking money, in order, with the commands, what
+  is blocked on you, and what is not a blocker and why.
+- **`BUSINESS_TERMS_DRAFT.md`** — lead-credit terms written to describe **what the code actually does**, with
+  the enforcement point named against each promise, so a reviewer is correcting a true description rather
+  than inventing a policy the software does not implement. It ends with five questions for the adviser,
+  starting with the lawful basis for sharing contact details.
+
+Both are drafts for review and say so.
+
+### Two bugs found by running the audits rather than trusting them
+
+- **`/get-quotes` and `/register` had no `BreadcrumbList`.** Mine, from the last two batches. Fixed.
+- **Every author page breadcrumbed to `/authors`, which has never existed** and returns 404 in production
+  today. Nothing to do with this work; it has been shipping since Phase 1. There is no authors index, so the
+  breadcrumb is now plain text rather than a link to nowhere — inventing a page to justify a link was not
+  this batch's job.
+
+The audit's other 10 failures are recorded in the checklist §8 with a reason for each: six are over-long
+editorial titles and descriptions on guides and insights, and **I have deliberately not rewritten those** —
+it is published editorial copy, and the wording is yours to choose, not mine to quietly trim. Three are an
+audit artefact on an outbound `nofollow` link that redirects correctly. One is a dev fixture.
+
+### Verification
+
+Full unit suite (28 files) green, including 6 new checks binding the privacy notice to the consent version ·
+5 new browser checks that a customer can actually read the notice the consent box points at, with the
+two-business limit, the retention periods and a version on it · lead, matching, coverage and SEO e2e green ·
+a11y slice clean at both widths · build, typecheck, `schema:check` and `release:check` clean on dev.
+
+### What I would do next
+
+**Nothing in code.** The system is functionally complete and the remaining work is yours: the four commands
+in §1 of the checklist, the two configuration variables in §2, administrator accounts in §3, and the legal
+review in §5. The one I would not leave until after launch is the lawful basis for sharing contact details —
+it is the only item on the list that could require unwinding something rather than adding to it.
+
+If you want more code first, the highest-value piece left is **retention deletion as a scheduled job**,
+because it is the one promise in the privacy notice that nothing currently keeps.
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

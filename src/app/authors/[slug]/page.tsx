@@ -70,7 +70,10 @@ export default async function AuthorPage({ params }: P) {
         <Container className="py-12 sm:py-16">
           <nav aria-label="Breadcrumb" className="mb-8 text-sm text-white/60">
             <Link href="/" className="hover:text-yellow">Home</Link> <span aria-hidden>/</span>{" "}
-            <Link href="/authors" className="hover:text-yellow">Authors</Link> <span aria-hidden>/</span>{" "}
+            {/* Not a link: there is no /authors index, and this breadcrumb has been shipping a 404 on every
+                author page. Plain text is honest; inventing an index page to justify the link is not this
+                batch's job. */}
+            <span>Authors</span> <span aria-hidden>/</span>{" "}
             <span className="text-white">{author.name}</span>
           </nav>
           <div className="flex flex-col gap-8 sm:flex-row sm:items-start">

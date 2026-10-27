@@ -23,6 +23,8 @@ export default async function Register() {
   return (
     <>
       <PageHeader
+        ld
+        crumbs={[{ name: "Home", href: "/" }, { name: "List your business" }]}
         kicker="For business owners"
         title="List your business"
         intro="Free, and it stays free. Five lead credits included so customer enquiries can reach you from the start."

@@ -180,7 +180,21 @@ A category is an editorial decision about what the directory covers and it chang
 - [ ] Retry handling and delivery logging; lead stays visible when email fails
 - [ ] SMS/WhatsApp — **no provider integrated**; out of scope until one is chosen
 
-## Phase G — testing, privacy and release · NOT STARTED
+## Phase G — testing, privacy and release · IN PROGRESS
+
+- [x] **The privacy notice now describes the lead system in full** — what is collected, that it goes to at most two businesses, what they may do with it, retention, and how to have it deleted. It had described none of that, while every job request stored consent to it
+- [x] `/privacy` carries the version string from the code, and a test refuses a hardcoded one, so bumping `PRIVACY_NOTICE_VERSION` forces the wording to be reviewed
+- [x] `npm run release:check [-- --schema=public]` — read-only, blockers separated from things that work badly, and honest that it reads configuration from the shell rather than the deployment
+- [x] `docs/leadgen/RELEASE_CHECKLIST.md` — every step between dev and taking money, with what is blocked on whom
+- [x] `docs/leadgen/BUSINESS_TERMS_DRAFT.md` — lead-credit terms written to match what the code actually does, with five questions for the reviewer
+- [x] Breadcrumb structured data on `/get-quotes` and `/register`; the `/authors` 404 that shipped on every author page removed
+- [ ] **Production: 9 blockers**, listed in the checklist. Schema, places, trade categories, administrator accounts, `CRON_SECRET`, Stripe, and supply
+- [ ] Legal review of the six items in `LEAD_ROUTING_AND_PRIVACY.md` §12 — the lawful basis for sharing contact details first
+- [ ] SPF, DKIM and DMARC on the sending domain
+- [ ] Retention deletion as a scheduled job, not a policy
+- [ ] The editorial SEO backlog the audit reports (6 over-long titles and descriptions), which predates this work
+
+## Phase G — original list
 
 - [ ] Unit, integration, concurrency, security and e2e suites added to `npm run test:unit` / `test:e2e`
 - [ ] a11y pass on every new page at 390px and 1440px

@@ -5,6 +5,7 @@
  * happens to be in dev, because the thing most worth testing is the *relationship* between supply and a
  * request: a lead nobody can service must be recorded as exactly that.
  */
+import { readFileSync } from "fs";
 import { PrismaClient } from "@prisma/client";
 import {
   createJobRequest, demandWithoutSupply, isUrgency, jobByReference, leadCounts, MAX_RECIPIENTS,
@@ -163,6 +164,21 @@ async function main() {
 
   // ---------------- the product promise
   t("the maximum number of recipients is two, as the form says", MAX_RECIPIENTS === 2);
+
+  /**
+   * The consent version is only meaningful if the notice it names can be read. Every job request stores
+   * `consentVersion`, so a privacy page carrying a hardcoded version — or no version at all — would mean we
+   * had recorded consent to a document nobody can produce. Checked against the source rather than a
+   * rendered page so it holds even if the page never renders in this suite.
+   */
+  const privacySource = readFileSync("src/app/privacy/page.tsx", "utf8");
+  t("the privacy notice shows the version from the code, not a copied string",
+    privacySource.includes("PRIVACY_NOTICE_VERSION") && !privacySource.includes(`"${PRIVACY_NOTICE_VERSION}"`));
+  t("…and describes the quote form, which is what consent is given for", /id="job-requests"/.test(privacySource));
+  t("…stating the two-business limit from the code", privacySource.includes("MAX_RECIPIENTS"));
+  t("…that we never ask for a full address", /never ask for your full address/i.test(privacySource));
+  t("…how to have it deleted", /Deleting it/.test(privacySource));
+  t("…and that marketing is separate", /Marketing is separate/.test(privacySource));
 
   await cleanup();
   console.log(fail === 0 ? "\nALL LEAD TESTS PASS" : `\n${fail} FAILED`);

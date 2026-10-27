@@ -129,6 +129,26 @@ try {
   t("…and the form admits it will be one quote, not two", /one quote/i.test(thin));
   t("…and only now are contact details asked for", (await page.$("#phone")) !== null);
 
+  // ================================================================ the notice the consent box points at
+  const consentLink = await page.$eval('input[name="consent"]', (el) => {
+    const section = el.closest("section");
+    return section.querySelector('a[href="/privacy"]')?.getAttribute("href") ?? null;
+  });
+  t("the consent box sits with a link to the privacy notice", consentLink === "/privacy");
+
+  const formPage = page.url();
+  await page.goto(`${BASE}/privacy`, { waitUntil: "domcontentloaded" });
+  const notice = await text(page);
+  t("the notice actually describes the quote form", /if you ask us for quotes/i.test(notice), notice.slice(0, 200));
+  t("…naming the two-business limit", /maximum of 2 businesses/i.test(notice));
+  t("…saying we never ask for a full address", /never ask for your full address/i.test(notice));
+  t("…how long it is kept", /90 days/.test(notice) && /12 months/.test(notice));
+  t("…and carrying a version, since every consent records one", /Version \d{4}-\d{2}-\d{2}/.test(notice), notice.slice(0, 300));
+  // Coming back is a fresh page, so the choices have to be made again: the form keeps its state in the
+  // browser, not in the URL. (`formPage` is kept only to prove we returned to the form, not the home page.)
+  t("we are back on the form", new URL(formPage).pathname === "/get-quotes");
+  await chooseWork(page, { trade: trade.id, borough: borough.id, locality: locality.id });
+
   // ================================================================ validation happens on the server
   const startedAt = Date.now();
   await fillDetails(page, { description: "Tap broken." });

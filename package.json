@@ -39,7 +39,8 @@
     "matching:ddl": "tsx scripts/ddl-matching.ts",
     "test:e2e:matching": "node scripts/e2e-matching.mjs",
     "test:e2e:coverage": "node scripts/e2e-coverage.mjs",
-    "notify:ddl": "tsx scripts/ddl-lead-notify.ts"
+    "notify:ddl": "tsx scripts/ddl-lead-notify.ts",
+    "release:check": "tsx scripts/release-check.ts"
   },
   "keywords": [],
   "author": "",
