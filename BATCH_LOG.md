@@ -930,4 +930,98 @@ npm run schema:check -- --all
 
 ---
 
+## Batch D2 — a business can change what matching routes on
+
+**Date:** 27 October 2026
+**Authorised by:** owner — "continue"
+**Pages added to the public site:** 0. One owner dashboard tab (`/owner/business/[id]/areas`).
+
+### Why this before notifications
+
+Matching now routes on three things: service areas, trades, and the nearby opt-in. Until this batch, all
+three were set once at registration and could only be changed by emailing us.
+
+That is not a missing feature so much as a routing risk, and an invisible one. A business that moves, stops
+covering a borough or takes up a second trade would simply keep receiving the wrong work and missing the
+right work, and **nobody would report a bug** — jobs would just go elsewhere. Every day it stayed true, the
+matcher was routing on data that was quietly going stale.
+
+### What was built
+
+`/owner/business/[id]/areas`, one tab, three things:
+
+| | |
+|---|---|
+**Areas** | borough-wide or locality-level, per borough. Ticking a borough means the whole borough; ticking a locality means that locality only, and `mode` is **derived** from which box was ticked rather than being a separate switch that can disagree with it |
+**Trades** | everything they offer. The main trade is kept while they still offer it, because it decides the directory URL; dropping it promotes the remaining one rather than leaving none |
+**Nearby work** | the stage-four opt-in, off unless asked for. "We ask rather than assume" is on the page |
+
+Plus the number that makes the page worth opening: **requests in their areas over 30 days against how many
+were actually sent to them.** "You cover three areas" means nothing on its own; the gap between those two is
+the honest answer to "should I widen?".
+
+### Two rules, stated on the page
+
+- **At least one area and one trade.** Emptying either makes a business invisible to matching, which is a
+  decision — "stop sending me work" — and not something that should happen as a side effect of unticking
+  boxes. There is no hidden pause switch, so the page says so rather than implying one.
+- **Checked against the offered set, on the server.** The form offers seven boroughs; editing its values must
+  not grant coverage of somewhere we do not cover. The browser suite tampers with the hidden business id and
+  confirms one owner cannot edit another's coverage, with nothing logged against the victim.
+
+### One list, three pages
+
+The East London borough list existed as a copied constant in `/register` and `/get-quotes`. It is now
+`COVERED_BOROUGHS` in `src/lib/coverage.ts`, with `coverageOptions()` serving all three forms, so widening
+the platform is one edit rather than three that can drift.
+
+### Verification
+
+- **41 unit checks** (`test-coverage.ts`): the derived mode in both directions, a locality choice *not*
+  leaking upwards, refusals that change nothing, the main trade being kept and then promoted, the opt-in
+  surviving unrelated saves, every change audited, and demand counted from real requests.
+- **23 browser checks** (`e2e-coverage.mjs`): a job next door misses them → the owner widens their coverage
+  → **the very next job through the real customer form reaches them and charges a credit.** That sequence is
+  the whole point of the batch, so it is checked end to end rather than inferred.
+- Full unit suite (27 files) green · a11y slice clean at 390px and 1440px with the new page · registration,
+  owner and coverage e2e green · build, typecheck and `schema:check` clean on dev.
+
+### Something I found that was already broken
+
+**`e2e-owner.mjs` had been failing before this batch, and not because of it.** It clicked a button labelled
+"Sign out everywhere"; the dashboard redesign relabelled that control "Everywhere" next to "Sign out". The
+feature works — the test was asking for a label that no longer existed, and had been doing so since Phase 10.
+Fixed, with a comment saying why, because a suite in `npm run test:e2e` that fails for a stale reason is
+worse than no suite: it trains you to ignore the gate.
+
+### Production, unchanged from the last two batches
+
+Still **nothing from Phase C or D in production**, and production `Place` still has **0 rows**, so
+`/register` and `/get-quotes` both render and neither can be completed. In order, when authorised:
+
+```
+npx tsx scripts/import-places.ts --schema=public
+npm run leads:ddl    -- --schema=public
+npm run matching:ddl -- --schema=public
+npm run schema:check -- --all
+```
+
+`acceptsNearby` is part of `matching:ddl`, so this batch needs no DDL of its own.
+
+### Still open
+
+Owners cannot change the **address or postcode** they were located by at registration — still an email to
+us · no notification when a job is waiting (Phase F) · no escalation when nobody opens one · no intro copy for
+the 18 trade categories, so they remain non-indexable · provider recruitment · `pg_cron` for retention
+deletion · the parallel finance/growth/sales work is still uncommitted.
+
+### What I would do next
+
+**Phase F — telling the business a job is waiting.** Everything now works for a business that opens its
+dashboard. One that does not open it has paid a credit for a job it has not seen, and the customer is
+waiting on a phone call that is not coming. The data to act on exists (`deliveredAt`); what is missing is
+the email, and the escalation when nobody acts on it.
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

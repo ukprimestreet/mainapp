@@ -54,6 +54,16 @@ The nav shows **one** business plus a switcher, rather than repeating every link
 - **Offers**, **Billing** (including what you keep if you cancel), **Team**, **Opening hours** (holidays and one-offs), **Help**.
 - **Team** refuses to remove the last manager. A listing with nobody able to update it is a worse outcome than an awkward error message.
 
+### Where you work
+
+The tab that decides which job requests reach a business: the areas it will travel to, the trades it
+offers, and whether it accepts work just outside those areas (off unless asked for). Ticking a borough means
+the whole borough; ticking a locality means that locality only, and the stored mode is derived from that
+rather than from a separate switch. At least one area and one trade are required — emptying either would make
+the business unreachable, and that should be a decision rather than an accident. Changes take effect on the
+next request, with no deploy. Alongside it: requests in their areas over the last 30 days against how many
+were actually sent to them, which is the only honest way to answer "should I widen?".
+
 ## Money: the rules in code, not just in a policy
 
 `src/app/admin/editorial-money-actions.ts` enforces these:

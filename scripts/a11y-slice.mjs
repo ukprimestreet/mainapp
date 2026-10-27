@@ -64,7 +64,7 @@ const paths = [
   "/admin/corrections", "/admin/audit", "/admin/moderation", "/admin/settings",
   "/write/commissions", "/write/payments", "/write/payments/details", "/write/performance", "/write/notifications", "/write/style",
   `/owner/business/${fx.id}/insights`, `/owner/business/${fx.id}/photos`, `/owner/business/${fx.id}/offers`,
-  `/owner/business/${fx.id}/billing`, `/owner/business/${fx.id}/team`, `/owner/business/${fx.id}/hours`, "/owner/help",
+  `/owner/business/${fx.id}/areas`, `/owner/business/${fx.id}/billing`, `/owner/business/${fx.id}/team`, `/owner/business/${fx.id}/hours`, "/owner/help",
   `/owner/team/${inviteTok}`, "/owner/team/not-a-real-token",
 ];
 

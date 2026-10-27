@@ -258,7 +258,9 @@ t("admin can revert an owner edit", rev.summary === "An e2e ownership test busin
 // ===== 9. sessions ==========================================================
 const o1b = await newPage(); await loginAs(o1b, "ana@alpha.example");
 t("second device signed in", (await o1b.text()).includes("E2E Own Alpha"));
-await o1.go("/owner"); await o1.click("Sign out everywhere");
+// The control is labelled "Everywhere", next to "Sign out", since the dashboard redesign. This suite
+// still asked for "Sign out everywhere" and had been failing here on that alone — the feature works.
+await o1.go("/owner"); await o1.click("Everywhere");
 await o1b.go("/owner");
 t("'Sign out everywhere' invalidates the OTHER device's session", o1b.page.url().endsWith("/owner/login"));
 

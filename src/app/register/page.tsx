@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Container, PageHeader } from "@/components/ui";
 import { formToken } from "@/lib/antispam";
+import { coverageOptions } from "@/lib/coverage";
 import { db } from "@/lib/db";
 import { meta } from "@/lib/seo";
-import { RegisterForm, type Borough } from "./RegisterForm";
+import { RegisterForm } from "./RegisterForm";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = meta({
@@ -12,27 +13,12 @@ export const metadata: Metadata = meta({
   path: "/register",
 });
 
-/** The boroughs we currently cover. East London, per decision D6. */
-const EAST_LONDON = ["Tower Hamlets", "Hackney", "Newham", "Waltham Forest", "Redbridge", "Barking and Dagenham", "Havering"];
-
 export default async function Register() {
-  const [categories, boroughPlaces] = await Promise.all([
+  const [categories, boroughs] = await Promise.all([
     db.category.findMany({ where: { parentId: null }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    db.place.findMany({
-      where: { kind: { in: ["LAD", "UNITARY"] }, name: { in: EAST_LONDON } },
-      orderBy: { name: "asc" },
-      select: {
-        id: true, name: true,
-        children: {
-          where: { kind: { in: ["TOWN", "SUBURB", "LOCALITY"] }, active: true },
-          orderBy: { name: "asc" },
-          select: { id: true, name: true },
-        },
-      },
-    }),
+    // One list, shared with /get-quotes and the owner's own coverage page, so the three cannot drift.
+    coverageOptions(),
   ]);
-
-  const boroughs: Borough[] = boroughPlaces.map((b) => ({ id: b.id, name: b.name, localities: b.children }));
 
   return (
     <>

@@ -101,7 +101,7 @@ A category is an editorial decision about what the directory covers and it chang
 
 - [x] `/register` → verification email → `/admin/registrations` → one approval creating listing + ownership + 5 credits
 - [x] Registrations share the existing moderation queue, flagged with whether the email is confirmed and whether it looks like a duplicate
-- [ ] Owner-facing editing of service areas and categories after registration
+- [x] Owner-facing editing of service areas and categories after registration — `/owner/business/[id]/areas`, see below
 - [x] An e2e suite driving the whole form in a real browser: 45 checks, `scripts/e2e-registration.mjs`. Runs with mail disabled so it cannot send a real email, and uses the free test postcode so it cannot spend money
 
 ---
@@ -131,6 +131,18 @@ A category is an editorial decision about what the directory covers and it chang
 - [x] Reversal refunds the credit, frees the place, and leaves the row visible to the business
 - [x] Tests: 64 unit checks including **five simultaneous runs on one job** → two assignments, two charges · 35 browser checks across customer, administrator and business
 - [ ] Apply to production: `npm run matching:ddl -- --schema=public` — **waiting on authorisation**
+
+## Owner-side editing · DONE in dev
+
+- [x] `/owner/business/[id]/areas` — a business can change its service areas, its trades and the nearby opt-in itself
+- [x] Borough-wide or locality-level, with the mode **derived** from which box was ticked rather than a separate switch that can disagree with it
+- [x] Server-side validation against the offered set, so editing a hidden field cannot grant coverage of somewhere we do not cover, or a trade we do not list
+- [x] At least one area and one trade enforced: emptying either would make the business invisible to matching, which is a decision and not a side effect
+- [x] Real demand counted for them — requests in their areas, and how many were sent to them
+- [x] Audited, and written to the business's own edit log
+- [x] Takes effect on the **next** job request, with no deploy: proven in a browser
+- [x] Tests: 41 unit checks (`test-coverage.ts`) and 23 browser checks (`e2e-coverage.mjs`), including that one owner cannot edit another's coverage
+- [ ] Owners still cannot change the **address or postcode** that located them at registration — still an email to us
 
 ## Phase D remainder · NOT STARTED
 

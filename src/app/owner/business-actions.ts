@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { sha256 } from "@/lib/antispam";
 import { sendMail, siteLink } from "@/lib/mail";
 import { getEntitlements, MAX_GALLERY } from "@/lib/commerce";
+import { currentCoverage, saveCoverage } from "@/lib/coverage";
 
 const s = (f: FormData, k: string) => ((f.get(k) as string | null) ?? "").toString();
 const https = (u: string) => /^https:\/\/[^\s]+$/i.test(u.trim());
@@ -142,4 +143,45 @@ export async function removeTeammate(form: FormData) {
   await db.businessOwner.deleteMany({ where: { businessId: id, ownerId } });
   await audit({ action: "Team member removed", targetType: "Business", targetId: id, detail: `${person?.email ?? ownerId} by ${owner.email}` });
   back(`${person?.name ?? "They"} no longer manage this business.`);
+}
+
+// ---------------------------------------------------------------- what they cover
+/**
+ * Saves the areas and trades a business covers, and whether it will take work just outside them.
+ *
+ * This is the data matching routes on, so it is validated against the offered set on the server: the form
+ * offers seven boroughs, and editing its values must not grant coverage of somewhere we do not cover.
+ */
+export async function saveCoverageAreas(form: FormData) {
+  const id = s(form, "businessId");
+  const { owner } = await requireBusiness(id);
+  const back = (m: string) => redirect(`/owner/business/${id}/areas?msg=${encodeURIComponent(m)}`);
+
+  // De-duplicated: a repeated id is a form quirk, not an unknown place, and must not read as one. This is
+  // the bug that stopped anybody registering, found by the browser suite.
+  const list = (k: string) => [...new Set((form.getAll(k) as string[]).filter(Boolean))];
+
+  const before = await currentCoverage(id);
+  const result = await saveCoverage(id, {
+    areaIds: list("areaIds"),
+    categoryIds: list("categoryIds"),
+    acceptsNearby: s(form, "acceptsNearby") === "yes",
+  }, { kind: "OWNER", id: owner.id, email: owner.email });
+
+  if (!result.ok) back(result.problems[0].message);
+
+  await db.businessEditLog.create({
+    data: {
+      businessId: id, ownerId: owner.id,
+      changes: JSON.stringify({
+        serviceAreas: { from: `${before.areaIds.length} areas`, to: `${result.areas} areas` },
+        categories: { from: `${before.categoryIds.length} trades`, to: `${result.categories} trades` },
+        ...(result.nearbyChanged ? { acceptsNearby: { from: before.acceptsNearby, to: !before.acceptsNearby } } : {}),
+      }),
+    },
+  });
+
+  const moved = [result.added ? `${result.added} added` : null, result.removed ? `${result.removed} removed` : null]
+    .filter(Boolean).join(", ");
+  back(`Saved. You now cover ${result.areas} ${result.areas === 1 ? "area" : "areas"}${moved ? ` (${moved})` : ""} for ${result.categories} ${result.categories === 1 ? "kind" : "kinds"} of work. New job requests use this straight away.`);
 }

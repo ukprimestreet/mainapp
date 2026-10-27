@@ -169,7 +169,35 @@ A reversal refunds | `reverseAssignment()` frees the place, writes a REVERSAL le
 
 ---
 
-## 10. What needs legal review before launch
+## 10. Who controls the data matching reads
+
+Matching routes on three things, and as of 27 October 2026 a business controls all three itself at
+`/owner/business/[id]/areas`: the **areas** it will travel to, the **trades** it offers, and whether it
+accepts **nearby** work.
+
+Before that they were set once at registration and could only be changed by emailing us. That is worth
+stating as a routing risk rather than a missing feature: a matcher routing on data the business cannot
+correct is a matcher routing on data that is quietly going stale, and the failure is invisible — jobs simply
+go elsewhere and nobody reports a bug.
+
+Two rules on that page:
+
+- **At least one area and one trade.** Emptying either makes a business invisible to matching. That is a
+  decision ("stop sending me work"), not something that should happen as a side effect of unticking boxes,
+  and there is no hidden pause switch pretending otherwise.
+- **Checked against the offered set, on the server.** The form offers seven boroughs; editing its values
+  must not grant coverage of somewhere we do not cover, or a trade we do not list.
+
+The page also shows the business what its coverage has been worth — requests in its areas over 30 days, and
+how many were actually sent to it — because "you cover three areas" means nothing on its own, while the gap
+between those two numbers is the honest answer to "should I widen?".
+
+Still only changeable by emailing us: the **address and postcode** a business was located by at
+registration.
+
+---
+
+## 11. What needs legal review before launch
 
 1. The lawful basis for sharing contact details with providers.
 2. The privacy notice wording and its retention schedule.
