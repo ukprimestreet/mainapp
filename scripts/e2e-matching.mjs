@@ -31,8 +31,10 @@ const SLUG = "e2e-match-";
 const OWNER_EMAIL = `owner@${MARK}.example`;
 
 async function cleanup() {
-  const jobs = await db.jobRequest.findMany({ where: { email: { contains: MARK } }, select: { id: true } });
+  const jobs = await db.jobRequest.findMany({ where: { email: { contains: MARK } }, select: { id: true, reference: true } });
   const ids = jobs.map((j) => j.id);
+  for (const j of jobs) await db.emailOutbox.deleteMany({ where: { subject: { contains: j.reference } } });
+  await db.emailOutbox.deleteMany({ where: { to: { contains: MARK } } });
   if (ids.length) {
     await db.matchDecision.deleteMany({ where: { jobRequestId: { in: ids } } });
     await db.leadAssignment.deleteMany({ where: { jobRequestId: { in: ids } } });
@@ -145,6 +147,15 @@ try {
 
   t("the customer is told WHO has their job, by name", live.every((a) => sent.includes(a.business.name)), sent.slice(0, 300));
   t("…and that nobody else will get their details", /nobody else will be given your details/i.test(sent));
+
+  // ---- and both were told, by email, without anybody opening a dashboard
+  const notifications = await db.emailOutbox.findMany({ where: { subject: { contains: job.reference } } });
+  t("both businesses were emailed about the job", notifications.length >= 2, `${notifications.length}`);
+  t("…from the enquiries address", notifications.every((m) => m.purpose === "enquiries"));
+  t("…with the customer's phone number in the email, not behind a link", notifications.every((m) => m.body.includes("020 7946 0177")));
+  t("…and it was recorded against the assignment", (await db.leadAssignment.findMany({ where: { jobRequestId: job.id } })).every((a) => !!a.notifiedAt));
+  t("…but not actually sent, because mail is off for this suite", notifications.every((m) => m.sentAt === null),
+    "restart the server with MAIL_DOMAIN unset");
 
   // ================================================================ the administrator
   // `domcontentloaded` rather than `networkidle0`: arriving from the confirmation page, something kept a

@@ -52,6 +52,8 @@ const slicedLead = place
         categoryId: cat.id, placeId: place.id, postcode: "E8 3AA",
         description: "A fixture job request, created for the accessibility audit and left in place.",
         urgency: "FLEXIBLE", consentVersion: "audit", idempotencyKey: "a11y-slice-fixture",
+        // Pre-set so the notification sweep can never pick this fixture up and email a made-up customer.
+        customerNotifiedAt: new Date(),
       },
     }))
   : null;

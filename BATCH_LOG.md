@@ -1024,4 +1024,112 @@ the email, and the escalation when nobody acts on it.
 
 ---
 
+## Batch F1 — Phase F: telling people what has happened
+
+**Date:** 27 October 2026
+**Authorised by:** owner — "continue"
+**Pages added to the public site:** 0. No new pages at all; one admin page gained two lines of state.
+
+### The failure this closes
+
+Everything built so far worked for a business that opens its dashboard. One that does not had paid a credit
+for a job it had not seen, and a customer was waiting on a phone call that was never coming.
+
+**Nobody reports that as a bug.** It just looks like a directory that does not work.
+
+### The clock
+
+| After | What happens |
+|---|---|
+immediately | the business is emailed: name, phone, area, urgency, description |
+4 hours unopened | one chase — which offers the way out, "tell us and we will pass it on and put your credit back", rather than only nagging |
+6 hours, nobody assigned | the **customer** is emailed, once: we have not found anyone, do not hold out for us if it is urgent, nobody has your details |
+24 hours unopened | the job is taken back, **the credit refunded**, the place freed, matching re-run, and the new business emailed |
+
+**The credit goes back on escalation** even though the lead was genuinely delivered. Charging for a job a
+business never looked at is defensible on paper and indefensible in a phone call, and keeping the pound does
+nothing for the customer, whose problem is that nobody has rung them.
+
+### Two decisions worth naming
+
+**The customer's phone number is in the email, not behind a link.** The business paid a credit for exactly
+that, and a trade reading it between jobs should not have to sign in to find out who to ring. The trade-off
+is real — email is not secure and can be forwarded — so it is written down in
+`LEAD_ROUTING_AND_PRIVACY.md` §11 as a decision, with the paragraph to change if it is ever re-decided.
+
+**This does not go through the automations engine.** Those rules are off by default, capped per day, and sent
+once per recipient ever. Every one of those properties would be a bug here: a business must not miss a lead
+because a daily cap was reached or because it received the same template last month. So this is a separate,
+transactional path, and the cron runs it whether or not any marketing rule is switched on.
+
+### Idempotence is a column, not a search
+
+`LeadAssignment.notifiedAt`, `.remindedAt` and `JobRequest.customerNotifiedAt`. "Has this already been sent?"
+decides whether a business is chased twice or a customer is told twice that nobody can help them, so it
+belongs in a column rather than in a `LIKE` against past email subjects. A cron firing twice sends nothing
+twice, and the suite proves it by running the whole pass again and asserting silence.
+
+A business with **no email address at all** is left visibly unnotified and the gap is audited — never marked
+as told. Nothing is more dangerous in a system like this than a row that claims somebody was informed.
+
+### Hourly, from Supabase
+
+Vercel cron gives one run a day on this plan, which would mean a customer waiting up to 24 hours for us to
+notice nobody had been told. So `pg_cron` + `pg_net` call the same authenticated endpoint hourly, with the
+bearer token in Supabase Vault rather than sitting in a cron definition. The SQL, the checks and the
+troubleshooting are in **`docs/leadgen/SCHEDULED_JOBS.md`**. The daily Vercel cron can stay as a second
+caller: the endpoint is idempotent, so two callers is not a problem.
+
+### Verification
+
+- **46 unit checks** (`test-lead-notify.ts`). Time is moved by writing timestamps backwards — the honest way
+  to test something that happens after four hours, rather than waiting or trusting the arithmetic. They cover
+  every email's wording, not just that one was sent: the chase has to say the customer is waiting, the
+  take-back has to say the credit is back, the customer email has to say nobody has their details.
+- **5 added browser checks** in `e2e-matching.mjs`: both businesses were emailed, from the enquiries address,
+  with the phone number in the body, recorded against the assignment, and — because this is the suite that
+  could do real damage — **not actually sent**.
+- Full unit suite (28 files) green · a11y slice clean at both widths · lead, matching and coverage e2e green
+  · build, typecheck and `schema:check` clean on dev.
+
+### Something I fixed in my own test harness
+
+The suite **switches mail off inside its own process** (`delete process.env.RESEND_API_KEY`) rather than
+assuming the machine has no key. My first version only checked `MAIL_DOMAIN` and would have attempted real
+sends on a machine with a live Resend key in `.env` — to made-up addresses, but attempted all the same.
+
+I also found that a job-request fixture I had left in dev for the accessibility audit was a **real candidate
+for the customer email**, and the sweep picked it up. It is now created with `customerNotifiedAt` already set,
+and the test assertion is scoped to its own request rather than to whatever else happens to be in dev.
+
+### Production
+
+Three DDL steps and a data import, all still waiting on you. In order:
+
+```
+npx tsx scripts/import-places.ts --schema=public   # Place still has 0 rows
+npm run leads:ddl    -- --schema=public
+npm run matching:ddl -- --schema=public
+npm run notify:ddl   -- --schema=public
+npm run schema:check -- --all
+```
+
+Then set `CRON_SECRET` in the deployment and schedule the Supabase job.
+
+### Still open
+
+Retention deletion is a policy and not yet a job · owners cannot change the address they were located by ·
+no intro copy for the 18 trade categories, so they remain non-indexable · provider recruitment · the parallel
+finance/growth/sales work is still uncommitted.
+
+### What I would do next
+
+**Phase G — the release checklist**, because the system is now functionally complete and the gap between
+"works in dev" and "safe in production" is the only thing left that can embarrass us. Specifically: get the
+production schema and places in line, prove the whole loop against production once, and work through the
+privacy and legal items in `LEAD_ROUTING_AND_PRIVACY.md` §12 — the lawful basis for sharing contact details
+is on that list, and it is not a thing to discover after the first hundred leads.
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

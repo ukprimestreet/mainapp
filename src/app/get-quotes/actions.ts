@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { checkFormToken, ipHash, isDisposableEmail } from "@/lib/antispam";
 import { db } from "@/lib/db";
 import { createJobRequest, isUrgency, validateJob, type JobInput } from "@/lib/leads";
+import { notifyAssignment } from "@/lib/lead-notify";
 import { matchJobRequest } from "@/lib/matching";
 
 export type QuoteState = {
@@ -94,7 +95,16 @@ export async function requestQuotes(_: QuoteState, fd: FormData): Promise<QuoteS
   // for somebody who has just filled in a form.
   if (wasCreated) {
     try {
-      await matchJobRequest(jobId);
+      const matched = await matchJobRequest(jobId);
+      // Told here rather than inside the matcher, so that the dependency runs one way: notification knows
+      // about matching, matching knows nothing about email. The cron picks up anything missed, so a failure
+      // here delays a notification rather than losing it.
+      for (const a of matched.assigned) {
+        const assignment = await db.leadAssignment.findFirst({
+          where: { jobRequestId: jobId, businessId: a.businessId, notifiedAt: null }, select: { id: true },
+        });
+        if (assignment) await notifyAssignment(assignment.id);
+      }
     } catch {
       // Deliberately silent to the customer. The request exists; an administrator sees it either way.
     }

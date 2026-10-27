@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { audit } from "@/lib/audit";
 import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { notifyAssignment } from "@/lib/lead-notify";
 import { assignManually, matchJobRequest, reverseAssignment } from "@/lib/matching";
 import { LEAD_CLOSE_REASONS, type LeadCloseReason } from "@/lib/reasons";
 
@@ -89,6 +90,12 @@ export async function rematchLead(fd: FormData) {
   if (!job) back("That request no longer exists.");
 
   const result = await matchJobRequest(id);
+  for (const a of result.assigned) {
+    const assignment = await db.leadAssignment.findFirst({
+      where: { jobRequestId: id, businessId: a.businessId, notifiedAt: null }, select: { id: true },
+    });
+    if (assignment) await notifyAssignment(assignment.id);
+  }
   await audit({
     action: "Lead matching re-run", targetType: "JobRequest", targetId: id,
     detail: `${job!.reference}: considered ${result.considered}, assigned ${result.assigned.length}, now ${result.status.toLowerCase()}`,
@@ -112,8 +119,9 @@ export async function assignLead(fd: FormData) {
     kind, reason,
     adminId: session.kind === "LEGACY" ? null : session.admin.id,
   });
+  if (result.ok) await notifyAssignment(result.assignmentId);
   const msg = result.ok
-    ? `Assigned${result.charged ? " and one credit charged" : " as sponsored, nothing charged"}.`
+    ? `Assigned${result.charged ? " and one credit charged" : " as sponsored, nothing charged"}, and the business has been emailed.`
     : result.message;
   redirect(`/admin/leads/${id}?msg=${encodeURIComponent(msg)}`);
 }

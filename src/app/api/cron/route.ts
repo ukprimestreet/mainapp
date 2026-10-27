@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
 import { ensureAutomations, runAllEnabled } from "@/lib/automations";
+import { runLeadNotifications } from "@/lib/lead-notify";
 import { ftsPrune } from "@/lib/search/fts";
 import { encryptionStatus } from "@/lib/secretbox";
 import { mailConfigured, SUPPORT_EMAIL } from "@/lib/mail";
@@ -40,6 +41,18 @@ export async function GET(req: Request) {
     return [] as Awaited<ReturnType<typeof runAllEnabled>>;
   });
 
+  /**
+   * Lead notification and escalation. **Not** gated on the automation toggles above: these are
+   * transactional. A business that has paid for a job must be told it has one, and a customer waiting on a
+   * tradesperson must be told where they stand, whether or not anybody has switched a marketing rule on.
+   *
+   * Wrapped in its own catch so a failure here cannot stop the housekeeping below, or vice versa.
+   */
+  const leads = await runLeadNotifications().catch((e) => {
+    errors.push(`leadNotifications: ${String(e)}`);
+    return null;
+  });
+
   // Housekeeping that has to happen somewhere: drop search rows whose document is gone.
   const pruned = await ftsPrune().catch((e) => {
     errors.push(`ftsPrune: ${String(e)}`);
@@ -56,7 +69,12 @@ export async function GET(req: Request) {
         action: "Daily job ran",
         targetType: "System",
         targetId: new Date().toISOString().slice(0, 10),
-        detail: `${results.length} automation(s), ${sent} sent, ${skipped} skipped, ${pruned} search rows pruned${errors.length ? `, ${errors.length} error(s)` : ""}`,
+        detail: [
+          `${results.length} automation(s), ${sent} sent, ${skipped} skipped`,
+          leads ? `leads: ${leads.notified.sent} notified, ${leads.chased.sent} chased, ${leads.escalated.taken} taken back (${leads.escalated.reassigned} reassigned), ${leads.customers.sent} customers told` : "leads: failed",
+          `${pruned} search rows pruned`,
+          errors.length ? `${errors.length} error(s)` : null,
+        ].filter(Boolean).join(" · "),
       },
     })
     .catch(() => {});
@@ -70,6 +88,7 @@ export async function GET(req: Request) {
     sent,
     skipped,
     pruned,
+    leads,
     automations: results.map((r) => ({ key: r.key, sent: r.sent, skipped: r.skipped, error: r.error })),
     errors,
   });

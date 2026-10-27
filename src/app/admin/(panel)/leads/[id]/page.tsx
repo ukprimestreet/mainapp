@@ -82,6 +82,13 @@ export default async function Lead({ params, searchParams }: {
         <Metric label="Decisions recorded" value={decisions.length} icon="shield" hint={`${runs.size} matching ${runs.size === 1 ? "run" : "runs"}`} />
       </MetricRow>
 
+      {job.customerNotifiedAt && (
+        <Notice tone="warn" title="The customer has been told we could not find anyone">
+          Emailed {fmtDate(job.customerNotifiedAt)}, and advised not to wait on us if the job is urgent. If
+          you assign somebody now, they may already have booked elsewhere — worth saying so to the business.
+        </Notice>
+      )}
+
       {job.status === "CLOSED" && (
         <Notice tone="info" title="This request is closed">
           {job.closedReason ? LEAD_CLOSE_REASONS[job.closedReason as keyof typeof LEAD_CLOSE_REASONS] ?? job.closedReason : "No reason was recorded."}
@@ -153,6 +160,14 @@ export default async function Lead({ params, searchParams }: {
                 <Cell>{a.creditCharged ? "1 charged" : a.kind === "SPONSORED" ? "none" : "not charged"}</Cell>
                 <Cell>
                   {a.status === "REVERSED" ? <Chip tone="bad">reversed</Chip> : a.deliveredAt ? <Chip tone="good">opened</Chip> : <Chip tone="review">not opened yet</Chip>}
+                  {/* Whether they were actually told is a different fact from whether they looked, and the
+                      one that decides whether silence is their fault or ours. */}
+                  {a.status !== "REVERSED" && (
+                    <p className="mt-1 text-[12px] text-grey">
+                      {a.notifiedAt ? `emailed ${fmtDate(a.notifiedAt)}` : "not emailed yet"}
+                      {a.remindedAt ? " · chased" : ""}
+                    </p>
+                  )}
                   {a.failedReason && <p className="mt-1 text-[12px] text-grey">{a.failedReason}</p>}
                 </Cell>
                 <Cell>

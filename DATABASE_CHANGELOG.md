@@ -12,6 +12,25 @@ Every schema change to PrimeStreet, newest first. One entry per applied change, 
 
 ---
 
+## 2026-10-27 — notification and escalation: three timestamps
+
+**Applied to `dev` only.** `scripts/ddl-lead-notify.ts`, self-verifying. All additive and nullable:
+
+| Column | Why |
+|---|---|
+`LeadAssignment.notifiedAt` | when the business was emailed. Null means it has not been told, which is the one state nobody should be left in after paying a credit — so the sweep looks for exactly that |
+`LeadAssignment.remindedAt` | one chase per assignment, ever |
+`JobRequest.customerNotifiedAt` | when we told the customer we had found nobody. Once, honestly |
+`LeadAssignment_notifiedAt_idx` | the index for the one query the chaser runs every hour |
+
+**Why columns rather than searching the outbox.** "Has this already been sent?" decides whether a business
+gets chased twice or a customer is told twice that nobody can help them. That belongs in a column, not in a
+`LIKE` against past email subjects.
+
+**To apply when authorised:** after `leads:ddl` and `matching:ddl`, run `npm run notify:ddl -- --schema=public`.
+
+---
+
 ## 2026-10-27 — matching: `LeadAssignment`, `MatchDecision`, and the two-business limit
 
 **Applied to `dev` only.** `scripts/ddl-matching.ts`, self-verifying: tables, the new column, RLS, five named constraints, and **both partial unique indexes checked by their predicates** rather than merely by name.

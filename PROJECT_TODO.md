@@ -144,10 +144,19 @@ A category is an editorial decision about what the directory covers and it chang
 - [x] Tests: 41 unit checks (`test-coverage.ts`) and 23 browser checks (`e2e-coverage.mjs`), including that one owner cannot edit another's coverage
 - [ ] Owners still cannot change the **address or postcode** that located them at registration — still an email to us
 
-## Phase D remainder · NOT STARTED
+## Phase F — notifications and escalation · DONE in dev
 
-- [ ] Notifying the business that a job is waiting (Phase F). A business currently finds out by opening its dashboard
-- [ ] Escalation when nobody opens a job, and a second pass when supply appears
+- [x] The business is emailed the moment it has a job, with the customer's name and phone **in the email**
+- [x] A sweep sends anything that was assigned but never notified, so a failed send delays rather than loses
+- [x] A business with no email address at all is left visibly unnotified and the gap is audited — never marked as told
+- [x] One chase after 4 hours unopened, offering the way out rather than only nagging
+- [x] After 24 hours unopened: the job is taken back, **the credit is refunded**, it is reassigned, and both businesses are told
+- [x] The customer is told, once, after 6 hours with nobody assigned — and never told that in a run that just found them somebody
+- [x] Everything idempotent on a column, so a cron firing twice sends nothing twice
+- [x] Hourly from Supabase `pg_cron` + `pg_net`, documented with the SQL in `docs/leadgen/SCHEDULED_JOBS.md`
+- [x] Tests: 46 unit checks (`test-lead-notify.ts`, with time moved backwards rather than waited out) and 5 added browser checks
+- [ ] Apply to production: `npm run notify:ddl -- --schema=public`, and schedule the Supabase job
+- [ ] Retention deletion is still a policy, not a job: needs `pg_cron` and a decision on anonymising vs deleting
 
 ## Phase E — credits and payments · PARTLY DONE
 

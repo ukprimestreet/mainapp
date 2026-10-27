@@ -1345,10 +1345,13 @@ model JobRequest {
   idempotencyKey String @unique
 
   /// NEW | MATCHING | PARTIALLY_ASSIGNED | ASSIGNED | UNASSIGNED | ESCALATED | CLOSED | REJECTED
-  status              String  @default("NEW")
+  status              String    @default("NEW")
+  /// When we last told the CUSTOMER where their request stands. Silence is the worst answer we can give
+  /// somebody waiting on a tradesperson, so this exists to make sure we only break it once, honestly.
+  customerNotifiedAt  DateTime?
   /// How many businesses could have taken it when it arrived. Recorded at creation, because it is the
   /// honest measure of whether we had supply at the moment the customer asked.
-  providersAtCreation Int     @default(0)
+  providersAtCreation Int       @default(0)
   closedReason        String?
 
   createdAt DateTime @default(now())
@@ -1393,6 +1396,11 @@ model LeadAssignment {
   assignedById  String?
 
   deliveredAt  DateTime?
+  /// When the business was emailed that it had the job. Null means it has not been told yet, which is the
+  /// one state nobody should ever be left in after paying a credit.
+  notifiedAt   DateTime?
+  /// When it was chased for not opening it. One chase per assignment, ever.
+  remindedAt   DateTime?
   failedReason String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @default(now()) @updatedAt

@@ -197,7 +197,41 @@ registration.
 
 ---
 
-## 11. What needs legal review before launch
+## 11. Notification and escalation (Phase F, 27 October 2026)
+
+**What the business gets.** An email the moment it has a job, carrying the customer's name, phone number,
+area, urgency and description — **in the email, not behind a link**. The business has paid a credit for
+exactly those details, and a trade reading it on a phone between jobs should not have to sign in to find out
+who to ring. The email states that the details are for that job only, and that they must stop if the customer
+asks them to.
+
+**Worth being explicit about the trade-off**, since it is a privacy decision and not only a convenience one:
+email is not a secure channel and can be forwarded. Against that, a lead nobody acts on is the failure this
+whole phase exists to prevent, and the customer consented to their details going to the businesses we pass
+the job to (§5). If that balance is ever re-decided, this is the paragraph to change.
+
+**The clock, and what happens at each point:**
+
+| After | What happens |
+|---|---|
+immediately | the business is emailed |
+4 hours unopened | one chase, which offers the way out — "tell us and we will pass it on and put your credit back" — rather than only nagging |
+6 hours with nobody assigned | the **customer** is emailed once, honestly: we have not found anyone, do not hold out for us if it is urgent, nobody has your details |
+24 hours unopened | the job is taken back, **the credit is refunded**, the place is freed, matching runs again, and the new business is emailed |
+
+**Why the credit goes back on escalation**, even though the lead was genuinely delivered: charging for a job
+a business never looked at is defensible on paper and indefensible in a phone call, and keeping the pound does
+nothing for the customer, whose problem is that nobody has rung them.
+
+**Idempotence.** Each of these is recorded in a column on the row — `notifiedAt`, `remindedAt`,
+`customerNotifiedAt` — so a cron firing twice, or two crons at once, sends nothing twice. A business with no
+email address is left visibly unnotified and the gap is audited, rather than being marked as told.
+
+Scheduling, including the Supabase SQL: `SCHEDULED_JOBS.md`.
+
+---
+
+## 12. What needs legal review before launch
 
 1. The lawful basis for sharing contact details with providers.
 2. The privacy notice wording and its retention schedule.
