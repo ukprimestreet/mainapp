@@ -68,11 +68,18 @@ async function record(postcode: string, ipHash: string, results: number, free: b
 /** Have the caps been reached? Checked before spending, not after. */
 export async function lookupAllowance(ipHash: string) {
   const now = Date.now();
-  const [hour, day, site] = await Promise.all([
-    db.addressLookup.count({ where: { ipHash, free: false, createdAt: { gte: new Date(now - 3600_000) } } }),
-    db.addressLookup.count({ where: { ipHash, free: false, createdAt: { gte: new Date(now - 86400_000) } } }),
-    db.addressLookup.count({ where: { free: false, createdAt: { gte: new Date(now - 86400_000) } } }),
-  ]);
+  let hour = 0, day = 0, site = 0;
+  try {
+    [hour, day, site] = await Promise.all([
+      db.addressLookup.count({ where: { ipHash, free: false, createdAt: { gte: new Date(now - 3600_000) } } }),
+      db.addressLookup.count({ where: { ipHash, free: false, createdAt: { gte: new Date(now - 86400_000) } } }),
+      db.addressLookup.count({ where: { free: false, createdAt: { gte: new Date(now - 86400_000) } } }),
+    ]);
+  } catch {
+    // The accounting table is unavailable. If spend cannot be counted it is not spent: an uncapped paid API
+    // is a bill nobody authorised. The caller offers manual selection instead.
+    return { allowed: false as const, reason: "spend cannot be accounted for at the moment" };
+  }
   if (hour >= LOOKUP_CAPS.perIpPerHour) return { allowed: false as const, reason: `hourly limit (${LOOKUP_CAPS.perIpPerHour})` };
   if (day >= LOOKUP_CAPS.perIpPerDay) return { allowed: false as const, reason: `daily limit (${LOOKUP_CAPS.perIpPerDay})` };
   if (site >= LOOKUP_CAPS.siteWidePerDay) return { allowed: false as const, reason: `site-wide daily limit (${LOOKUP_CAPS.siteWidePerDay})` };

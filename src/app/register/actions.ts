@@ -65,9 +65,16 @@ export async function register(_: RegisterState, fd: FormData): Promise<Register
   }
 
   // Already listed? Then this is a claim, not a registration — the specific failure D5 warned about.
-  const existing = await checkExisting({
-    businessName: input.businessName, website: input.website, phone: input.phone, placeId: input.placeId,
-  });
+  // Wrapped because a schema that has not caught up must produce an honest message, not a 500 on a form
+  // somebody has just spent five minutes filling in.
+  let existing: Awaited<ReturnType<typeof checkExisting>> = null;
+  try {
+    existing = await checkExisting({
+      businessName: input.businessName, website: input.website, phone: input.phone, placeId: input.placeId,
+    });
+  } catch {
+    return { message: "We cannot take registrations at the moment — something on our side, not yours. Please try again shortly, or email us and a person will do it for you." };
+  }
   if (existing && s(fd, "confirmedNotDuplicate") !== "yes") {
     return {
       existing: {
@@ -78,7 +85,14 @@ export async function register(_: RegisterState, fd: FormData): Promise<Register
     };
   }
 
-  const { submission, token: verifyToken } = await submitRegistration(input, existing?.business.id ?? null);
+  let submission, verifyToken: string;
+  try {
+    const result = await submitRegistration(input, existing?.business.id ?? null);
+    submission = result.submission;
+    verifyToken = result.token;
+  } catch {
+    return { message: "We could not save your registration — something on our side, not yours. Please try again shortly, or email us and a person will do it for you." };
+  }
 
   await sendMail(
     submission.submitterEmail,

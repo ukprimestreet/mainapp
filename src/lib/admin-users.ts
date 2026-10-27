@@ -81,7 +81,14 @@ export type AdminIdentity = { id: string; email: string; name: string; role: Rol
 
 /** Is the individual-account system in use yet? While false, the shared-password login still works. */
 export async function hasAdminUsers(): Promise<boolean> {
-  return (await db.adminUser.count({ where: { active: true, passwordHash: { not: null } } })) > 0;
+  try {
+    return (await db.adminUser.count({ where: { active: true, passwordHash: { not: null } } })) > 0;
+  } catch {
+    // The migration boundary: code reaching for `AdminUser` before the schema has it must degrade to the
+    // pre-migration behaviour — the shared password — rather than returning 500 and locking everybody out
+    // of their own admin. Not hypothetical: it happened in production and /admin/login was down.
+    return false;
+  }
 }
 
 /**

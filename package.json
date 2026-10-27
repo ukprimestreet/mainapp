@@ -31,7 +31,8 @@
     "admin:ddl": "tsx scripts/ddl-admin-users.ts",
     "reg:ddl": "tsx scripts/ddl-registration.ts",
     "start:e2e": "MAIL_DOMAIN= MAIL_FROM= next start -p 3418",
-    "test:e2e:registration": "node scripts/e2e-registration.mjs"
+    "test:e2e:registration": "node scripts/e2e-registration.mjs",
+    "schema:check": "tsx scripts/check-schema.ts"
   },
   "keywords": [],
   "author": "",

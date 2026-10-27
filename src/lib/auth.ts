@@ -111,10 +111,15 @@ export async function adminSession(): Promise<AdminSession | null> {
   if (!p) return null;
 
   if (p.a) {
-    const row = await db.adminUser.findUnique({ where: { id: p.a } });
-    if (!row || !row.active) return null;
-    if (row.sessionVersion !== p.v) return null; // revoked, or the password was changed
-    return { kind: "USER", admin: { id: row.id, email: row.email, name: row.name, role: row.role as Role, active: row.active } };
+    // `.catch(() => null)` is the migration boundary, not laziness: if the table is not there yet this
+    // cookie cannot be honoured, but the request must not 500. It falls through to the legacy check, which
+    // is the correct pre-migration behaviour.
+    const row = await db.adminUser.findUnique({ where: { id: p.a } }).catch(() => null);
+    if (row) {
+      if (!row.active) return null;
+      if (row.sessionVersion !== p.v) return null; // revoked, or the password was changed
+      return { kind: "USER", admin: { id: row.id, email: row.email, name: row.name, role: row.role as Role, active: row.active } };
+    }
   }
 
   // A legacy cookie is only honoured while the legacy route is still open; otherwise an old cookie would
