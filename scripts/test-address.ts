@@ -86,9 +86,19 @@ async function main() {
   t("\"end of tenancy cleaning\" resolves to the cleaning category", painter?.category.slug === "cleaning");
   const manVan = await db.categoryAlias.findFirst({ where: { normalised: "man and van" }, include: { category: true } });
   t("\"man and van\" resolves to removals", manVan?.category.slug === "removals");
-  const dupes = await db.$queryRawUnsafe<{ n: number }[]>(
-    `SELECT count(*)::int AS n FROM (SELECT normalised FROM "dev"."CategoryAlias" GROUP BY normalised HAVING count(DISTINCT "categoryId") > 1) x`);
-  t("no search term points at two categories", dupes[0].n === 0, `${dupes[0].n} ambiguous terms`);
+  /**
+   * Some terms genuinely belong to two trades: a removals firm and a rubbish-removal firm both do house
+   * clearance, and a customer typing it could mean either. The rule is not "no ambiguity" — it is that
+   * every ambiguous term is DECLARED, so matching knows to ask instead of guessing, and so a new alias
+   * cannot quietly introduce ambiguity nobody noticed.
+   */
+  const KNOWN_AMBIGUOUS = new Set(["house clearance"]);
+  const ambiguous = (await db.$queryRawUnsafe<{ normalised: string }[]>(
+    `SELECT normalised FROM "dev"."CategoryAlias" GROUP BY normalised HAVING count(DISTINCT "categoryId") > 1 ORDER BY 1`)).map((r) => r.normalised);
+  const undeclared = ambiguous.filter((a) => !KNOWN_AMBIGUOUS.has(a));
+  t("no UNDECLARED ambiguous search term exists", undeclared.length === 0, `undeclared: ${undeclared.join(", ")}`);
+  t("…and the declared ones really are ambiguous, so the list is not stale",
+    [...KNOWN_AMBIGUOUS].every((k) => ambiguous.includes(k)), `stale entries: ${[...KNOWN_AMBIGUOUS].filter((k) => !ambiguous.includes(k)).join(", ")}`);
   t("every alias records where it came from", (await db.categoryAlias.count({ where: { source: "" } })) === 0);
 
   // ---------------- the new tables are usable and constrained

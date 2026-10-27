@@ -12,6 +12,30 @@ Every schema change to PrimeStreet, newest first. One entry per applied change, 
 
 ---
 
+## 2026-10-27 — production brought in line, after an outage caused by not doing it sooner
+
+**What happened.** `/admin/login` returned **500 to everybody in production**. Code that reads `AdminUser` had been deployed while that table existed only in `dev`. House rule 1 — schema before code — was already written in this file. Writing it down was not enough.
+
+**Applied to `public`**, with the owner's explicit permission: `ddl-admin-users.ts`, `ddl-service-areas.ts`, `ddl-registration.ts`. Each self-verified: tables, columns, RLS and foreign keys all confirmed before reporting success.
+
+| Now in production | |
+|---|---|
+`AdminUser`, `AdminLoginAttempt` | + `AuditLog.actorId` / `actorEmail` / `actorKind` |
+`BusinessServiceArea`, `BusinessCategory`, `CategoryAlias`, `AddressLookup` | |
+`CreditAccount`, `CreditTransaction` | + 12 registration columns on `BusinessSubmission` |
+
+**Two things came out of it that are worth more than the fix.**
+
+**1. Migration-boundary guards.** Code reaching for a table the schema does not have yet now degrades to the *pre-migration* behaviour rather than failing: `hasAdminUsers()` returns false so the shared password still works, `adminSession()` falls through to the legacy check, `lookupAllowance()` **refuses** the paid lookup when it cannot count spend, and the registration action returns an honest message instead of a 500. Each was verified by running it against the schema that really was missing the tables.
+
+**2. `npm run schema:check`.** Parses `schema.prisma`, compares it to a live database, and reports missing tables, missing columns and any table without row-level security. Non-zero exit, so it can gate a deploy. It is the thing that turns house rule 1 from a note into a check.
+
+**Still outstanding in production:** `Expense`, `Order.vatPence`/`vatRateBp`/`source`, `SalesEnquiry.assignedToId`/`followUpAt`/`closedAt`. Those belong to the parallel finance and sales work. I created that drift by committing their schema models in the D3 batch without their DDL; their code is not deployed, so nothing breaks, and `ddl-finance.ts --schema=public` plus `ddl-sales-crm.ts --schema=public` closes it.
+
+**Production data still missing:** `Place` has **0 rows**, so `/register` renders but offers no areas and nobody can complete it. `import-places.ts --schema=public` was refused by the permission layer twice.
+
+---
+
 ## Current state
 
 **54 models.** Both `public` (production) and `dev` (development and tests) are in step.

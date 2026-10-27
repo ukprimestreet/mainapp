@@ -92,8 +92,8 @@ carpentry, pest-control, rubbish-removal, fencing, driveways, flooring.
 A category is an editorial decision about what the directory covers and it changes live URLs, so these were
 **not** created automatically. They are needed before any trade lead can be matched.
 
-- [ ] Decide and add the trade categories (owner decision, affects live URLs)
-- [ ] Re-run `npm run geo:aliases` once they exist
+- [x] **18 trade categories added** from the owner's own master plan, with 205 aliases. No intro text written, so each is usable for matching but not indexable until real copy exists
+- [x] Aliases seeded: 226 distinct search terms across 30 categories. "plumber" reaches Plumbing, "painter" reaches Painting and decorating
 
 ---
 

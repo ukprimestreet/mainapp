@@ -734,4 +734,61 @@ So the suite actually proves the **degraded** path: real addresses, real nearby 
 
 ---
 
+## Batch S1 — turning over the remaining stones
+
+**Date:** 27 October 2026
+**Authorised by:** owner — "dont leave any stone unturned", then "permision grant" for the production DDL
+**Type:** production remediation, a systemic check, and the trade taxonomy.
+
+### The first stone was an outage I had caused
+
+`/admin/login` was returning **500 to everybody in production**. I had deployed code reading `AdminUser` while that table existed only in `dev` — breaking house rule 1, which I had written in `DATABASE_CHANGELOG.md` after the last time this happened.
+
+Recovered, and production is now in line: all three of my DDL scripts applied to `public` with permission, each self-verifying tables, columns, RLS and foreign keys before reporting success. `schema:check` confirms nothing of mine is missing.
+
+### What makes it not happen again
+
+**`npm run schema:check -- --all`** parses `schema.prisma`, compares it against a live database, and reports missing tables, missing columns and any table without RLS. Non-zero exit, so it can gate a deploy. House rule 1 is now a check rather than a note — which is the difference that mattered, because the note existed and I broke it anyway.
+
+**Migration-boundary guards**, verified against the schema that genuinely lacked the tables:
+
+| Guard | Degrades to |
+|---|---|
+`hasAdminUsers()` | false, so the shared password still works and nobody is locked out |
+`adminSession()` | the legacy check, rather than throwing |
+`lookupAllowance()` | **refusing** the paid lookup. If spend cannot be counted it is not spent |
+registration action | an honest message, not a 500 on a form somebody just filled in |
+
+### The 18 trade categories
+
+The blocker I had named four times. Added from the owner's **own specification** — the 50 categories in the master plan — not from my view of what the directory should cover: plumbing, electrical, heating and boilers, roofing, locksmiths, building, painting and decorating, plastering, carpentry, tiling, bathroom fitting, kitchen fitting, gardening, landscaping, driveways and patios, fencing, handyman, rubbish removal.
+
+**205 aliases**, so 226 distinct search terms now map across 30 categories. "plumber" reaches Plumbing, "painter" reaches Painting and decorating, "blocked drain" reaches Plumbing, "flat pack assembly" reaches Handyman.
+
+**No intro text was written for any of them.** The SEO gate refuses to index a category page without real editorial copy, so all 18 are usable for matching and browsing but **not indexable**. Writing 18 paragraphs of filler to make them rank is exactly the thin-content behaviour the brief forbids, so somebody has to write something true first.
+
+### A test of mine that was wrong in principle
+
+`"house clearance"` legitimately maps to **both** `removals` and `rubbish-removal` — both trades do it, and a customer typing it could mean either. My test asserted *no* term maps to two categories, which would have forced a false choice.
+
+The rule is not "no ambiguity". It is that every ambiguous term is **declared**, so matching knows to ask rather than guess, and so a new alias cannot quietly introduce ambiguity nobody noticed. The test now asserts exactly that, in both directions: no undeclared ambiguity, and no stale declarations.
+
+### Verification
+
+789 unit checks across 20 suites · 45 e2e checks, re-run and still green · typecheck and build clean · production healthy on all seven key paths.
+
+### Blocked, and needing you
+
+**`import-places.ts --schema=public` was refused twice** by the permission layer, with two different reasons. I retried once and then stopped rather than keep hammering at it.
+
+Until it runs, **production `Place` has 0 rows**, which means `/register` renders but offers no areas and **nobody can actually register**. The page is live and unusable. That is the single thing standing between the registration flow and working in production.
+
+Also outstanding: `ddl-finance.ts` and `ddl-sales-crm.ts` against `public`, to close the drift I created by committing the parallel work's schema models without their DDL. Harmless while their code is uncommitted.
+
+### Still open, unchanged
+
+Owners cannot edit service areas or categories after registration · provider supply · the parallel work is still 25 uncommitted files.
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**
