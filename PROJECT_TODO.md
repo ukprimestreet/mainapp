@@ -119,16 +119,23 @@ A category is an editorial decision about what the directory covers and it chang
 - [ ] Lead detail: every `MatchDecision` with its reason, notification outcomes, credit movements — **waits on Phase D**, which is where those records start existing
 - [x] Tests: 53 unit checks (`test-leads.ts`) and 38 browser checks (`e2e-leads.mjs`)
 
-## Phase D — matching and assignment · NOT STARTED
+## Phase D — matching and assignment · DONE in dev
 
-- [ ] `matchJobRequest()` — idempotent, re-runnable, never double-charging
-- [ ] Four-stage expansion: exact place → parent → wider administrative area → nearby opt-in only
-- [ ] Every inclusion and exclusion written to `MatchDecision` with a reason
-- [ ] Two-paying-business limit enforced **at the database level** (partial unique index on `paidSlot`)
-- [ ] Round-robin allocation among equally eligible businesses
-- [ ] Manual admin assignment, `PAID` vs `SPONSORED`, reason required, limit still enforced
-- [ ] Never mark a lead assigned when assignment failed
-- [ ] Tests: spec §18 items 8–15, 18–19 — **including concurrency**
+- [x] `matchJobRequest()` — idempotent, re-runnable, never double-charging
+- [x] Four-stage expansion: exact place → parent → wider administrative area → nearby **opt-in only** (`Business.acceptsNearby`, default false)
+- [x] Every inclusion and exclusion written to `MatchDecision` with a reason — including businesses at stages never reached, who are the ones most likely to ask
+- [x] Two-paying-business limit enforced **at the database level**: partial unique index on (`jobRequestId`, `paidSlot`) plus a CHECK that a slot can only ever be 1 or 2
+- [x] Round-robin among equally eligible businesses: fewest assignments, then longest wait, then id so it is deterministic
+- [x] Manual admin assignment, `PAID` vs `SPONSORED`, reason required, limit still enforced — sponsored takes no place and charges nothing
+- [x] Never mark a lead assigned when assignment failed: the place is claimed first, the credit second, and a failed charge releases the place rather than leaving a row that looks paid
+- [x] Reversal refunds the credit, frees the place, and leaves the row visible to the business
+- [x] Tests: 64 unit checks including **five simultaneous runs on one job** → two assignments, two charges · 35 browser checks across customer, administrator and business
+- [ ] Apply to production: `npm run matching:ddl -- --schema=public` — **waiting on authorisation**
+
+## Phase D remainder · NOT STARTED
+
+- [ ] Notifying the business that a job is waiting (Phase F). A business currently finds out by opening its dashboard
+- [ ] Escalation when nobody opens a job, and a second pass when supply appears
 
 ## Phase E — credits and payments · PARTLY DONE
 

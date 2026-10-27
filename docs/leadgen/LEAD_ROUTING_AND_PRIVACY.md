@@ -141,7 +141,35 @@ No duplicate leads from one submission | content-derived `idempotencyKey` with a
 
 ---
 
-## 9. What needs legal review before launch
+## 9. Matching, as built (Phase D, 27 October 2026)
+
+**The order of operations, which is the whole design:**
+
+1. Count who covers the trade in the area, and record it against the request.
+2. Walk four stages in order — exact place, surrounding area, wider council area, nearby **opt-in only** — stopping once two paid places are filled.
+3. Within a stage, take businesses in round-robin order: fewest assignments, then longest wait, then id.
+4. For each: check the balance, **claim the place**, then **spend the credit**. If the charge fails, the place is released and the business is told why.
+5. Record every inclusion and exclusion, including for stages never reached.
+6. Set the request's status from how many places are filled, never from how many were attempted.
+
+**Why claim-then-charge and not charge-then-claim.** If the credit went first and the insert then lost a race, we would have taken money for nothing and would be relying on a reversal to put it back. Claiming first means the only failure left is a charge against a claimed place, and that releases the place. A business can be left without the job; it cannot be left without the credit.
+
+| Promise | How it is enforced |
+|---|---|
+At most two paying businesses | a **partial unique index** on (jobRequestId, paidSlot), plus a CHECK limiting a slot to 1 or 2. Not the matcher's control flow |
+Never charged twice for one job | one live assignment per business per job, again a partial unique index; re-running records "they already have this job" |
+Never charged for a job they did not get | the credit is spent after the place is claimed; a failed charge deletes the assignment |
+A business can say why it missed out | `MatchDecision`, one row per business per run, with words a business could be shown |
+Nobody gets work they did not ask for | stage four requires `acceptsNearby`, which defaults to false |
+A reversal refunds | `reverseAssignment()` frees the place, writes a REVERSAL ledger row, and leaves the assignment visible as reversed |
+
+**What a business sees.** The job appears in its own dashboard the moment the assignment exists, with the customer's name, phone and email in full — that is what the credit bought, and putting it behind another click would be charging for something and then making it awkward to use. Opening that page is recorded as `deliveredAt`, so "they were sent it and never looked" is a fact rather than a guess when somebody complains.
+
+**Still not built:** notifying the business that a job is waiting (Phase F — today it finds out by opening its dashboard), and escalation when nobody acts.
+
+---
+
+## 10. What needs legal review before launch
 
 1. The lawful basis for sharing contact details with providers.
 2. The privacy notice wording and its retention schedule.

@@ -859,4 +859,75 @@ One honest limit: the a11y sweep audits `/get-quotes` in its initial state. The 
 
 ---
 
+## Batch D1 — Phase D: matching, assignment and the two-business limit
+
+**Date:** 27 October 2026
+**Authorised by:** owner — "continue"
+**Pages added to the public site:** 0. One admin page (`/admin/leads/[id]`) and one owner page rewritten (`/owner/business/[id]/leads`). Within the three-page limit.
+
+### What this batch is
+
+The piece that turns everything built so far into revenue: deciding who gets a job, charging for it, and being able to answer for both.
+
+| Added | What it does |
+|---|---|
+`LeadAssignment` (dev only) | one job given to one business, with the credit state against it |
+`MatchDecision` (dev only) | every inclusion and exclusion, with a reason and a run id |
+`Business.acceptsNearby` | the opt-in stage four depends on. Default **false** |
+`src/lib/matching.ts` | the matcher, manual assignment, reversal, and a reconciliation check |
+`/admin/leads/[id]` | one lead, every decision, and the controls |
+`/owner/business/[id]/leads` | what the business actually paid for |
+
+### The limit is in the database, not in my control flow
+
+`LeadAssignment_paid_slot_key` is a **partial unique index** on (`jobRequestId`, `paidSlot`) where the slot is not null, with a CHECK constraint limiting a slot to 1 or 2. Two concurrent matching runs cannot both take place 2: one of them fails the insert.
+
+**Five simultaneous runs on one job produce two assignments and two charged credits.** Not three assignments. Not two assignments and three charges. That test is in `test-matching.ts`, and it also asserts the database refuses a third place when poked directly — because a limit that only exists in the matcher is a limit that ends the first time anything else writes to the table.
+
+### Claim the place, then charge — in that order
+
+If the credit went first and the insert then lost a race, we would have taken money for nothing and would be relying on a reversal to put it back. Claiming first means the only remaining failure is a charge against a claimed place, and that **releases the place**. A business can be left without the job; it cannot be left without the credit. `creditCharged` is set only after the ledger agrees, and `reconcileAssignments()` exists to find the one case this cannot prevent — a crash between the charge and the flag.
+
+### Every business gets an answer
+
+The first version stopped recording once both places were full, which meant the businesses **most** likely to ask "why did I not get that job?" — the ones who were next in line — had no row at all. My own test caught it. Later stages are now walked even when the places are gone, so each candidate has a row naming it and saying what happened.
+
+### A correction I had to make to my own DDL
+
+I first created the duplicate guard as a *full* unique index on (jobRequestId, businessId). That made a reversal a **permanent ban**: a business we took off a job could never be given it again, which is precisely the case the goodwill gesture exists for. It is now partial — `WHERE status <> 'REVERSED'` — so the reversed row stays as history the business can see while the pair becomes assignable again. The script drops the old index by name and **fails verification if it is still there**.
+
+Found by the browser suite hanging, not by reasoning about it. The symptom was a form the browser refused to submit, because the business I was trying to sponsor had legitimately been re-assigned by the re-run.
+
+### Verification
+
+- **64 unit checks** (`test-matching.ts`): the limit under concurrency, the four stages, the nearby opt-in in both directions, round-robin fairness, no-credit exclusion, manual paid and sponsored assignment, reversal and refund, reassignment after reversal, closed requests left alone, and the ledger reconciling after every one of them. The fixtures move balances **through the ledger** rather than writing the cached number, because a forged balance makes `reconcile()` pass for the wrong reason.
+- **35 browser checks** (`e2e-matching.mjs`) from all three sides: the customer is told who has their job by name; the administrator sees both places, both charges and every decision including why the third business missed out; the business opens its dashboard and can read the customer's phone number, and that opening is recorded as seen.
+- Full unit suite (26 files) green · full a11y slice clean at 390px and 1440px including the new lead page · `e2e-leads` still green · typecheck, build and `schema:check` clean on dev.
+
+Two of the e2e failures I fixed were **races in my own test**, not in the code: waiting for `msg=` that was already in the URL, and starting the four-second anti-abuse timer before the page had loaded. Worth naming, because both would have read as product bugs.
+
+### Production
+
+**Nothing in this batch is in production.** `JobRequest`, `LeadAssignment` and `MatchDecision` are all dev-only. To apply, in this order:
+
+```
+npm run leads:ddl    -- --schema=public
+npm run matching:ddl -- --schema=public
+npm run schema:check -- --all
+```
+
+**And production still has 0 `Place` rows**, so `/register` and `/get-quotes` both render and neither can be completed. `import-places.ts --schema=public` has been refused four times by the permission layer and needs you.
+
+### What I deliberately did not do
+
+- **No notification to the business.** A business finds out it has a job by opening its dashboard. Emailing it is Phase F, and inventing that now would mean an email template nobody has decided the wording of.
+- **No escalation** when nobody opens a job.
+- **Owners still cannot change their service areas, categories, or the new nearby opt-in.** Everything matching depends on is currently set once, at registration. That is the most valuable thing left on the supply side.
+
+### What I would do next
+
+**The owner-side editing gap**, before Phase F. Matching now routes on service areas, categories and `acceptsNearby` — and a business cannot change any of them without emailing us. Every day that stays true, the matcher routes on data that is quietly going stale.
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

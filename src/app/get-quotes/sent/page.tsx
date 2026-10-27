@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container, PageHeader } from "@/components/ui";
 import { jobByReference, MAX_RECIPIENTS } from "@/lib/leads";
+import { assignmentsFor } from "@/lib/matching";
 
 export const dynamic = "force-dynamic";
 /** Nothing here should ever be indexed: it is one person's enquiry. */
@@ -17,6 +18,9 @@ export const metadata: Metadata = { title: "Your request has been sent", robots:
 export default async function Sent({ searchParams }: { searchParams: Promise<{ ref?: string }> }) {
   const { ref } = await searchParams;
   const job = ref ? await jobByReference(ref) : null;
+  // What actually happened, rather than what usually happens. The names of the businesses are shown because
+  // they are about to ring: a customer who knows who is calling is a customer who answers.
+  const assignments = job ? (await assignmentsFor(job.id)).filter((a) => a.status !== "REVERSED") : [];
 
   return (
     <>
@@ -32,7 +36,21 @@ export default async function Sent({ searchParams }: { searchParams: Promise<{ r
               quote it if you email us about this job.
             </p>
 
-            {job.providersAtCreation === 0 ? (
+            {assignments.length > 0 ? (
+              <>
+                <p className="mt-5 text-[15px]">
+                  {assignments.length === 1 ? "It has gone to" : "It has gone to"}{" "}
+                  <strong>{assignments.map((a) => a.business.name).join(" and ")}</strong>
+                  {assignments.length === 1 ? ", who covers" : ", who cover"} {job.place.label}. Expect them to
+                  contact you directly, usually within a working day.
+                </p>
+                <p className="mt-2 text-[15px]">
+                  {assignments.length < MAX_RECIPIENTS
+                    ? `Only ${assignments.length === 1 ? "one business" : `${assignments.length} businesses`} so far — we would rather send you one that turns up than two that do not.`
+                    : `That is the maximum. Nobody else will be given your details.`}
+                </p>
+              </>
+            ) : job.providersAtCreation === 0 ? (
               <p className="mt-5 text-[15px]">
                 Being straight with you: we do not yet have anyone listed for this kind of work in your area.
                 We have your request and a person will look at it, but we cannot promise a quote. If you need
@@ -40,8 +58,9 @@ export default async function Sent({ searchParams }: { searchParams: Promise<{ r
               </p>
             ) : (
               <p className="mt-5 text-[15px]">
-                We will pass it to no more than {MAX_RECIPIENTS} {job.providersAtCreation === 1 ? "business" : "businesses"} who
-                cover {job.place.label}. Expect to hear from them directly, usually within a working day.
+                We have your request and a person is looking at it now. We will pass it to no more
+                than {MAX_RECIPIENTS} businesses who cover {job.place.label} — and if we cannot, we will
+                tell you rather than leave you waiting.
               </p>
             )}
 

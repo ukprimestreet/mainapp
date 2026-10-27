@@ -143,6 +143,12 @@ model Business {
   serviceAreas     BusinessServiceArea[]
   categories       BusinessCategory[]
   creditAccount    CreditAccount?
+  /// Will they take a job just outside the areas they named? Default **false**: stage four of matching
+  /// reaches nobody until a business has said yes, because sending work somebody never asked for is how a
+  /// directory earns a reputation for wasting people's time.
+  acceptsNearby    Boolean                @default(false)
+  assignments      LeadAssignment[]
+  matchDecisions   MatchDecision[]
 
   @@index([locationId])
   @@index([categoryId])
@@ -1348,7 +1354,82 @@ model JobRequest {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
+  assignments LeadAssignment[]
+  decisions   MatchDecision[]
+
   @@index([status, createdAt])
   @@index([categoryId, placeId])
   @@index([createdAt])
+}
+
+/// A job request given to one business.
+///
+/// The two-paying-business limit lives in the database, not in this file's good intentions: `paidSlot` is
+/// 1 or 2 for a PAID assignment and null for a SPONSORED one, with a **partial unique index** on
+/// (jobRequestId, paidSlot) where paidSlot is not null. Two concurrent matching runs cannot both take slot
+/// 2 — one of them fails the insert, and failing an insert is a far better outcome than a customer being
+/// rung by five trades.
+model LeadAssignment {
+  id           String     @id @default(cuid())
+  jobRequestId String
+  jobRequest   JobRequest @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
+  businessId   String
+  business     Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  /// PAID = a credit was spent. SPONSORED = given free by an administrator, and never charged.
+  kind     String @default("PAID")
+  /// 1 or 2 for PAID; null for SPONSORED. Constrained to those values in the database.
+  paidSlot Int?
+
+  /// PENDING | DELIVERED | FAILED | REVERSED
+  status        String  @default("PENDING")
+  /// True only once a credit has actually been taken. Never set optimistically.
+  creditCharged Boolean @default(false)
+  /// Why this business got this job, in words a person could be shown.
+  reason        String
+  /// Which matching stage produced it: EXACT | PARENT | ADMIN_AREA | NEARBY | MANUAL
+  stage         String  @default("EXACT")
+  /// The administrator who assigned it by hand. Null means the matcher did it.
+  assignedById  String?
+
+  deliveredAt  DateTime?
+  failedReason String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  /// One business cannot hold the same job twice — but a business whose assignment was **reversed** can be
+  /// given it again, because circumstances change and the reversed row is history, not a live claim. That is
+  /// a partial unique index (`WHERE status <> 'REVERSED'`), which Prisma cannot express, so it is created in
+  /// `scripts/ddl-matching.ts` and only indexed here.
+  @@index([jobRequestId, businessId])
+  @@index([businessId, createdAt])
+  @@index([jobRequestId])
+  @@index([status])
+}
+
+/// Every inclusion and every exclusion, with its reason.
+///
+/// This is what makes matching answerable. When a business asks "why did I not get that job?", or a customer
+/// asks "why did nobody call?", the answer is a row rather than a reconstruction.
+model MatchDecision {
+  id           String     @id @default(cuid())
+  jobRequestId String
+  jobRequest   JobRequest @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
+  /// Null for a decision about the run itself rather than about one business.
+  businessId   String?
+  business     Business?  @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  /// EXACT | PARENT | ADMIN_AREA | NEARBY | MANUAL | RUN
+  stage   String
+  /// CONSIDERED | ASSIGNED | EXCLUDED | SKIPPED
+  outcome String
+  reason  String
+  /// Which run produced it, so a re-run can be told apart from the first attempt.
+  runId   String
+
+  createdAt DateTime @default(now())
+
+  @@index([jobRequestId, createdAt])
+  @@index([businessId, createdAt])
+  @@index([runId])
 }

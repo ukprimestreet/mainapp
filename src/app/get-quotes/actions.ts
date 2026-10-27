@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { checkFormToken, ipHash, isDisposableEmail } from "@/lib/antispam";
 import { db } from "@/lib/db";
 import { createJobRequest, isUrgency, validateJob, type JobInput } from "@/lib/leads";
+import { matchJobRequest } from "@/lib/matching";
 
 export type QuoteState = {
   errors?: Record<string, string>;
@@ -77,15 +78,27 @@ export async function requestQuotes(_: QuoteState, fd: FormData): Promise<QuoteS
     return { values, message: "You have sent several requests today already. Email us instead and a person will pick it up." };
   }
 
-  let reference: string;
+  let reference: string, jobId: string, wasCreated = false;
   try {
     const result = await createJobRequest(input, await ipHash());
     reference = result.request.reference;
+    jobId = result.request.id;
+    wasCreated = result.created;
   } catch {
     return { values, message: "We could not record that request — something on our side, not yours. Please try again shortly, or email us and a person will take it down for you." };
   }
 
-  // No email to the customer yet: the only honest message is "a business will contact you", and until
-  // Phase D assigns one we cannot say which. The confirmation page says exactly what we know.
+  // Matched here rather than on a timer, so the confirmation page can tell the customer what actually
+  // happened. Wrapped because a matching failure must never lose a request that is already recorded: the
+  // job sits in /admin/leads and matching can be re-run, which is a far better outcome than an error page
+  // for somebody who has just filled in a form.
+  if (wasCreated) {
+    try {
+      await matchJobRequest(jobId);
+    } catch {
+      // Deliberately silent to the customer. The request exists; an administrator sees it either way.
+    }
+  }
+
   redirect(`/get-quotes/sent?ref=${encodeURIComponent(reference)}`);
 }

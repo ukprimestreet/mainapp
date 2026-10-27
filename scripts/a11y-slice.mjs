@@ -42,9 +42,24 @@ const writer = await db.author.upsert({
   update: { passwordHash: hashPassword(WRITER_PW), acceptedTermsAt: new Date(), active: true },
 });
 
+// A job request, so the lead detail page is audited with real content rather than a 404.
+const place = await db.place.findFirst({ where: { kind: { in: ["TOWN", "SUBURB", "LOCALITY"] } } });
+const slicedLead = place
+  ? (await db.jobRequest.findFirst({ where: { idempotencyKey: "a11y-slice-fixture" } })) ??
+    (await db.jobRequest.create({
+      data: {
+        reference: "PS-AUDIT", name: "Slice Customer", email: "customer@slice.example", phone: "020 7946 0020",
+        categoryId: cat.id, placeId: place.id, postcode: "E8 3AA",
+        description: "A fixture job request, created for the accessibility audit and left in place.",
+        urgency: "FLEXIBLE", consentVersion: "audit", idempotencyKey: "a11y-slice-fixture",
+      },
+    }))
+  : null;
+
 const paths = [
   "/register", "/register/sent", "/register/verify/not-a-real-token",
   "/get-quotes", "/get-quotes/sent", "/admin/leads",
+  ...(slicedLead ? [`/admin/leads/${slicedLead.id}`] : []),
   "/admin/commissions", "/admin/payments", "/admin/automations", "/admin/money", "/admin/registrations", "/admin/admins", "/admin/account",
   "/admin/corrections", "/admin/audit", "/admin/moderation", "/admin/settings",
   "/write/commissions", "/write/payments", "/write/payments/details", "/write/performance", "/write/notifications", "/write/style",

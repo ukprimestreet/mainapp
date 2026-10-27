@@ -132,6 +132,7 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
                 key={r.id}
                 title={`${r.category.name} — ${r.place.label}`}
                 description={`${r.reference} · received ${fmtDate(r.createdAt)}`}
+                action={<Link href={`/admin/leads/${r.id}`} className={btn("ghost")}>Open</Link>}
               >
                 <div className="flex flex-wrap gap-2">
                   <Chip tone={status.tone}>{status.label}</Chip>
@@ -158,6 +159,7 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
                   {maySeeContact ? (
                     <form action={revealCustomer}>
                       <input type="hidden" name="id" value={r.id} />
+                      <input type="hidden" name="to" value="/admin/leads" />
                       <button className={btn("ghost")}>Show customer details</button>
                     </form>
                   ) : (

@@ -12,6 +12,29 @@ Every schema change to PrimeStreet, newest first. One entry per applied change, 
 
 ---
 
+## 2026-10-27 — matching: `LeadAssignment`, `MatchDecision`, and the two-business limit
+
+**Applied to `dev` only.** `scripts/ddl-matching.ts`, self-verifying: tables, the new column, RLS, five named constraints, and **both partial unique indexes checked by their predicates** rather than merely by name.
+
+| Object | Why it is shaped this way |
+|---|---|
+`LeadAssignment` | one job given to one business, with the credit state against it |
+`LeadAssignment_paid_slot_key` | **the two-paying-business limit.** A partial unique index on (`jobRequestId`, `paidSlot`) where the slot is not null. Two concurrent matching runs cannot both take place 2 — one fails the insert, which is a far better outcome than a customer rung by five trades. Proven by five simultaneous runs in `test-matching.ts` |
+`LeadAssignment_paidSlot_check` | a CHECK that a slot is 1, 2 or null, so a third paid place cannot exist even by hand |
+`LeadAssignment_live_business_key` | one **live** assignment per business per job: partial, `WHERE status <> 'REVERSED'`. A reversed row is history, not a ban — a business taken off a job can be given it again |
+`MatchDecision` | every inclusion and exclusion, with a reason and a `runId`, so a re-run reads as a second attempt rather than being interleaved with the first |
+`Business.acceptsNearby` | the opt-in that stage four depends on. Default **false**: nobody is sent work outside the areas they named until they say yes |
+
+**Prisma cannot express a partial unique index**, so `LeadAssignment` carries a plain `@@index([jobRequestId, businessId])` in `schema.prisma` and a comment pointing at the DDL. `schema:check` compares tables and columns, not indexes, so the predicates are verified by the DDL script itself and nowhere else — worth knowing before anybody trusts `db push` here.
+
+**One correction to an earlier version of this script:** it first created `LeadAssignment_jobRequestId_businessId_key` as a *full* unique index, which made a reversal a permanent ban. The script now drops that index by name before creating the partial one, and **fails verification if the old one is still present**. Found by the browser suite, not by reasoning.
+
+**Production (`public`) has NOT been touched.** Neither `JobRequest` nor these tables exist there.
+
+**To apply when authorised:** `npm run leads:ddl -- --schema=public` then `npm run matching:ddl -- --schema=public`, in that order (the foreign keys need `JobRequest` first), then `npm run schema:check -- --all`.
+
+---
+
 ## 2026-10-27 — `JobRequest`: the customer's side of the lead system
 
 **Applied to `dev` only.** `scripts/ddl-job-requests.ts` — explicit, schema-qualified, additive and self-verifying. It reported `table: 1/1 · indexes: 6 (2/2 unique) · RLS: true · foreign keys: 2/2` before exiting.
