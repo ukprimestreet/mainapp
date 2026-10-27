@@ -683,4 +683,55 @@ Worth recording that the a11y audit caught both in code that had already been co
 
 ---
 
+## Batch B6 — the whole commercial loop, proven in a browser
+
+**Date:** 27 October 2026
+**Authorised by:** owner — "continue"
+**Type:** end-to-end test. **No schema change, no new features, no landing pages.** It found three real bugs, which is what it was for.
+
+### What it does
+
+`scripts/e2e-registration.mjs` — **45 checks** driving a real browser through: validation refusal, the postcode lookup, picking an address, confirming a local area, choosing services and areas, submission, the verification email, the verification link (twice), admin sign-in, the admin queue, approval, the listing, the owner, the credits, the audit trail, and finally the duplicate interruption.
+
+`npm run start:e2e` · `npm run test:e2e:registration`, and it is in `npm run test:e2e`.
+
+### Two rules the suite obeys, which shaped it
+
+**It cannot send a real email.** Every send writes to `EmailOutbox` first and only then calls Resend, so the server runs with `MAIL_DOMAIN` unset: the suite reads exactly what *would* have been sent, and a check asserts `sentAt` is null. A test that emails strangers is not a test, and dev had live mail configured.
+
+**It cannot spend money.** Addresses come from Ideal Postcodes' free test postcode, and a check asserts the lookup was recorded as `free`.
+
+### Three bugs it found
+
+**1. Service area ids were submitted twice, and validation rejected them.** The visible checkboxes carried `name="serviceAreaIds"` and the hidden mirror re-sent the same ids, so `[x, x]` arrived; `count` returned 1 against a `length` of 2 and the form said "one of those areas is not one we recognise". **Nobody could complete a registration.** The mirror is gone and the action now de-duplicates as well, so a repeat can never read as an unknown place again. This is exactly the class of bug that unit tests cannot see: the server-side logic was right, the form was wrong.
+
+**2. A server-action redirect is a client-side router navigation**, so `waitForNavigation` never fires. The suite waits on the path instead. Worth recording for every future e2e in this project.
+
+**3. My own test was wrong about the duplicate check** — it tried to register a colliding business *before* the first was approved, when no listing existed to collide with. The correct scenario is registering a business that is **already listed**, so the check moved after approval. The code was right; the test was not, and I fixed the test rather than the code.
+
+### A correction to something I wrote in B5
+
+I said the free test postcode would exercise only the manual area path, because postcodes.io does not know Ideal Postcodes' fixture postcode. **That was wrong.** The chosen address carries its own coordinates, so nearby localities are still offered and ranked — the suite sees eight of them, with Barons Court pre-selected. The authority resolves too, through the **name fallback** on the PAF `district` field, and the form correctly labels it *"(please check this is right)"*.
+
+So the suite actually proves the **degraded** path: real addresses, real nearby areas, no official GSS code, and the interface honest about the lower confidence. That is precisely what happens if postcodes.io is down, and it works.
+
+### Verification
+
+45 e2e checks · 788 unit checks across 20 suites · 29 pages × 2 widths axe-clean with no overflow · typecheck and build clean. The suite was run three times to confirm it is repeatable and cleans up after itself.
+
+### Open
+
+- Production still has none of B4, B5 or B6.
+- Owners cannot yet edit service areas or categories after registration.
+- **The 18 missing trade categories.** The e2e has to pick "Beauty" or "Cafes" because there is no "Plumbing" to pick, which is the clearest demonstration yet of why this matters.
+- **Provider supply.**
+
+### Recommended next batch
+
+**Phase C — lead creation**: `JobRequest`, the customer-facing job form, and `/admin/leads`. The supply side is now complete and tested end to end; this is the demand side, and the point at which the two meet.
+
+**Not started.**
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

@@ -15,7 +15,8 @@ export type RegisterState = {
 };
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
-const list = (fd: FormData, k: string) => (fd.getAll(k) as string[]).filter(Boolean);
+/** De-duplicated: a repeated id is a form quirk, not an unknown place, and must not read as one. */
+const list = (fd: FormData, k: string) => [...new Set((fd.getAll(k) as string[]).filter(Boolean))];
 
 /**
  * Registers a business.

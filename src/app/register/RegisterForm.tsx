@@ -332,7 +332,12 @@ export function RegisterForm({ categories, boroughs, formToken }: { categories: 
 }
 
 /** The location choices, carried as hidden inputs so the server sees exactly what the person confirmed. */
-function HiddenState({ postcode, address, placeId, areaIds, wholeBorough }: {
+/**
+ * The choices that have no visible input of their own. Service areas and the mode are NOT here: they are
+ * real fields in the form already, and mirroring them sent every id twice, which made validation reject
+ * them as unrecognised. Found by the end-to-end suite.
+ */
+function HiddenState({ postcode, address, placeId }: {
   postcode: string; address: Address | null; placeId: string; boroughId: string; wholeBorough: boolean; areaIds: string[]; formToken: string;
 }) {
   return (
@@ -341,8 +346,6 @@ function HiddenState({ postcode, address, placeId, areaIds, wholeBorough }: {
       <input type="hidden" name="address" value={address ? [address.line1, address.postTown].filter(Boolean).join(", ") : ""} />
       <input type="hidden" name="udprn" value={address?.udprn ?? ""} />
       {!address && <input type="hidden" name="postcode" value={postcode} />}
-      <input type="hidden" name="serviceAreaMode" value={wholeBorough ? "INCLUDES_CHILDREN" : "EXACT"} />
-      {areaIds.map((id) => <input key={id} type="hidden" name="serviceAreaIds" value={id} />)}
     </>
   );
 }

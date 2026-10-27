@@ -102,7 +102,7 @@ A category is an editorial decision about what the directory covers and it chang
 - [x] `/register` → verification email → `/admin/registrations` → one approval creating listing + ownership + 5 credits
 - [x] Registrations share the existing moderation queue, flagged with whether the email is confirmed and whether it looks like a duplicate
 - [ ] Owner-facing editing of service areas and categories after registration
-- [ ] An e2e suite driving the whole form in a browser (unit-tested server-side today)
+- [x] An e2e suite driving the whole form in a real browser: 45 checks, `scripts/e2e-registration.mjs`. Runs with mail disabled so it cannot send a real email, and uses the free test postcode so it cannot spend money
 
 ---
 
