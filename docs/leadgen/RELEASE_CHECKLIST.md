@@ -24,6 +24,7 @@ npx tsx scripts/seed-category-aliases.ts --schema=public
 npm run leads:ddl    -- --schema=public
 npm run matching:ddl -- --schema=public
 npm run notify:ddl   -- --schema=public
+npm run credits:ddl  -- --schema=public
 npm run schema:check -- --all
 npm run release:check -- --schema=public
 ```
@@ -42,7 +43,7 @@ Set in the Vercel project, production environment:
 | Variable | Without it |
 |---|---|
 `CRON_SECRET` (32+ random bytes) | `/api/cron` answers 404 to everybody, so **nothing is ever notified or escalated** |
-`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | nobody can buy credits past the free five, so the system runs for five leads per business and then stops |
+`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | nobody can buy credits past the free five, so the system runs for five leads per business and then stops. The **flow** exists as of 28 October (`/owner/business/[id]/credits`); these two variables are now the only thing missing. No Stripe product or price needs creating: credits are priced in our code at £1 each |
 
 Already set and verified: `DATABASE_URL`, `FIELD_KEY`, `RESEND_API_KEY` with a sending domain,
 `IDEAL_POSTCODES_KEY`.

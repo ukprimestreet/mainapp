@@ -7,6 +7,7 @@ import { requireBusiness } from "@/lib/owner";
 import { db } from "@/lib/db";
 import { sha256 } from "@/lib/antispam";
 import { sendMail, siteLink } from "@/lib/mail";
+import { createCreditCheckout } from "@/lib/billing";
 import { getEntitlements, MAX_GALLERY } from "@/lib/commerce";
 import { currentCoverage, saveCoverage } from "@/lib/coverage";
 
@@ -184,4 +185,35 @@ export async function saveCoverageAreas(form: FormData) {
   const moved = [result.added ? `${result.added} added` : null, result.removed ? `${result.removed} removed` : null]
     .filter(Boolean).join(", ");
   back(`Saved. You now cover ${result.areas} ${result.areas === 1 ? "area" : "areas"}${moved ? ` (${moved})` : ""} for ${result.categories} ${result.categories === 1 ? "kind" : "kinds"} of work. New job requests use this straight away.`);
+}
+
+// ---------------------------------------------------------------- lead credits
+/**
+ * Starts a card payment for lead credits.
+ *
+ * The quantity is validated in `createCreditCheckout` against the same constants the page renders from, so
+ * editing the number field cannot buy 10,000 credits or −1. Ownership is checked here, on the server,
+ * before anything is created.
+ */
+export async function buyCredits(form: FormData) {
+  const id = s(form, "businessId");
+  const { business, owner } = await requireBusiness(id);
+  const back = (m: string) => redirect(`/owner/business/${id}/credits?msg=${encodeURIComponent(m)}`);
+
+  const quantity = Number(s(form, "quantity"));
+  const result = await createCreditCheckout({
+    businessId: business.id,
+    ownerId: owner.id,
+    ownerEmail: owner.email,
+    quantity,
+    successUrl: siteLink(`/owner/business/${id}/credits?bought=1`),
+    cancelUrl: siteLink(`/owner/business/${id}/credits?cancelled=1`),
+  });
+  // `back()` redirects, so this is a guard rather than a branch — but TypeScript cannot know that, and
+  // narrowing it explicitly is cheaper than teaching it.
+  if ("error" in result) {
+    back(result.error);
+    return;
+  }
+  redirect(result.url);
 }

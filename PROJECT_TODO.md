@@ -158,7 +158,19 @@ A category is an editorial decision about what the directory covers and it chang
 - [ ] Apply to production: `npm run notify:ddl -- --schema=public`, and schedule the Supabase job
 - [ ] Retention deletion is still a policy, not a job: needs `pg_cron` and a decision on anonymising vs deleting
 
-## Phase E — credits and payments · PARTLY DONE
+## Phase E — credits and payments · DONE in dev
+
+- [x] **A business can actually buy credits** — `/owner/business/[id]/credits`. Until this batch `creditPurchase()` was correct, tested and **unreachable**, while `/register` and the welcome email promised £1 credits
+- [x] Sold by the credit at £1 excluding VAT: no `Product` row, no Stripe price to configure, nothing for an administrator to set. Presets of 10/25/50 and any whole number from 5 to 200
+- [x] VAT added only when switched on, snapshotted on the order (D4: no VAT before registration)
+- [x] A fractional quantity is refused rather than rounded down — 7.9 quietly sold 7 credits until a test caught it
+- [x] The webhook grants from `Order.quantity`, before any product lookup, and is idempotent on the order
+- [x] **Low-balance and zero-balance warnings**, using the `lowWarnedAt` / `zeroWarnedAt` columns that had been in the schema unused. Cleared when a balance recovers, so a business that runs down twice is warned twice
+- [x] Only businesses that could actually receive work are warned: credits are not what is stopping anybody else
+- [x] Tests: 44 unit checks (`test-credit-purchase.ts`) and 30 browser checks (`e2e-credits.mjs`) against a mock Stripe, including a replayed webhook and an unsigned one
+- [ ] Apply to production: `npm run credits:ddl -- --schema=public`, and set the two Stripe variables
+
+## Phase E — original list
 
 - [x] `CreditAccount`, `CreditTransaction` — a ledger, not a mutable number
 - [x] Five free credits, granted **once**, guarded three ways: `freeGrantAt`, a partial unique index, and a conditional update. Proven against three simultaneous calls

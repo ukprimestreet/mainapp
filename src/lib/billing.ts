@@ -1,5 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { CREDIT_PRICE_PENCE, CREDIT_PRODUCT_KEY, MAX_CREDITS_PER_PURCHASE, MIN_CREDITS_PER_PURCHASE, creditPurchase } from "./credits";
 import { db } from "./db";
+import { applyVat, vatSettings } from "./vat";
 
 /**
  * Stripe over plain HTTPS (no SDK dependency). The API base is configurable (STRIPE_API_BASE) so tests run against a local mock.
@@ -26,18 +28,88 @@ async function stripe<T>(path: string, params: Record<string, unknown>): Promise
   return j;
 }
 
+const STRIPE_INTERVAL: Record<string, "month" | "year" | undefined> = { MONTH: "month", YEAR: "year" };
+
 export async function createCheckout(o: { productKey: string; businessId: string; ownerId: string; ownerEmail: string; successUrl: string; cancelUrl: string }): Promise<{ url: string } | { error: string }> {
   if (!billingConfigured()) return { error: "Online payment isn't set up yet." };
   const product = await db.product.findUnique({ where: { key: o.productKey } });
   if (!product || !product.active || product.pricePence <= 0 || !product.stripePriceId) return { error: "This product isn't available to buy online." };
-  const order = await db.order.create({ data: { businessId: o.businessId, ownerId: o.ownerId, productKey: product.key, amountPence: product.pricePence } });
+  // product.pricePence is always VAT-exclusive. VAT, when switched on, is added on top here — the quoted
+  // price never silently changes, and nothing is charged while VAT is off (the default, pre-registration).
+  const vat = applyVat(product.pricePence, await vatSettings());
+  const order = await db.order.create({ data: { businessId: o.businessId, ownerId: o.ownerId, productKey: product.key, amountPence: vat.grossPence, vatPence: vat.vatPence, vatRateBp: vat.rateBp, source: "CHECKOUT" } });
   try {
+    const recurring = STRIPE_INTERVAL[product.interval];
     const s = await stripe<{ id: string; url: string }>("/checkout/sessions", {
       mode: product.interval === "ONE_OFF" ? "payment" : "subscription",
-      line_items: { 0: { price: product.stripePriceId, quantity: 1 } },
+      // No VAT: reuse the fixed Stripe Price exactly as before. With VAT: an ad-hoc price for the
+      // VAT-inclusive amount, computed above — no Stripe Tax configuration required.
+      line_items: vat.vatPence > 0
+        ? { 0: { price_data: { currency: "gbp", unit_amount: vat.grossPence, product_data: { name: product.name }, ...(recurring ? { recurring: { interval: recurring } } : {}) }, quantity: 1 } }
+        : { 0: { price: product.stripePriceId, quantity: 1 } },
       success_url: o.successUrl, cancel_url: o.cancelUrl, client_reference_id: order.id, customer_email: o.ownerEmail,
       metadata: { order_id: order.id, business_id: o.businessId, product_key: product.key },
       ...(product.interval !== "ONE_OFF" ? { subscription_data: { metadata: { order_id: order.id, business_id: o.businessId, product_key: product.key } } } : {}),
+    });
+    await db.order.update({ where: { id: order.id }, data: { stripeSessionId: s.id } });
+    return { url: s.url };
+  } catch (e) {
+    await db.order.update({ where: { id: order.id }, data: { status: "FAILED" } });
+    return { error: `Couldn't start checkout: ${(e as Error).message}` };
+  }
+}
+
+/**
+ * Buying lead credits.
+ *
+ * Separate from `createCheckout` because credits are not a `Product`: they are sold by the credit at a fixed
+ * £1 excluding VAT, so there is no price for an administrator to set and **nothing to configure in Stripe**.
+ * The line item is built here from `CREDIT_PRICE_PENCE × quantity`, which means the only thing standing
+ * between a business and topping up is the two API keys.
+ *
+ * VAT is added on top when, and only when, it is switched on (decision D4: Prime Street must not charge VAT
+ * before it is registered). The rate in force is snapshotted on the order, so a later change never rewrites
+ * what somebody was charged.
+ */
+export async function createCreditCheckout(o: {
+  businessId: string; ownerId: string; ownerEmail: string; quantity: number; successUrl: string; cancelUrl: string;
+}): Promise<{ url: string } | { error: string }> {
+  if (!billingConfigured()) return { error: "Card payment isn't set up yet. Email us and we will add credits by hand." };
+  // Not floored: 7.9 in a whole-number field is a typo, and quietly selling somebody 7 credits for a number
+  // they did not type is the sort of thing that is defensible and still wrong. Refuse and let them correct it.
+  const quantity = o.quantity;
+  if (!Number.isInteger(quantity) || quantity < MIN_CREDITS_PER_PURCHASE || quantity > MAX_CREDITS_PER_PURCHASE) {
+    return { error: `Choose a whole number between ${MIN_CREDITS_PER_PURCHASE} and ${MAX_CREDITS_PER_PURCHASE}.` };
+  }
+  const business = await db.business.findUnique({ where: { id: o.businessId }, select: { id: true, name: true } });
+  if (!business) return { error: "That business no longer exists." };
+
+  const net = quantity * CREDIT_PRICE_PENCE;
+  const vat = applyVat(net, await vatSettings());
+  const order = await db.order.create({
+    data: {
+      businessId: o.businessId, ownerId: o.ownerId, productKey: CREDIT_PRODUCT_KEY, quantity,
+      amountPence: vat.grossPence, vatPence: vat.vatPence, vatRateBp: vat.rateBp, source: "CHECKOUT",
+    },
+  });
+
+  try {
+    const s = await stripe<{ id: string; url: string }>("/checkout/sessions", {
+      mode: "payment",
+      line_items: {
+        0: {
+          // Priced per credit with a real quantity, so the Stripe receipt reads "12 × £1.00" rather than a
+          // single opaque total. A business checking its card statement should recognise what it bought.
+          price_data: {
+            currency: "gbp",
+            unit_amount: vat.vatPence > 0 ? Math.round(vat.grossPence / quantity) : CREDIT_PRICE_PENCE,
+            product_data: { name: "PrimeStreet lead credit" },
+          },
+          quantity,
+        },
+      },
+      success_url: o.successUrl, cancel_url: o.cancelUrl, client_reference_id: order.id, customer_email: o.ownerEmail,
+      metadata: { order_id: order.id, business_id: o.businessId, product_key: CREDIT_PRODUCT_KEY, credits: String(quantity) },
     });
     await db.order.update({ where: { id: order.id }, data: { stripeSessionId: s.id } });
     return { url: s.url };
@@ -82,6 +154,15 @@ export async function processEvent(event: { id: string; type: string; data: { ob
       if (o.payment_status && o.payment_status !== "paid") return "not paid yet";
       if (order.status === "PAID") return "already paid";
       await db.order.update({ where: { id: order.id }, data: { status: "PAID", paidAt: new Date() } });
+
+      // Lead credits first, and before any product lookup: there is no Product row for them, and granting
+      // from `order.quantity` is what makes the amount charged and the credits granted the same fact.
+      // `creditPurchase` is idempotent on the order, so a replayed webhook cannot grant twice.
+      if (order.productKey === CREDIT_PRODUCT_KEY) {
+        const granted = await creditPurchase(order.businessId, order.quantity, order.id, `Bought ${order.quantity} lead credit(s)`);
+        return granted.ok ? `${order.quantity} credits granted` : `credits not granted: ${granted.reason}`;
+      }
+
       const product = await db.product.findUnique({ where: { key: order.productKey } });
       if (!product) return "paid, product missing";
       if (product.kind === "PREMIUM") {
@@ -104,8 +185,28 @@ export async function processEvent(event: { id: string; type: string; data: { ob
     case "invoice.paid": {
       const subId = str(o.subscription); if (!subId) return "no subscription";
       const end = sec(((o.lines as Obj | undefined)?.data as Obj[] | undefined)?.[0] && (((o.lines as Obj).data as Obj[])[0].period as Obj | undefined)?.end);
+      const sub = await db.subscription.findFirst({ where: { stripeSubscriptionId: subId } });
       const r = await db.subscription.updateMany({ where: { stripeSubscriptionId: subId }, data: { status: "ACTIVE", ...(end ? { currentPeriodEnd: end } : {}) } });
-      return r.count ? "period extended" : "unknown subscription";
+      if (!r.count || !sub) return "unknown subscription";
+      // The first invoice of a new subscription is already recorded via checkout.session.completed.
+      // Everything after that (billing_reason subscription_cycle/subscription_update) is a renewal that
+      // previously went unrecorded — Order only ever had the initial payment, undercounting real revenue.
+      if (str(o.billing_reason) && o.billing_reason !== "subscription_create") {
+        const invoiceId = str(o.id);
+        const already = invoiceId ? await db.order.findFirst({ where: { stripeSessionId: `inv:${invoiceId}` } }) : null;
+        if (already) return "renewal already recorded";
+        const product = await db.product.findUnique({ where: { key: sub.productKey } });
+        if (!product) return "renewed, product missing";
+        const vat = applyVat(product.pricePence, await vatSettings());
+        await db.order.create({
+          data: {
+            businessId: sub.businessId, productKey: product.key, amountPence: vat.grossPence, vatPence: vat.vatPence, vatRateBp: vat.rateBp,
+            source: "RENEWAL", status: "PAID", paidAt: new Date(), stripeSessionId: invoiceId ? `inv:${invoiceId}` : undefined,
+          },
+        });
+        return "renewal recorded";
+      }
+      return "period extended";
     }
     case "invoice.payment_failed": {
       const subId = str(o.subscription); if (!subId) return "no subscription";

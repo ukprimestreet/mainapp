@@ -12,6 +12,24 @@ Every schema change to PrimeStreet, newest first. One entry per applied change, 
 
 ---
 
+## 2026-10-28 — `Order.quantity`, and closing drift I created
+
+**Applied to `dev` only.** `scripts/ddl-credit-purchase.ts`, self-verifying, additive.
+
+| Column | Why |
+|---|---|
+`Order.quantity` | **new.** How many credits an order was for. The webhook grants from it, rather than dividing the amount by the price and hoping VAT did not get in the way. A ledger that has to divide to find out what somebody bought is a ledger waiting to be wrong |
+`Order.vatPence`, `Order.vatRateBp`, `Order.source` | **drift I created** in the D3 batch by committing the parallel finance work's schema models without their DDL. They are in `schema.prisma` and in `dev`; production has none of them |
+
+`scripts/ddl-finance.ts` (still untracked, part of the parallel work) also adds those last three as part of a
+larger change including `Expense`. Both scripts use `ADD COLUMN IF NOT EXISTS`, so running either or both, in
+any order, is safe. This one exists so the credit purchase flow's production dependency is **self-contained**:
+nothing it needs waits on somebody else's uncommitted work.
+
+**To apply when authorised:** `npm run credits:ddl -- --schema=public`.
+
+---
+
 ## 2026-10-27 — notification and escalation: three timestamps
 
 **Applied to `dev` only.** `scripts/ddl-lead-notify.ts`, self-verifying. All additive and nullable:

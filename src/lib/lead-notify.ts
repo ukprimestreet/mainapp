@@ -1,4 +1,5 @@
 import { audit } from "./audit";
+import { LOW_BALANCE_THRESHOLD } from "./credits";
 import { db } from "./db";
 import { sendMail, siteLink } from "./mail";
 import { URGENCY } from "./leads";
@@ -279,6 +280,78 @@ export async function tellCustomerNothingYet(limit = 50) {
   return { considered: waiting.length, sent };
 }
 
+// ---------------------------------------------------------------- the business is about to stop getting work
+
+/**
+ * Warns a business before, and when, its credits run out.
+ *
+ * This is the quiet failure the whole lead system was missing: at zero, the matcher excludes a business with
+ * a recorded reason — correct, and completely invisible to them. They do not get a worse service; they get
+ * no service, and no reason why.
+ *
+ * Only businesses that could actually receive work are warned. Telling somebody with no service areas that
+ * their credits are low is noise, because credits are not what is stopping them.
+ *
+ * Warned once per run of being low: the flags are cleared by `credits.ts` the moment a balance is healthy
+ * again, so a business that tops up and runs down months later hears about it the second time too.
+ */
+export async function warnLowBalance(limit = 100) {
+  /** Only businesses that could actually receive work: credits are not what is stopping anybody else. */
+  const eligible = { published: true, isSample: false, serviceAreas: { some: {} }, categories: { some: {} } } as const;
+
+  const [empty, low] = await Promise.all([
+    db.creditAccount.findMany({
+      where: { balance: { lte: 0 }, zeroWarnedAt: null, business: eligible },
+      include: { business: { select: { id: true, name: true } } }, take: limit,
+    }),
+    db.creditAccount.findMany({
+      where: { balance: { gt: 0, lte: LOW_BALANCE_THRESHOLD }, lowWarnedAt: null, business: eligible },
+      include: { business: { select: { id: true, name: true } } }, take: limit,
+    }),
+  ]);
+
+  let sent = 0;
+
+  for (const account of empty) {
+    const body = [
+      `${account.business.name} — your lead credits have run out, so new job requests in your areas are going to other businesses.`,
+      "",
+      "Nothing else has changed: your listing is live, it stays free, and we have not hidden you from anybody. Credits are only for receiving job requests.",
+      "",
+      "They are £1 each. You can top up here:",
+      siteLink(`/owner/business/${account.businessId}/credits`),
+      "",
+      "If you would rather not receive job requests at all, leave it at zero — nothing will chase you again until you top up.",
+    ].join("\n");
+
+    for (const email of await recipients(account.businessId)) {
+      await sendMail(email, `${account.business.name}: you are not receiving job requests`, body, { purpose: "billing" });
+      sent++;
+    }
+    await db.creditAccount.update({ where: { id: account.id }, data: { zeroWarnedAt: new Date() } });
+    await audit({ action: "Business warned its credits are empty", targetType: "Business", targetId: account.businessId, detail: "balance 0" }, { kind: "SYSTEM" });
+  }
+
+  for (const account of low) {
+    const plural = account.balance === 1 ? "" : "s";
+    const body = [
+      `${account.business.name} — you have ${account.balance} lead credit${plural} left.`,
+      "",
+      "At zero, new job requests in your areas go to other businesses instead. Your listing is unaffected and stays free either way.",
+      "",
+      "Credits are £1 each:",
+      siteLink(`/owner/business/${account.businessId}/credits`),
+    ].join("\n");
+
+    for (const email of await recipients(account.businessId)) {
+      await sendMail(email, `${account.business.name}: ${account.balance} lead credit${plural} left`, body, { purpose: "billing" });
+      sent++;
+    }
+    await db.creditAccount.update({ where: { id: account.id }, data: { lowWarnedAt: new Date() } });
+  }
+
+  return { empty: empty.length, low: low.length, sent };
+}
 // ---------------------------------------------------------------- the run
 
 /**
@@ -293,5 +366,8 @@ export async function runLeadNotifications() {
   const chased = await chaseUnopened();
   const escalated = await escalateUnopened();
   const customers = await tellCustomerNothingYet();
-  return { notified, chased, escalated, customers };
+  // Last, because escalation and reassignment above both move balances, and a business should be warned
+  // about the balance it actually has at the end of the run rather than the one it had at the start.
+  const balances = await warnLowBalance();
+  return { notified, chased, escalated, customers, balances };
 }

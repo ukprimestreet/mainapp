@@ -34,6 +34,10 @@ handling is configurable to the registration status — decision D4, implemented
 
 The first five credits are granted free on approval, once per business, ever.
 
+Credits are bought from the business's own dashboard, by card, in whole numbers from 5 to 200 at a time. They
+never expire. The price shown on that page is produced by the same functions that build the payment, so what
+is quoted is what is charged — and while VAT is switched off, ten credits cost exactly £10.
+
 ## 3. What we promise
 
 1. **A job request is sent to a maximum of two paying businesses.** Not an auction, not a list of ten.

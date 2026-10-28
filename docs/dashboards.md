@@ -64,6 +64,14 @@ the business unreachable, and that should be a decision rather than an accident.
 next request, with no deploy. Alongside it: requests in their areas over the last 30 days against how many
 were actually sent to them, which is the only honest way to answer "should I widen?".
 
+### Credits
+
+What a credit is for, how many are left, and buying more at £1 each excluding VAT. The whole ledger is on the
+page — every credit in and out with its reason and the balance it produced — because a business querying a
+charge should be able to see the same record we would answer from. At zero it says plainly that job requests
+are going elsewhere **and** that the listing is unaffected, which is the thing people actually fear. Emails
+warn before and at zero, once per run of being low.
+
 ## Money: the rules in code, not just in a policy
 
 `src/app/admin/editorial-money-actions.ts` enforces these:

@@ -77,7 +77,7 @@ export default async function Areas({ params, searchParams }: {
             <dd className="text-[13px] text-grey">
               {credits === 0
                 ? "At zero, new requests go to somebody else."
-                : <>One per job. <Link href={`/owner/business/${id}/billing`} className="underline">Top up</Link></>}
+                : <>One per job. <Link href={`/owner/business/${id}/credits`} className="underline">Top up</Link></>}
             </dd>
           </div>
         </dl>

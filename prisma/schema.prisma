@@ -740,6 +740,10 @@ model Order {
   business        Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   ownerId         String?
   productKey      String
+  /// How many units were bought. Only ever more than 1 for lead credits, which are sold by the credit, and
+  /// the figure the webhook grants from — derivable from the amount, but a ledger that has to divide to
+  /// find out what somebody bought is a ledger waiting to be wrong.
+  quantity        Int       @default(1)
   amountPence     Int // gross, as charged — includes VAT when vatPence > 0
   /// The VAT portion of amountPence. Always 0 while VAT is switched off in Settings (the default, pending
   /// VAT registration). Snapshotted at the moment the order is created so a later rate change never rewrites history.

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-export function OwnerTabs({ id, name, active }: { id: string; name: string; active: "profile" | "reviews" | "coverage" | "promote" | "leads" | "areas" }) {
-  const tabs = [["profile", "Profile", `/owner/business/${id}`], ["reviews", "Reviews", `/owner/business/${id}/reviews`], ["coverage", "Tell us your story", `/owner/business/${id}/coverage`], ["promote", "Promote", `/owner/business/${id}/promote`], ["areas", "Where you work", `/owner/business/${id}/areas`], ["leads", "Enquiries", `/owner/business/${id}/leads`]] as const;
+export function OwnerTabs({ id, name, active }: { id: string; name: string; active: "profile" | "reviews" | "coverage" | "promote" | "leads" | "areas" | "credits" }) {
+  const tabs = [["profile", "Profile", `/owner/business/${id}`], ["reviews", "Reviews", `/owner/business/${id}/reviews`], ["coverage", "Tell us your story", `/owner/business/${id}/coverage`], ["promote", "Promote", `/owner/business/${id}/promote`], ["areas", "Where you work", `/owner/business/${id}/areas`], ["leads", "Enquiries", `/owner/business/${id}/leads`], ["credits", "Credits", `/owner/business/${id}/credits`]] as const;
   return (
     <>
       <p className="mb-2 text-sm"><Link href="/owner" className="underline">← All my businesses</Link></p>

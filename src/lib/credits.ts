@@ -22,6 +22,34 @@ export const CREDIT_PRICE_PENCE = 100; // £1, excluding VAT
 export const WELCOME_CREDITS = 5;
 export const LOW_BALANCE_THRESHOLD = 2;
 
+/**
+ * The `Order.productKey` lead credits are sold under.
+ *
+ * Deliberately **not** a row in `Product`: credits are sold by the credit at a fixed £1, so there is no
+ * price for an administrator to set and nothing to configure in Stripe. The webhook recognises this key and
+ * grants from `Order.quantity` before it looks for a product at all.
+ */
+export const CREDIT_PRODUCT_KEY = "lead-credits";
+
+/** How many a business may buy at once. The floor stops 1p-fee-heavy orders; the ceiling is a typo guard. */
+export const MIN_CREDITS_PER_PURCHASE = 5;
+export const MAX_CREDITS_PER_PURCHASE = 200;
+
+/**
+ * Clears the low-balance warnings once a balance is healthy again.
+ *
+ * Without this, a business is warned once, ever: it would top up, run down again months later, and hear
+ * nothing the second time. The flags are a record of "we have told them about *this* run of being low", not
+ * of "we have ever told them".
+ */
+async function clearLowWarnings(accountId: string, balance: number) {
+  if (balance <= LOW_BALANCE_THRESHOLD) return;
+  await db.creditAccount.updateMany({
+    where: { id: accountId, OR: [{ lowWarnedAt: { not: null } }, { zeroWarnedAt: { not: null } }] },
+    data: { lowWarnedAt: null, zeroWarnedAt: null },
+  });
+}
+
 export type CreditKind = "FREE_GRANT" | "PURCHASE" | "CONSUMPTION" | "REFUND" | "ADJUSTMENT" | "REVERSAL";
 
 /** The account, created on first use. Safe to call concurrently. */
@@ -75,6 +103,7 @@ export async function grantWelcomeCredits(businessId: string, reason: string, ac
     // The unique index refused a second FREE_GRANT. The balance change is already claimed and correct;
     // there is nothing to undo and nothing to hide.
   }
+  await clearLowWarnings(account.id, after.balance);
   await audit({ action: "Welcome credits granted", targetType: "Business", targetId: businessId, detail: `${WELCOME_CREDITS} credits: ${reason}` }, actor);
   return { granted: true as const, credits: WELCOME_CREDITS, balance: after.balance };
 }
@@ -114,6 +143,7 @@ export async function reverseCredits(businessId: string, amount: number, reason:
   await db.creditTransaction.create({
     data: { accountId: account.id, businessId, delta: amount, balanceAfter: after.balance, kind: "REVERSAL", reason, assignmentId: assignmentId ?? null },
   });
+  await clearLowWarnings(account.id, after.balance);
   await audit({ action: "Lead credit reversed", targetType: "Business", targetId: businessId, detail: `${amount}: ${reason}` });
   return { balance: after.balance };
 }
@@ -135,6 +165,7 @@ export async function adjustCredits(businessId: string, delta: number, reason: s
   await db.creditTransaction.create({
     data: { accountId: account.id, businessId, delta, balanceAfter: after.balance, kind: "ADJUSTMENT", reason, adminId },
   });
+  await clearLowWarnings(account.id, after.balance);
   await audit({ action: "Lead credits adjusted", targetType: "Business", targetId: businessId, detail: `${delta > 0 ? "+" : ""}${delta}: ${reason}` }, actor);
   return { ok: true as const, balance: after.balance };
 }
@@ -151,6 +182,8 @@ export async function creditPurchase(businessId: string, quantity: number, order
   await db.creditTransaction.create({
     data: { accountId: account.id, businessId, delta: quantity, balanceAfter: after.balance, kind: "PURCHASE", reason, orderId },
   });
+  await clearLowWarnings(account.id, after.balance);
+  await audit({ action: "Lead credits purchased", targetType: "Business", targetId: businessId, detail: `${quantity} credit(s), order ${orderId}` }, { kind: "SYSTEM" });
   return { ok: true as const, balance: after.balance };
 }
 

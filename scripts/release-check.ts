@@ -135,8 +135,10 @@ async function main() {
   check("BLOCKER", encryptionReady(), "Field encryption is available", encryptionStatus());
   check("NEEDED", addressLookupConfigured(), "Address lookup is configured",
     addressLookupConfigured() ? "set" : "registration falls back to choosing an area by hand");
+  // The purchase flow itself exists as of 28 October; these two keys are the only thing still missing, and
+  // no Stripe product or price needs creating, because credits are priced in our own code.
   check("NEEDED", billingConfigured(), "Businesses can buy more credits",
-    billingConfigured() ? "configured" : "not configured — nobody can top up past the free five");
+    billingConfigured() ? "configured" : "the flow exists; the two Stripe keys are not set, so nobody can top up past the free five");
 
   // ---------------------------------------------------------------- anything already broken
   if (present.includes("LeadAssignment")) {
