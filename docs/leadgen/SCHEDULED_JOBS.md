@@ -10,8 +10,8 @@ One authenticated endpoint does all of it: `GET /api/cron`, with `Authorization:
 | | What it does | How often it needs to run |
 |---|---|---|
 **Lead notification** | emails a business that it has a job, for anything assigned but never notified | **hourly** — a lead is worth less every hour it sits |
-**Chasing** | one reminder to a business that has not opened a job after 4 hours | hourly |
-**Escalation** | after 24 hours unopened: take the job back, refund the credit, reassign it, tell both businesses | hourly |
+**Chasing** | one reminder to a business that has said nothing about a job after 4 hours — opening the dashboard is not an answer | hourly |
+**Escalation** | after 24 hours with **no word** from the business: take the job back, refund the credit, reassign it, tell both businesses | hourly |
 **Telling the customer** | after 6 hours with nobody assigned: email them honestly, once | hourly |
 **Low-balance warnings** | tells a business before, and when, its credits run out — once per run of being low | hourly (it rides on the same pass) |
 **Lifecycle automations** | only the marketing rules an administrator has switched on, each capped and de-duplicated | daily |
@@ -21,7 +21,7 @@ The lead work is **transactional and is not gated on the automation toggles**. A
 job must be told it has one whether or not anybody has enabled a marketing rule.
 
 Everything in the route is idempotent: what has already been sent is recorded in a column
-(`LeadAssignment.notifiedAt`, `.remindedAt`, `JobRequest.customerNotifiedAt`, `CreditAccount.lowWarnedAt`, `.zeroWarnedAt`), so a cron that fires twice —
+(`LeadAssignment.notifiedAt`, `.remindedAt`, `JobRequest.customerNotifiedAt`, `CreditAccount.lowWarnedAt`, `.zeroWarnedAt`, `LeadAssignment.respondedAt`), so a cron that fires twice —
 or two crons firing at once — sends nothing twice.
 
 ## Why Supabase and not only Vercel

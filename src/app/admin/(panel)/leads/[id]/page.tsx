@@ -166,6 +166,11 @@ export default async function Lead({ params, searchParams }: {
                     <p className="mt-1 text-[12px] text-grey">
                       {a.notifiedAt ? `emailed ${fmtDate(a.notifiedAt)}` : "not emailed yet"}
                       {a.remindedAt ? " · chased" : ""}
+                      {/* What they SAID, which is the thing escalation acts on — not whether they happened to
+                          open a dashboard. */}
+                      {a.respondedAt
+                        ? ` · ${a.responseKind === "DECLINED" ? "said they cannot take it" : "said they contacted the customer"}`
+                        : " · no word from them"}
                     </p>
                   )}
                   {a.failedReason && <p className="mt-1 text-[12px] text-grey">{a.failedReason}</p>}

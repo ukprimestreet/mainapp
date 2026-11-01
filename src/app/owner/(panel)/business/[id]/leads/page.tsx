@@ -4,8 +4,10 @@ import { isPremium } from "@/lib/commerce";
 import { creditBalance } from "@/lib/credits";
 import { db } from "@/lib/db";
 import { URGENCY } from "@/lib/leads";
+import { RESPONSES } from "@/lib/lead-response";
 import { assignmentsForBusiness, markDelivered } from "@/lib/matching";
 import { requireBusiness } from "@/lib/owner";
+import { answerJobRequest } from "../../../../business-actions";
 import { setLeadStatus } from "../../../../commerce-actions";
 
 /** Assignments are marked as opened the moment this page renders, so it must never be cached. */
@@ -90,9 +92,39 @@ export default async function Leads({ params }: { params: Promise<{ id: string }
                   <div><dt className="font-bold">Best time to call</dt><dd>{a.jobRequest.contactTime ?? "Any time"}</dd></div>
                 </dl>
 
+                {a.respondedAt ? (
+                  <p className="mt-4 text-[14px] font-bold">
+                    {a.responseKind === "DECLINED"
+                      ? "You told us you could not take this one."
+                      : "You told us you have contacted this customer."}
+                  </p>
+                ) : (
+                  <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                    {/* The same two answers as the email, because a business should not have to find the
+                        email again to tell us something it is sitting in front of. */}
+                    <form action={answerJobRequest}>
+                      <input type="hidden" name="businessId" value={b.id} />
+                      <input type="hidden" name="assignmentId" value={a.id} />
+                      <input type="hidden" name="kind" value="CALLED" />
+                      <button className="min-h-11 rounded-full bg-ink px-5 font-bold text-yellow transition hover:bg-charcoal">
+                        {RESPONSES.CALLED}
+                      </button>
+                    </form>
+                    <form action={answerJobRequest}>
+                      <input type="hidden" name="businessId" value={b.id} />
+                      <input type="hidden" name="assignmentId" value={a.id} />
+                      <input type="hidden" name="kind" value="DECLINED" />
+                      <button className="min-h-11 rounded-full border-2 border-ink px-5 font-bold transition hover:bg-mist">
+                        {RESPONSES.DECLINED}
+                      </button>
+                    </form>
+                  </div>
+                )}
+
                 <p className="mt-4 text-[13px] text-grey">
                   Please use these details for this job only. If the customer asks you not to contact them
-                  again, stop — and tell us, so we can act on it too.
+                  again, stop — and tell us, so we can act on it too. Telling us you cannot take a job puts
+                  the credit back and passes it on — it costs you nothing.
                 </p>
               </li>
             ))}

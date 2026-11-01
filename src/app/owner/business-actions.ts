@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { sha256 } from "@/lib/antispam";
 import { sendMail, siteLink } from "@/lib/mail";
 import { createCreditCheckout } from "@/lib/billing";
+import { isResponseKind, recordResponse } from "@/lib/lead-response";
 import { getEntitlements, MAX_GALLERY } from "@/lib/commerce";
 import { currentCoverage, saveCoverage } from "@/lib/coverage";
 
@@ -216,4 +217,29 @@ export async function buyCredits(form: FormData) {
     return;
   }
   redirect(result.url);
+}
+
+/**
+ * The owner answering from their own dashboard: the same two answers as the one-click email link.
+ *
+ * Ownership is checked here, and the assignment is checked to belong to that business — an owner of one
+ * business must not be able to decline another's job by posting its id.
+ */
+export async function answerJobRequest(form: FormData) {
+  const id = s(form, "businessId");
+  const { business, owner } = await requireBusiness(id);
+  const back = (m: string) => redirect(`/owner/business/${id}/leads?msg=${encodeURIComponent(m)}`);
+
+  const assignmentId = s(form, "assignmentId");
+  const kind = s(form, "kind");
+  if (!isResponseKind(kind)) back("Choose one of the two answers.");
+
+  const mine = await db.leadAssignment.findFirst({ where: { id: assignmentId, businessId: business.id }, select: { id: true } });
+  if (!mine) back("That job is not one of yours.");
+
+  const result = await recordResponse(assignmentId, kind as "CALLED" | "DECLINED", { kind: "OWNER", id: owner.id, email: owner.email });
+  if (!result.ok) back(result.message);
+  back(kind === "DECLINED"
+    ? "Thanks — passed on to another business, and your credit has been put back."
+    : "Thanks — we will not chase you about that one.");
 }

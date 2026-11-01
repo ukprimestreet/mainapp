@@ -200,11 +200,19 @@ export async function matchJobRequest(jobRequestId: string): Promise<MatchResult
     return result;
   }
 
-  const existing = await db.leadAssignment.findMany({
-    where: { jobRequestId: job.id, status: { not: "REVERSED" } },
-    select: { businessId: true, paidSlot: true, kind: true },
+  // EVERY prior assignment, including reversed ones: a business that had this job and lost it — because it
+  // declined, or because we took it back for silence — must not be handed the same job by the next automatic
+  // pass. Without this, escalation refunded a credit and immediately charged it again, which my own test
+  // caught as "the credit never came back".
+  //
+  // An administrator can still assign it to them by hand. That is a judgement call somebody is making on
+  // purpose, which is a different thing from a timer doing it by accident.
+  const everAssigned = await db.leadAssignment.findMany({
+    where: { jobRequestId: job.id },
+    select: { businessId: true, paidSlot: true, kind: true, status: true },
   });
-  const held = new Set(existing.map((e) => e.businessId));
+  const held = new Set(everAssigned.map((e) => e.businessId));
+  const existing = everAssigned.filter((e) => e.status !== "REVERSED");
   result.alreadyFilled = existing.filter((e) => e.paidSlot !== null).length;
 
   if (result.alreadyFilled >= MAX_PAID) {
@@ -241,7 +249,13 @@ export async function matchJobRequest(jobRequestId: string): Promise<MatchResult
       result.considered++;
 
       if (held.has(business.id)) {
-        await record(job.id, runId, { businessId: business.id, stage, outcome: "SKIPPED", reason: "They already have this job." });
+        const prior = everAssigned.find((e) => e.businessId === business.id);
+        await record(job.id, runId, {
+          businessId: business.id, stage, outcome: "SKIPPED",
+          reason: prior?.status === "REVERSED"
+            ? "They had this job already and it was taken back or declined, so the matcher does not offer it to them again."
+            : "They already have this job.",
+        });
         continue;
       }
 

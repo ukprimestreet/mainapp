@@ -2,7 +2,7 @@
 // The full sweep is scripts/a11y.mjs; this one exists to check a change quickly.
 import puppeteer from "puppeteer-core";
 import { readFileSync } from "fs";
-import { createHash, randomBytes } from "crypto";
+import { createHash, createHmac, randomBytes } from "crypto";
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../src/lib/author-password.ts";
 
@@ -58,10 +58,22 @@ const slicedLead = place
     }))
   : null;
 
+// A live assignment, so the one-click response page is audited with real content.
+const auditAssignment = slicedLead
+  ? (await db.leadAssignment.findFirst({ where: { jobRequestId: slicedLead.id } })) ??
+    (await db.leadAssignment.create({
+      data: { jobRequestId: slicedLead.id, businessId: fx.id, kind: "SPONSORED", stage: "MANUAL", reason: "A fixture for the accessibility audit." },
+    }))
+  : null;
+const auditToken = auditAssignment
+  ? createHmac("sha256", process.env.SESSION_SECRET ?? "").update(`lead-response:${auditAssignment.id}`).digest("base64url")
+  : null;
+
 const paths = [
   "/register", "/register/sent", "/register/verify/not-a-real-token",
   "/get-quotes", "/get-quotes/sent", "/admin/leads",
   ...(slicedLead ? [`/admin/leads/${slicedLead.id}`] : []),
+  ...(auditAssignment ? [`/lead/${auditAssignment.id}/${auditToken}`] : []),
   "/admin/commissions", "/admin/payments", "/admin/automations", "/admin/money", "/admin/registrations", "/admin/admins", "/admin/account",
   "/admin/corrections", "/admin/audit", "/admin/moderation", "/admin/settings",
   "/write/commissions", "/write/payments", "/write/payments/details", "/write/performance", "/write/notifications", "/write/style",

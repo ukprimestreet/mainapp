@@ -25,6 +25,7 @@ npm run leads:ddl    -- --schema=public
 npm run matching:ddl -- --schema=public
 npm run notify:ddl   -- --schema=public
 npm run credits:ddl  -- --schema=public
+npm run response:ddl -- --schema=public
 npm run schema:check -- --all
 npm run release:check -- --schema=public
 ```
@@ -112,6 +113,7 @@ becomes a promise we are not keeping about three months in.
 After 1–3, with one real business and one test request:
 
 - Register a business, approve it, confirm five credits appear.
+- Follow the one-click link in the lead email and press "I have contacted the customer"; confirm the job stays and no credit is refunded.
 - Send a quote request through `/get-quotes` as a customer would. Check the confirmation names the business.
 - Check the business's own dashboard shows the job, and that opening it is recorded.
 - Check the email actually arrived — in the inbox, not in spam.

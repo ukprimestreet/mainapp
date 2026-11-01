@@ -215,9 +215,28 @@ the job to (§5). If that balance is ever re-decided, this is the paragraph to c
 | After | What happens |
 |---|---|
 immediately | the business is emailed |
-4 hours unopened | one chase, which offers the way out — "tell us and we will pass it on and put your credit back" — rather than only nagging |
+4 hours with no word from them | one chase, which leads with the one-click answer rather than only nagging |
 6 hours with nobody assigned | the **customer** is emailed once, honestly: we have not found anyone, do not hold out for us if it is urgent, nobody has your details |
-24 hours unopened | the job is taken back, **the credit is refunded**, the place is freed, matching runs again, and the new business is emailed |
+24 hours with no word from them | the job is taken back, **the credit is refunded**, the place is freed, matching runs again, and the new business is emailed |
+
+**"No word from them" replaced "unopened" on 1 November 2026, and the distinction is the whole point.** The
+first version keyed on `deliveredAt` — whether somebody had opened the dashboard. A trade who reads the email
+on a phone between jobs and rings the customer immediately never opens a dashboard, so we took the job off
+them and refunded a credit they had earned. Escalation now acts only on **silence**, and the business is
+asked, in one click from the email, which it is:
+
+- **"I have contacted the customer"** — they keep the job and the credit, and are never chased about it again.
+- **"I cannot take this job"** — released immediately, credit refunded, offered to somebody else. Better for
+  the customer than waiting out a 24-hour timer.
+
+The link carries no session, because a sign-in wall is the reason nobody tells us anything. It is an HMAC of
+the assignment id, it can only answer that one question about that one job, and **the state change happens on
+POST** — a GET only shows the question, because mail clients and scanners prefetch links, and a GET that acted
+would have software declining people's jobs for them.
+
+One consequence worth recording: **the matcher will not hand a job back to a business that already lost it**,
+whether it declined or was escalated for silence. An administrator still can, by hand, because that is
+somebody deciding on purpose rather than a timer doing it by accident.
 
 **Why the credit goes back on escalation**, even though the lead was genuinely delivered: charging for a job
 a business never looked at is defensible on paper and indefensible in a phone call, and keeping the pound does

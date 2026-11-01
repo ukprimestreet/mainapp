@@ -169,19 +169,34 @@ async function main() {
   const chaseMail = (await outboxTo(OWNER)).slice(beforeChase);
   t("…with a subject that says it is still waiting", /still waiting/i.test(chaseMail[0].subject));
   t("…saying the customer is waiting, which is the actual point", /customer is waiting/i.test(chaseMail[0].body));
-  t("…offering the way out rather than only nagging", /tell us and we will pass it on/i.test(chaseMail[0].body));
+  t("…offering the way out rather than only nagging", /credit goes straight back/i.test(chaseMail[0].body));
+  t("…with one click, because that is the whole point", /\/lead\//.test(chaseMail[0].body));
   t("…and warning what happens next", new RegExp(`${ESCALATE_AFTER_HOURS} hours`).test(chaseMail[0].body));
   t("chasing twice sends nothing", (await chaseUnopened()).sent === 0);
   t("…and the chase is recorded on the row", !!(await db.leadAssignment.findUnique({ where: { id: fresh.id } }))?.remindedAt);
 
-  // ---------------- opening it stops the chasing
+  /**
+   * ---------------- looking is not answering
+   *
+   * This assertion used to be "a business that has opened the job is not chased", and that was the bug:
+   * `deliveredAt` was being read as "they are dealing with it". Somebody who opens the job and then does
+   * nothing is precisely the person the customer is waiting on. They are chased now, and the chase asks
+   * them to say which it is — `test-lead-response.ts` covers the business that actually answers.
+   */
   const j4 = await job(trade.id, here.id);
   await matchJobRequest(j4.id);
   const opened = (await assignmentsFor(j4.id)).find((x) => x.businessId === a.id)!;
   await notifyAssignment(opened.id);
   await db.leadAssignment.update({ where: { id: opened.id }, data: { notifiedAt: hoursAgo(REMIND_AFTER_HOURS + 1), createdAt: hoursAgo(REMIND_AFTER_HOURS + 1) } });
   await markDelivered(opened.id);
-  t("a business that has opened the job is not chased", (await chaseUnopened()).sent === 0);
+  t("a business that LOOKED but said nothing is still chased", (await chaseUnopened()).sent >= 1);
+  t("…and one that has answered is not", await (async () => {
+    const { recordResponse } = await import("../src/lib/lead-response");
+    const answered = (await assignmentsFor(j4.id)).find((x) => x.businessId === a.id)!;
+    await db.leadAssignment.update({ where: { id: answered.id }, data: { remindedAt: null } });
+    await recordResponse(answered.id, "CALLED");
+    return (await chaseUnopened()).sent === 0;
+  })());
 
   // ---------------- escalation
   const balanceBefore = await creditBalance(a.id);
@@ -192,7 +207,7 @@ async function main() {
   t("…the credit is refunded, because charging for a job nobody looked at is indefensible",
     (await creditBalance(a.id)) === balanceBefore + 1, `${balanceBefore} -> ${await creditBalance(a.id)}`);
   t("…the assignment is marked reversed rather than deleted", (await db.leadAssignment.findUnique({ where: { id: fresh.id } }))?.status === "REVERSED");
-  t("…with the reason on the row", /not opened within/i.test((await db.leadAssignment.findUnique({ where: { id: fresh.id } }))?.failedReason ?? ""));
+  t("…with the reason on the row", /no word from the business/i.test((await db.leadAssignment.findUnique({ where: { id: fresh.id } }))?.failedReason ?? ""));
   t("…the business is told it lost the job", (await outboxTo(OWNER)).some((m) => /taken back/i.test(m.subject)));
   t("…and told its credit is back", (await outboxTo(OWNER)).some((m) => /credit has been put back/i.test(m.body)));
   t("…and pointed at the areas it can change itself", (await outboxTo(OWNER)).some((m) => m.body.includes(`/areas`)));

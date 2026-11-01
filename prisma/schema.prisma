@@ -1399,7 +1399,16 @@ model LeadAssignment {
   /// The administrator who assigned it by hand. Null means the matcher did it.
   assignedById  String?
 
+  /// When somebody at the business was last known to have LOOKED at it — opened the dashboard, or followed
+  /// the link in the email. It is not evidence that they rang the customer, and escalation no longer treats
+  /// it as if it were.
   deliveredAt  DateTime?
+  /// When the business told us what it was doing about the job, and what it said. This is the fact that
+  /// matters: a trade who reads the email on a phone and rings the customer straight away never opens a
+  /// dashboard, and taking the job back off them at 24 hours punished exactly the right behaviour.
+  respondedAt  DateTime?
+  /// CALLED | DECLINED — null until they say.
+  responseKind String?
   /// When the business was emailed that it had the job. Null means it has not been told yet, which is the
   /// one state nobody should ever be left in after paying a credit.
   notifiedAt   DateTime?

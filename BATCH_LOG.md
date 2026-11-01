@@ -1357,4 +1357,107 @@ harmlessly with `ddl-finance.ts`.
 
 ---
 
+## Batch F2 — looking is not answering
+
+**Date:** 1 November 2026
+**Authorised by:** owner — "continue"
+**Pages added to the public site:** 1 (`/lead/[id]/[token]`, noindex). Within the three-page limit.
+
+### The bug
+
+Escalation read `deliveredAt` — "somebody opened the dashboard" — as evidence that a business was dealing
+with a job. It is not.
+
+A trade who reads the email on a phone between jobs and rings the customer straight away **never opens a
+dashboard**. At 24 hours we took the job off them, refunded the credit, and gave the work to somebody else.
+The proxy punished the best behaviour there is, and it was the thing I flagged last batch as the weakest part
+of the system.
+
+### The fix: ask, in one click, from the email
+
+| Answer | What happens |
+|---|---|
+**"I have contacted the customer"** | they keep the job and the credit, and are never chased about it again |
+**"I cannot take this job"** | released **immediately**, credit refunded, offered to somebody else |
+
+Declining is not a punishment and the page says so: it is a better answer than silence for everybody,
+including the customer, who otherwise waits out a 24-hour timer to learn the same thing.
+
+`respondedAt` and `responseKind` now carry the fact that matters. `deliveredAt` is still recorded and is no
+longer load-bearing.
+
+### Three decisions in that link
+
+1. **No sign-in.** A sign-in wall is the reason nobody tells us anything. The token is an HMAC of the
+   assignment id with a purpose prefix, so it cannot be guessed and cannot be used to answer anything else.
+2. **The state change is on POST.** A GET only shows the question. Mail clients and security scanners
+   prefetch links, and a GET that acted would have **software declining people's jobs for them** — refunding
+   credits and reassigning work nobody had decided to give up. The browser suite proves a bare GET changes
+   nothing.
+3. **The same two answers are on the owner dashboard**, because a business looking at the job should not have
+   to find the email again to tell us something.
+
+### Two bugs my own tests caught
+
+**The matcher handed the job straight back.** Escalation refunds and re-runs matching; because a reversed row
+is not a live claim (correct, from batch D1), the same business was immediately eligible, got the job again
+and was charged again. Net effect: the refund I had described as the honest outcome never reached them. The
+matcher now skips any business that has **ever** held this job, with the reason recorded; an administrator
+can still assign by hand, because that is somebody deciding on purpose rather than a timer doing it by
+accident.
+
+**A business that looked was never chased.** Opening the dashboard sets the status to `DELIVERED`, and both
+the chase and the escalation queries filtered on `status: "PENDING"` — so somebody who opened the job and
+then did nothing fell out of the process entirely. That is the quietest possible failure: the one person the
+customer is waiting on, and we had stopped asking them.
+
+### A previously-asserted behaviour that I changed on purpose
+
+`test-lead-notify.ts` asserted **"a business that has opened the job is not chased"**. That assertion encoded
+the bug. It now asserts the opposite — that looking is not answering — with a comment saying why, and the
+business that actually answers is covered in the new suite. Changing a test to match new behaviour is
+normally a smell; this one was the point of the batch, so it is recorded here rather than buried in a diff.
+
+### Verification
+
+- **34 unit checks** (`test-lead-response.ts`): token signing and every way of getting it wrong, the email
+  carrying the link, both answers, **the business that said it rang the customer keeping the job through a
+  48-hour-old assignment with no dashboard view at all**, silence still losing it, and declining releasing
+  and refunding immediately.
+- **27 browser checks** (`e2e-lead-response.mjs`): the link opened in a browser with **no session**, a
+  prefetching GET changing nothing, a token from another job 404ing, both answers end to end, and the admin
+  page showing what each business said — including why the decliner was not offered it again.
+- `test-matching` and `test-lead-notify` re-run green after the behaviour change · full unit suite (30 files)
+  · a11y slice clean at 390px and 1440px with the new page · build and typecheck clean.
+
+### One thing I cannot claim is fixed
+
+Run back-to-back with the other suites against a single server, **`e2e-leads` produced no output at all** —
+no passes, no failures. Run on its own it passes all 44 checks, twice. I saw the same shape once before with
+`e2e-commerce` in the E1 batch, which also passed cleanly on its own afterwards.
+
+So my working explanation is contention between suites sharing one server and one database, not a product
+fault — but that is an explanation, not a diagnosis, and a suite that silently produces nothing is exactly
+the kind of thing that hides a real failure later. Worth a proper look before `npm run test:e2e` is trusted
+as a single gate.
+
+### Production
+
+One more DDL step: `npm run response:ddl -- --schema=public`. Still nothing from Phase C onwards is in
+production, and `Place` still has 0 rows.
+
+### Still open
+
+The six browser suites I have not run this session (editorial, reviews, podcast, search, cities, `e2e.mjs`)
+· retention deletion · the address a business was located by · category intro copy · the parallel
+finance/growth/sales work, still 20-odd untracked files · the spec's §18 list item by item.
+
+### What I would do next
+
+**The customer's side of the same question.** We now know what the business says; we do not know what the
+customer experienced. One email at 24 hours — "did anyone contact you?" — is the only ground truth in the
+system, and it would catch the case none of this can: a business that says it rang and did not.
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

@@ -12,6 +12,25 @@ Every schema change to PrimeStreet, newest first. One entry per applied change, 
 
 ---
 
+## 2026-11-01 — what the business told us
+
+**Applied to `dev` only.** `scripts/ddl-lead-response.ts`, self-verifying, additive.
+
+| Column | Why |
+|---|---|
+`LeadAssignment.respondedAt` | when the business told us what it was doing about the job |
+`LeadAssignment.responseKind` | `CALLED` or `DECLINED` — null until they say |
+`LeadAssignment_respondedAt_idx` | the escalation query reads it every hour |
+
+**What these replace.** `deliveredAt` was being read as "they are dealing with it". It means "somebody
+opened the dashboard", and a trade who reads the email on a phone and rings the customer straight away never
+does that — so escalation took the job off them at 24 hours and refunded the credit. The proxy punished the
+best behaviour there is. `deliveredAt` is still recorded, and is no longer load-bearing.
+
+**To apply when authorised:** `npm run response:ddl -- --schema=public`.
+
+---
+
 ## 2026-10-28 — `Order.quantity`, and closing drift I created
 
 **Applied to `dev` only.** `scripts/ddl-credit-purchase.ts`, self-verifying, additive.

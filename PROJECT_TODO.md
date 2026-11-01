@@ -156,6 +156,9 @@ A category is an editorial decision about what the directory covers and it chang
 - [x] Hourly from Supabase `pg_cron` + `pg_net`, documented with the SQL in `docs/leadgen/SCHEDULED_JOBS.md`
 - [x] Tests: 46 unit checks (`test-lead-notify.ts`, with time moved backwards rather than waited out) and 5 added browser checks
 - [ ] Apply to production: `npm run notify:ddl -- --schema=public`, and schedule the Supabase job
+- [x] **Escalation keys on silence, not on an unopened dashboard** — the proxy was taking jobs off trades who had read the email and rung the customer
+- [x] The matcher no longer hands a job back to a business that declined it or lost it to escalation
+- [ ] Apply to production: `npm run response:ddl -- --schema=public`
 - [ ] Retention deletion is still a policy, not a job: needs `pg_cron` and a decision on anonymising vs deleting
 
 ## Phase E — credits and payments · DONE in dev

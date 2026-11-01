@@ -1,5 +1,6 @@
 import { audit } from "./audit";
 import { LOW_BALANCE_THRESHOLD } from "./credits";
+import { responseLink } from "./lead-response";
 import { db } from "./db";
 import { sendMail, siteLink } from "./mail";
 import { URGENCY } from "./leads";
@@ -103,6 +104,11 @@ export async function notifyAssignment(assignmentId: string) {
           : "One lead credit has been charged for this job.",
         `We send each job to a maximum of two businesses, so you are not racing ten others. Ring them first and you are usually the one who gets the work.`,
         "",
+        "When you have rung them — or if you cannot take it — tell us here, in one click:",
+        siteLink(responseLink(a.id)),
+        "",
+        "Saying you cannot take it puts your credit straight back and lets us offer the job to somebody else. We would far rather have that than silence.",
+        "",
         siteLink(`/owner/business/${a.businessId}/leads`),
         "",
         "Please use these details for this job only. If the customer asks you not to contact them again, stop — and tell us, so we can act on it too.",
@@ -132,7 +138,12 @@ export async function notifyPendingAssignments(limit = 50) {
 export async function chaseUnopened(limit = 50) {
   const stale = await db.leadAssignment.findMany({
     where: {
-      status: "PENDING", deliveredAt: null, remindedAt: null,
+      // Not `status: "PENDING"`: opening the dashboard moves it to DELIVERED, and that used to take somebody
+      // who had looked and then done nothing out of the chase entirely — the quietest possible failure.
+      status: { not: "REVERSED" }, remindedAt: null,
+      // `respondedAt` is the fact that matters, not `deliveredAt`: somebody who told us they have rung the
+      // customer is dealing with it whether or not they ever opened a dashboard.
+      respondedAt: null,
       notifiedAt: { not: null, lte: hoursAgo(REMIND_AFTER_HOURS) },
       createdAt: { gt: hoursAgo(ESCALATE_AFTER_HOURS) }, // past that it is escalated, not chased
     },
@@ -155,8 +166,11 @@ export async function chaseUnopened(limit = 50) {
           "",
           ...jobLines(a.jobRequest),
           "",
-          `If you cannot take it, that is fine — tell us and we will pass it on and put your credit back. What does not work is silence: the customer asked us for help and is waiting on a call.`,
-          `If nobody opens it within ${ESCALATE_AFTER_HOURS} hours of being sent it, we take the job back, refund the credit and give it to somebody else.`,
+          "One click is all we need:",
+          siteLink(responseLink(a.id)),
+          "",
+          `If you have already rung them, say so there and we will leave you alone. If you cannot take it, say that instead — your credit goes straight back and we offer the job to another business. What does not work is silence: the customer asked us for help and is waiting on a call.`,
+          `Hearing nothing at all within ${ESCALATE_AFTER_HOURS} hours of us sending it, we take the job back, refund the credit and give it to somebody else.`,
           "",
           siteLink(`/owner/business/${a.businessId}/leads`),
         ].join("\n"),
@@ -179,7 +193,11 @@ export async function chaseUnopened(limit = 50) {
 export async function escalateUnopened(limit = 25) {
   const dead = await db.leadAssignment.findMany({
     where: {
-      status: "PENDING", deliveredAt: null,
+      status: { not: "REVERSED" },
+      // Taking a job back now needs **silence**, not merely an unopened dashboard. Reading `deliveredAt` as
+      // "they are not dealing with it" took jobs off trades who had read the email on a phone and rung the
+      // customer straight away — the proxy punished the best behaviour there is.
+      respondedAt: null,
       createdAt: { lte: hoursAgo(ESCALATE_AFTER_HOURS) },
       jobRequest: { status: { notIn: ["CLOSED", "REJECTED"] } },
     },
@@ -192,7 +210,7 @@ export async function escalateUnopened(limit = 25) {
 
   const out = { taken: 0, reassigned: 0, refunded: 0 };
   for (const a of dead) {
-    const reversed = await reverseAssignment(a.id, `Not opened within ${ESCALATE_AFTER_HOURS} hours of being sent`);
+    const reversed = await reverseAssignment(a.id, `No word from the business within ${ESCALATE_AFTER_HOURS} hours of being sent it`);
     if (!reversed.ok) continue;
     out.taken++;
     if (reversed.refunded) out.refunded++;
@@ -202,13 +220,15 @@ export async function escalateUnopened(limit = 25) {
         email,
         `Taken back: ${a.jobRequest.reference}`,
         [
-          `${a.business.name} — this job was not opened within ${ESCALATE_AFTER_HOURS} hours, so we have passed it to another business.`,
+          `${a.business.name} — we heard nothing about this job within ${ESCALATE_AFTER_HOURS} hours, so we have passed it to another business.`,
           "",
           reversed.refunded
             ? "Your credit has been put back. You have not paid for it."
             : "No credit was charged for it.",
           "",
-          "No hard feelings and nothing to do. If leads are arriving at the wrong times or in the wrong areas, the areas you cover are yours to change:",
+          "No hard feelings and nothing to do. For future ones, the one-click link in the email is all we need — either answer keeps this from happening.",
+          "",
+          "And if leads are arriving at the wrong times or in the wrong areas, the areas you cover are yours to change:",
           siteLink(`/owner/business/${a.businessId}/areas`),
         ].join("\n"),
         { purpose: "enquiries" },
