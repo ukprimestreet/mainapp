@@ -119,6 +119,50 @@ Seven boroughs is roughly 2 million people. Two paying businesses per lead is im
 
 That honours the decision as made: the market is the whole of East London, and the switch for each part of it is provider supply rather than a smaller plan.
 
+## D7 — everything we build must be indexable, supply or no supply
+
+**Decided by the owner, 1 November 2026, verbatim:** *"everything you are building must be indexeble. it
+doesnt matter if we have suppliers in that area or not. if a job comes i can always check online to find
+suppliers quickly."*
+
+**What this overrides.** Two things I built the other way round:
+
+1. **`MIN_BUSINESSES = 3` in `src/lib/seo-engine.ts`.** Today a location, category or location×category page
+   is refused the index until three real businesses sit on it, and `count === 0` is refused even with a
+   manual override. Under D7, supply stops being the test.
+2. **The supply gate on `/get-quotes`.** The form currently tells a customer "we do not have anyone listed
+   for this in X yet" and keeps the contact fields shut until they press "Send it anyway". Under D7 that is
+   the wrong default: the owner sources a provider manually when a job arrives, so a captured job is a job
+   that gets done.
+
+**One thing it does not override, and I need to say so plainly.** Private pages stay out of the index: a
+customer's own job request (`/get-quotes/sent`, `/lead/<id>/<token>`), registration confirmations, and
+everything under `/owner` and `/admin`. Indexing one person's enquiry would publish their name, phone number
+and the job they need doing. I have read D7 as "every page we want found must be findable", not "every URL".
+
+**The risk I owe you, once, and then I will build it as decided.** The thing that gets a directory
+de-indexed wholesale is thousands of near-identical pages with nothing on them — and seven boroughs × ~700
+localities × 18 trades is 88,000 URLs. Dropping the business count and changing nothing else would create
+exactly that pattern, and your own brief forbids thin SEO pages for the same reason.
+
+**So the gate changes from "has suppliers" to "has substance".** A page earns the index by being genuinely
+useful to somebody who lands on it — real information about that trade in that area, and a working quote
+form that reaches a person — rather than by having three listings. That satisfies D7 as given: supply is no
+longer the test. It also keeps the one protection that matters, which is that the page has to be worth
+reading.
+
+**What that means in work:**
+
+| | |
+|---|---|
+Rewrite the gate | supply out, substance in; `count === 0` no longer an automatic refusal |
+Real intro copy for the 18 trade categories | the blocker I have named in four batch reports. Genuine, checkable copy — what the job involves, what to check, what it typically costs — not filler to pass a length test |
+Decide the location granularity we publish | borough × trade is ~126 substantial pages and defensible. Locality × trade is 88,000 and is not, unless each one says something true about that locality |
+Say on the page what we actually know | "We will find you businesses for this" is honest when you will source them. "Two local businesses cover this area" is not, when nobody does |
+Re-run the SEO audit | it currently passes partly because these pages are excluded from the index |
+
+Not started: it is a batch, and it needs your authorisation.
+
 ## Also waiting on you, but not decisions
 
 | | Why it matters |
