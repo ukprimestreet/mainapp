@@ -1,5 +1,5 @@
 import { db } from "../src/lib/db";
-import { LOCCAT_RICH_COUNT, MIN_BUSINESSES, MIN_INTRO_CHARS, decideBusiness, decideCategory, decideLocCat, decideLocation, listingMetadata, resolveIntro } from "../src/lib/seo-engine";
+import { MIN_INTRO_CHARS, SUBSTANTIAL_LISTING, decideBusiness, decideCategory, decideLocCat, decideLocation, listingMetadata, resolveIntro } from "../src/lib/seo-engine";
 import { checkRedirect, createRedirect, normalisePath, resolveRedirect } from "../src/lib/redirects";
 import { urlsetXml, indexXml } from "../src/lib/sitemaps";
 
@@ -9,19 +9,35 @@ const intro = "x".repeat(MIN_INTRO_CHARS);
 const shortIntro = "x".repeat(MIN_INTRO_CHARS - 1);
 
 (async () => {
-  // ---- gate: areas / categories
-  t("area: enough businesses + intro → index", decideLocation(MIN_BUSINESSES, intro).index);
-  t("area: 2 businesses → noindex, says how many more", (() => { const v = decideLocation(MIN_BUSINESSES - 1, intro); return !v.index && v.needs[0].includes("1 more real business"); })());
-  t("area: intro one char short → noindex", !decideLocation(10, shortIntro).index && !decideLocation(10, null).index && !decideLocation(10, "   ").index);
-  t("area: zero businesses → noindex even when forced INDEX", !decideLocation(0, intro, { robots: "INDEX" }).index);
-  t("area: INDEX override unlocks thin-but-nonempty page", decideLocation(1, null, { robots: "INDEX" }).index);
-  t("area: NOINDEX override beats a perfect page", !decideLocation(50, intro, { robots: "NOINDEX" }).index);
-  t("category uses the same rule", decideCategory(5, intro).index && !decideCategory(5, null).index);
-  // ---- gate: area × category
-  t("area×cat: 3 businesses without intro → noindex", !decideLocCat(3, null).index);
-  t("area×cat: 3 businesses WITH intro → index", decideLocCat(3, intro).index);
-  t(`area×cat: ${LOCCAT_RICH_COUNT}+ businesses need no intro`, decideLocCat(LOCCAT_RICH_COUNT, null).index && !decideLocCat(LOCCAT_RICH_COUNT - 1, null).index);
-  t("area×cat: fewer than 3 never indexed without override", !decideLocCat(2, intro).index);
+  /**
+   * ---- the gate: substance, not supply (decision D7, 1 November 2026)
+   *
+   * These assertions used to read "enough real businesses AND an original intro", and zero businesses was
+   * refused even with a manual override. The owner's instruction is that supply is not the test: a job from
+   * an area we do not cover is one they source a provider for, so a page must not wait on listings to be
+   * findable.
+   *
+   * What is left is the protection that matters — a page with nothing on it stays out — because thousands
+   * of near-identical empty pages is what gets a directory demoted wholesale.
+   */
+  t("area: an intro and no businesses at all → INDEX", decideLocation(0, intro).index,
+    "D7: supply is not the test");
+  t("area: businesses and no intro → index, because the listing IS the substance", decideLocation(SUBSTANTIAL_LISTING, null).index);
+  t("area: nothing at all → noindex", !decideLocation(0, null).index);
+  t("…and it says what is missing, in either direction", (() => {
+    const v = decideLocation(1, null);
+    return !v.index && /original intro/i.test(v.needs[0]) && /more real business/i.test(v.needs[0]);
+  })());
+  t("area: an intro one character short is not an intro", !decideLocation(1, shortIntro).index && !decideLocation(0, "   ").index);
+  t("area: one business and real copy → index", decideLocation(1, intro).index);
+  t("area: INDEX override still unlocks an empty page", decideLocation(0, null, { robots: "INDEX" }).index);
+  t("area: NOINDEX override still beats a perfect page", !decideLocation(50, intro, { robots: "NOINDEX" }).index);
+  t("category uses the same rule", decideCategory(0, intro).index && !decideCategory(0, null).index);
+  // ---- gate: area × category — the same test, and the one with real volume behind it
+  t("area×cat: copy and no businesses → index", decideLocCat(0, intro).index);
+  t(`area×cat: ${SUBSTANTIAL_LISTING} businesses without an intro → index`, decideLocCat(SUBSTANTIAL_LISTING, null).index);
+  t("area×cat: two businesses and no words → noindex", !decideLocCat(2, null).index,
+    "this is the one that stops seven boroughs × seven hundred localities × eighteen trades becoming 88,000 empty pages");
   // ---- gate: business
   const biz = { isSample: false, published: true, description: "d".repeat(120), phone: null, website: null, openingHours: null, services: null, imageUrl: null, ratingCount: 0 };
   t("business: long real description → index", decideBusiness(biz).index);

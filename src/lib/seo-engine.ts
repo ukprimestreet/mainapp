@@ -6,11 +6,32 @@ import { abs } from "./seo";
 /**
  * THE quality gate. Pages, sitemaps and the admin "index health" screen all call these functions, so what we tell
  * search engines (meta robots) can never drift from what we list in the sitemap.
+ *
+ * **Decision D7 (1 November 2026) changed what the gate tests.** It used to require real businesses on the
+ * page: three, and zero was refused even with a manual override. The owner's instruction is that supply is
+ * not the test — a job that arrives in an area we do not cover is a job they source a provider for — so a
+ * page must no longer wait on listings to be findable.
+ *
+ * What replaces it is **substance**. A page is indexed when somebody landing on it gets something worth
+ * having: either original editorial copy about that trade or area, or enough real businesses that the
+ * listing itself is the substance. Either is enough; neither being present is not.
+ *
+ * That is the one protection worth keeping. Supply is no longer a gate, but "a page with nothing on it" has
+ * to stay one, because thousands of near-identical empty pages is what gets a whole directory demoted — and
+ * it is what the brief forbids.
  */
-export const MIN_BUSINESSES = 3; // real (non-sample) published businesses an area/category page needs before it may be indexed
+/** Real businesses that make a listing substantial on its own, with no editorial copy needed. */
+export const SUBSTANTIAL_LISTING = 3;
 export const MIN_INTRO_CHARS = 100; // original editorial intro needed for area / category pages
-export const LOCCAT_RICH_COUNT = 5; // an area×category page with this many businesses is valuable even without a custom intro
 export const PAGE_SIZE = 24;
+
+/**
+ * @deprecated D7: supply is no longer a condition of being indexed. Kept as the "substantial listing"
+ * threshold so existing callers keep compiling and reading sensibly; prefer `SUBSTANTIAL_LISTING`.
+ */
+export const MIN_BUSINESSES = SUBSTANTIAL_LISTING;
+/** @deprecated D7: an area×category page no longer needs a business count at all. */
+export const LOCCAT_RICH_COUNT = SUBSTANTIAL_LISTING;
 
 export type Verdict = { index: boolean; reasons: string[]; needs: string[] };
 type Override = { robots: string; intro?: string | null } | null | undefined;
@@ -22,20 +43,39 @@ export const resolveIntro = (override: { intro?: string | null } | null | undefi
   return v || null;
 };
 
-function finish(v: Verdict, count: number, override: Override): Verdict {
+function finish(v: Verdict, _count: number, override: Override): Verdict {
   if (override?.robots === "NOINDEX") return { index: false, reasons: ["Manually set to noindex"], needs: [] };
-  if (count === 0) return { index: false, reasons: ["No real businesses yet"], needs: ["Add real businesses"] };
+  // No "count === 0" refusal any more: D7. An empty area with real copy about that area is a page worth
+  // landing on; an empty area with nothing on it is refused below, for being empty rather than for being
+  // unsupplied.
   if (override?.robots === "INDEX") return { index: true, reasons: ["Manually forced to index (quality checks overridden)"], needs: [] };
   return v;
 }
 
-export function decideLocation(count: number, intro: string | null, override?: Override): Verdict {
-  const needs: string[] = [], reasons: string[] = [];
-  if (count < MIN_BUSINESSES) { needs.push(`${plural(MIN_BUSINESSES - count, "more real business")}`); reasons.push(`Only ${count} real business${count === 1 ? "" : "es"} (need ${MIN_BUSINESSES})`); }
-  if (introLength(intro) < MIN_INTRO_CHARS) { needs.push(`Original intro of ${MIN_INTRO_CHARS}+ characters`); reasons.push("No original intro"); }
-  return finish({ index: !needs.length, reasons: needs.length ? reasons : ["Passes quality gate"], needs }, count, override);
+/**
+ * Substance, either way round: original copy, or a listing big enough to be the content itself.
+ */
+function decideBySubstance(count: number, intro: string | null, override: Override, what: string): Verdict {
+  const hasIntro = introLength(intro) >= MIN_INTRO_CHARS;
+  const hasListing = count >= SUBSTANTIAL_LISTING;
+  if (hasIntro || hasListing) {
+    return finish({
+      index: true,
+      reasons: [hasIntro ? "Has an original intro" : `${plural(count, "real business")} listed`],
+      needs: [],
+    }, count, override);
+  }
+  return finish({
+    index: false,
+    reasons: [`Nothing on the page yet: no original intro, and ${count === 0 ? "no businesses" : plural(count, "business")}`],
+    needs: [`Original intro of ${MIN_INTRO_CHARS}+ characters about ${what}, or ${plural(SUBSTANTIAL_LISTING - count, "more real business")}`],
+  }, count, override);
 }
-export const decideCategory = decideLocation; // same rule: enough real businesses + original intro
+
+export const decideLocation = (count: number, intro: string | null, override?: Override): Verdict =>
+  decideBySubstance(count, intro, override, "this area");
+export const decideCategory = (count: number, intro: string | null, override?: Override): Verdict =>
+  decideBySubstance(count, intro, override, "this kind of work");
 
 /** A city hub needs real businesses and an original intro, and a city we have not launched is never indexed. */
 export function decideCity(count: number, intro: string | null, status: string, override?: Override): Verdict {
@@ -43,12 +83,13 @@ export function decideCity(count: number, intro: string | null, status: string, 
   return decideLocation(count, intro, override);
 }
 
-export function decideLocCat(count: number, intro: string | null, override?: Override): Verdict {
-  const needs: string[] = [], reasons: string[] = [];
-  if (count < MIN_BUSINESSES) { needs.push(`${plural(MIN_BUSINESSES - count, "more real business")}`); reasons.push(`Only ${count} real business${count === 1 ? "" : "es"} (need ${MIN_BUSINESSES})`); }
-  else if (introLength(intro) < MIN_INTRO_CHARS && count < LOCCAT_RICH_COUNT) { needs.push(`Original intro of ${MIN_INTRO_CHARS}+ characters, or ${plural(LOCCAT_RICH_COUNT - count, "more business")}`); reasons.push("Thin: few businesses and no original intro"); }
-  return finish({ index: !needs.length, reasons: needs.length ? reasons : ["Passes quality gate"], needs }, count, override);
-}
+/**
+ * Area × trade. The same substance test, and the one place where the volume risk is real: seven boroughs by
+ * seven hundred localities by eighteen trades is tens of thousands of URLs, so one of the two has to be
+ * true about each of them before it goes in the index.
+ */
+export const decideLocCat = (count: number, intro: string | null, override?: Override): Verdict =>
+  decideBySubstance(count, intro, override, "this trade in this area");
 
 type BizLike = { isSample: boolean; published: boolean; description: string; phone: string | null; website: string | null; openingHours: string | null; services: string | null; imageUrl: string | null; ratingCount: number };
 /** A profile is "thin" when it has barely more than a name: short description and no phone/website/hours/services/photo/reviews. */
@@ -144,7 +185,10 @@ export async function collectIndexable(): Promise<IndexableSet> {
       for (const c of categories) {
         const lp = `/locations/${city.slug}/${l.slug}/${c.slug}`;
         const n = counts.byLocCat.get(`${l.id}:${c.id}`) ?? 0;
-        if (n && decideLocCat(n, resolveIntro(ov.get(lp), null), ov.get(lp)).index) locEntries.push({ path: lp, priority: 0.6 });
+        // The `n &&` guard that used to be here excluded an area × trade page for having no businesses,
+        // before the gate was even consulted — D7 removes that. The gate still refuses one with nothing on
+        // it, which is what keeps this loop from emitting tens of thousands of URLs.
+        if (decideLocCat(n, resolveIntro(ov.get(lp), null), ov.get(lp)).index) locEntries.push({ path: lp, priority: 0.6 });
       }
     }
     for (const c of categories) {

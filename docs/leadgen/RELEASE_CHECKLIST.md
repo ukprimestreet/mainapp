@@ -26,6 +26,7 @@ npm run matching:ddl -- --schema=public
 npm run notify:ddl   -- --schema=public
 npm run credits:ddl  -- --schema=public
 npm run response:ddl -- --schema=public
+npm run geo:intros   -- --schema=public
 npm run schema:check -- --all
 npm run release:check -- --schema=public
 ```
@@ -147,9 +148,8 @@ now plain text rather than a link to nowhere.
 
 ## What is NOT a blocker, and why
 
-- **The 18 trade categories have no intro copy**, so they are usable for matching and browsing but refused by
-  the SEO gate for indexing. That is the gate working. Writing filler to make them rank is the thin-content
-  behaviour the brief forbids; somebody has to write something true first.
+- ~~The 18 trade categories have no intro copy~~ — **done, 1 November 2026.** All 18 have real intros and are
+  indexable. They need running against production: `npm run geo:intros -- --schema=public`.
 - **Nearby work reaches nobody** until businesses opt in, by design.
 - **No lead detail notifications to the customer when a business is assigned.** The confirmation page names
   them; a second email saying the same thing is noise.

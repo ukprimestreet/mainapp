@@ -45,7 +45,8 @@
     "test:e2e:credits": "node scripts/e2e-credits.mjs",
     "start:e2e:credits": "MAIL_DOMAIN= MAIL_FROM= STRIPE_SECRET_KEY=sk_test_e2e STRIPE_WEBHOOK_SECRET=whsec_e2e_credits STRIPE_API_BASE=http://127.0.0.1:3997 next start -p 3418",
     "response:ddl": "tsx scripts/ddl-lead-response.ts",
-    "test:e2e:response": "node scripts/e2e-lead-response.mjs"
+    "test:e2e:response": "node scripts/e2e-lead-response.mjs",
+    "geo:intros": "tsx scripts/seed-trade-intros.ts"
   },
   "keywords": [],
   "author": "",

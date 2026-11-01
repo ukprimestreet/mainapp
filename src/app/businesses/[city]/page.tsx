@@ -7,7 +7,7 @@ import { businessInclude } from "@/lib/queries";
 import { breadcrumbLd, meta } from "@/lib/seo";
 import { JsonLd } from "@/components/ui";
 import { redirectIfMoved } from "@/lib/redirects";
-import { MIN_BUSINESSES, getSeoPage } from "@/lib/seo-engine";
+import { getSeoPage } from "@/lib/seo-engine";
 
 export const dynamic = "force-dynamic";
 type P = { params: Promise<{ city: string }> };
@@ -16,7 +16,8 @@ export async function generateMetadata({ params }: P) {
   const city = await db.city.findUnique({ where: { slug: (await params).city } });
   if (!city) return {};
   const [real, override] = await Promise.all([db.business.count({ where: { cityId: city.id, published: true, isSample: false } }), getSeoPage(`/businesses/${city.slug}`)]);
-  return meta({ title: override?.title?.trim() || `${city.name} businesses`, description: override?.description?.trim() || `Independent businesses across ${city.name}, by category.`, path: `/businesses/${city.slug}`, noindex: override?.robots === "NOINDEX" || (override?.robots !== "INDEX" && real < MIN_BUSINESSES) });
+  return meta({ title: override?.title?.trim() || `${city.name} businesses`, description: override?.description?.trim() || `Independent businesses across ${city.name}, by category.`, path: `/businesses/${city.slug}`, // D7: a city hub is not held back for want of listings. It is held back only if somebody says so.
+    noindex: override?.robots === "NOINDEX" });
 }
 
 export default async function CityPage({ params }: P) {

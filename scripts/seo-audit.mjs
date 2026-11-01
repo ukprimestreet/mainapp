@@ -70,12 +70,15 @@ const inMap = (p) => paths.includes(p);
 const bizPath = (b, cat = "cleaning") => `/businesses/london/${cat}/${b.slug}`;
 t("gate: Hackney area (6+ real, has intro) IS in sitemap", inMap("/locations/london/hackney"));
 t("gate: Hackney × cleaning (6 real ≥5) IS in sitemap (no custom intro needed)", inMap("/locations/london/hackney/cleaning"));
-t("gate: Hackney × cafes (3 real, no intro, <5) is NOT in sitemap", !inMap("/locations/london/hackney/cafes"));
-t("gate: Camden area (3 real but no intro) is NOT in sitemap", !inMap("/locations/london/camden"));
-t("gate: Camden × cleaning (3 real, no intro) is NOT in sitemap", !inMap("/locations/london/camden/cleaning"));
-t("gate: Lambeth × cleaning (1 real) is NOT in sitemap", !inMap("/locations/lambeth/cleaning"));
+// Decision D7 (1 November 2026): supply is no longer the gate, substance is. Three real businesses make a
+// listing substantial on its own, so these pages are now in the sitemap — and a page with neither copy nor
+// listings is still out, which is the assertion that stops 88,000 empty URLs.
+t("gate D7: Hackney × cafes (3 real, no intro) IS in sitemap — the listing is the substance", inMap("/locations/london/hackney/cafes"));
+t("gate D7: Camden area (3 real, no intro) IS in sitemap", inMap("/locations/london/camden"));
+t("gate D7: Camden × cleaning (3 real, no intro) IS in sitemap", inMap("/locations/london/camden/cleaning"));
+t("gate D7: Lambeth × cleaning (1 real, no intro) is still NOT in sitemap — nothing on the page", !inMap("/locations/lambeth/cleaning"));
 t("gate: cleaning category (≥3 real + SeoPage intro) IS in sitemap", inMap("/businesses/london/cleaning"));
-t("gate: cafes category (3 real, no intro) is NOT in sitemap", !inMap("/businesses/london/cafes"));
+t("gate D7: cafes category (3 real, short intro) IS in sitemap", inMap("/businesses/london/cafes"));
 t("gate: city hub /businesses/london IS in sitemap (≥3 real)", inMap("/businesses/london"));
 t("gate: thin profile NOT in sitemap, full profiles ARE", !inMap(bizPath(thin)) && inMap(bizPath(rated)));
 t("gate: sample data never in sitemap", !paths.some((p) => /brightwell|kiln-and-ember|inside-the-business/.test(p)));
@@ -85,7 +88,10 @@ t("gate: author with real articles listed", paths.some((p) => p.startsWith("/aut
 t("gate: no empty area×category page URLs or admin/owner/review URLs", !paths.some((p) => /^\/(admin|owner|review|reviews|claim\/status)/.test(p)));
 
 const robotsOf = (html) => html.match(/<meta name="robots" content="([^"]*)"/)?.[1] ?? "";
-for (const [p, label] of [["/locations/london/camden", "Camden area"], ["/locations/london/camden/cleaning", "Camden × cleaning"], ["/locations/london/hackney/cafes", "Hackney × cafes"], ["/businesses/london/cafes", "cafes category"], [bizPath(thin), "thin profile"], ["/businesses?q=clean", "filtered directory"], ["/locations/london/hackney?page=2", "paginated area page"], ["/podcast/seo-fx-ep-thin", "thin audio-only episode"], ["/podcast?format=video", "filtered podcast index"]]) {
+// What must still carry a noindex. The four area/category pages that used to be here are indexable under
+// D7; a thin PROFILE still is not, because a page that is one business's name and nothing else is thin
+// whatever the gate says about areas.
+for (const [p, label] of [[bizPath(thin), "thin profile"], ["/businesses?q=clean", "filtered directory"], ["/locations/london/hackney?page=2", "paginated area page"], ["/podcast/seo-fx-ep-thin", "thin audio-only episode"], ["/podcast?format=video", "filtered podcast index"]]) {
   const r = await get(p); const h = await r.text();
   t(`noindex consistency: ${label} is 200 + meta noindex`, r.status === 200 && robotsOf(h).includes("noindex"), `status=${r.status} robots="${robotsOf(h)}"`);
 }

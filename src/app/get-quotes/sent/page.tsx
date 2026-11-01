@@ -52,9 +52,9 @@ export default async function Sent({ searchParams }: { searchParams: Promise<{ r
               </>
             ) : job.providersAtCreation === 0 ? (
               <p className="mt-5 text-[15px]">
-                Being straight with you: we do not yet have anyone listed for this kind of work in your area.
-                We have your request and a person will look at it, but we cannot promise a quote. If you need
-                it done soon, do not wait on us.
+                Nobody is listed for this kind of work in your area yet, so a person here is going to go and
+                find somebody. That takes a little longer than usual, and we will come back to you either
+                way — including if we cannot get it done, because you should not be left guessing.
               </p>
             ) : (
               <p className="mt-5 text-[15px]">

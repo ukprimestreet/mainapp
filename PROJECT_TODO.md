@@ -207,6 +207,11 @@ A category is an editorial decision about what the directory covers and it chang
 - [ ] Legal review of the six items in `LEAD_ROUTING_AND_PRIVACY.md` §12 — the lawful basis for sharing contact details first
 - [ ] SPF, DKIM and DMARC on the sending domain
 - [ ] Retention deletion as a scheduled job, not a policy
+- [x] **D7: the gate tests substance, not supply** — `MIN_BUSINESSES` is no longer a condition, and a page with no businesses but real copy is indexed
+- [x] **Real intros for all 18 trade categories**, so every one of them is indexable. No invented prices; only checkable facts
+- [x] The quote form no longer talks a customer out of sending a job from an area nobody covers
+- [x] Indexable URLs: 48 → 70, with no page added that has nothing on it
+- [ ] Locality × trade pages need their own copy before they are worth publishing at scale — the gate allows them, nothing writes them yet
 - [ ] The editorial SEO backlog the audit reports (6 over-long titles and descriptions), which predates this work
 
 ## Phase G — original list

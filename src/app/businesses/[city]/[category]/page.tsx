@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BusinessCard } from "@/components/Cards";
 import { IntroBlock, Pagination, listingLd } from "@/components/Listing";
-import { Container, EmptyState, JsonLd, PageHeader, SectionHead } from "@/components/ui";
+import { Container, EmptyState, JsonLd, PageHeader, SectionHead, buttonClass } from "@/components/ui";
 import { db } from "@/lib/db";
 import { redirectIfMoved } from "@/lib/redirects";
 import { FeaturedSlot } from "@/components/Sponsored";
@@ -34,7 +34,12 @@ export async function generateMetadata({ params, searchParams }: P) {
   return listingMetadata({
     path: d.path, page, verdict: d.verdict, override: d.override,
     title: `${d.category.name} in ${d.city.name}`,
-    description: d.category.intro?.slice(0, 150) || `${d.total} ${d.category.name.toLowerCase()} ${d.total === 1 ? "business" : "businesses"} across ${d.city.name}. Profiles, reviews and local stories on PrimeStreet.`,
+    // Only use the intro as the description when there is enough of it to BE one. A one-line intro used to
+    // be harmless because the page was not indexed; under D7 it is, and a 40-character description is a
+    // wasted result in search. Below 70 characters we write a real sentence instead.
+    description: (d.category.intro ?? "").trim().length >= 70
+      ? d.category.intro!.trim().slice(0, 155)
+      : `${d.category.name} in ${d.city.name}: ${d.total ? `${d.total} ${d.total === 1 ? "business" : "businesses"} listed, p` : "p"}rofiles, reviews and local stories on PrimeStreet. Tell us about a job and we will find you somebody.`,
   });
 }
 
@@ -62,7 +67,18 @@ export default async function CategoryInCityPage({ params, searchParams }: P) {
         )}
         {page === 1 && <FeaturedSlot categoryId={category.id} />}
         <section><SectionHead title={`${total} ${total === 1 ? "business" : "businesses"}`} />
-          {items.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{items.map((b) => <BusinessCard key={b.id} b={b} />)}</div> : <EmptyState title="No businesses in this category yet" />}
+          {items.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{items.map((b) => <BusinessCard key={b.id} b={b} />)}</div> : (
+            /* Not a dead end: somebody who landed here wants this work doing, and we will go and find
+               them somebody (D7). The page says what it has — which is no listings yet — and still does
+               the useful thing. */
+            <EmptyState
+              title={`No ${category.name.toLowerCase()} businesses listed in ${city.name} yet`}
+              action={<Link href="/get-quotes" className={buttonClass()}>Tell us what you need</Link>}
+            >
+              Tell us about the job and a person here will find businesses who can do it. It is free, and
+              your details go no further than the businesses we pass it to.
+            </EmptyState>
+          )}
           <Pagination basePath={path} page={page} pages={pages} />
         </section>
         {otherCats.length > 0 && <nav aria-label="Other categories"><SectionHead title="Other categories" href={`/businesses/${city.slug}`} linkText={`All of ${city.name}`} />

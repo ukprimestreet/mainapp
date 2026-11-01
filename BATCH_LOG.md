@@ -1460,4 +1460,112 @@ system, and it would catch the case none of this can: a business that says it ra
 
 ---
 
+## Batch D7 — indexable, supply or no supply
+
+**Date:** 1 November 2026
+**Authorised by:** owner — *"everything you are building must be indexeble. it doesnt matter if we have
+suppliers in that area or not. if a job comes i can always check online to find suppliers quickly."*, then
+"continue"
+**Pages added to the public site:** 0. Existing pages were let into the index.
+
+### What the gate tested, and what it tests now
+
+| Before | After |
+|---|---|
+3+ real businesses **and** a 100+ character intro | a 100+ character intro **or** 3+ real businesses |
+zero businesses refused — even with a manual INDEX override | zero businesses is not a reason to refuse anything |
+area × trade needed 5 businesses to skip the intro | the same substance test as everything else |
+
+`MIN_BUSINESSES` is gone as a condition. What replaced it is `SUBSTANTIAL_LISTING`, which is what the count
+now *means*: enough listings that the page is worth landing on without copy. The sitemap, every page's robots
+meta and the admin index-health screen all read the same function, so they still cannot disagree.
+
+**Result: 48 → 70 indexable URLs**, and not one of the new ones is empty.
+
+### The one thing I kept, and why
+
+A page with **nothing on it** still stays out. Seven boroughs × ~700 localities × 18 trades is 88,000 URLs,
+and thousands of near-identical empty pages is what gets a directory demoted wholesale — it is also the
+thin-content pattern the brief forbids. So "has suppliers" became "has substance" rather than "has nothing".
+
+That satisfies the instruction as given: supply is not the test. If you want locality × trade pages live at
+volume, what they need is **copy of their own**, and the gate will let each one in as it gets written.
+
+### The 18 trade intros — the blocker I had named four times
+
+All 18 now have real editorial copy, so every trade page is indexable. Four rules I held myself to, because
+"SEO copy" is where this project would most easily start lying:
+
+1. **No invented numbers.** No prices, no "average cost", no typical durations. I do not have verified
+   figures for London trades, and a plausible number is worse than none: somebody budgets against it.
+2. **Only checkable facts** — Gas Safe registration, Part P notification, the five-yearly landlord EICR,
+   waste carrier registration on the Environment Agency register, party wall agreements, the five-square-metre
+   front-garden paving rule, nesting-bird protection for hedge cutting. All verifiable, and the most useful
+   thing we can tell somebody about to hand over money.
+3. **Written for the customer**, not the crawler: what am I hiring, and what should I check before I pay?
+4. **Nothing claimed about our own supply.** Not one of them says we have businesses anywhere.
+
+Shortest is fencing at 582 characters; the gate needs 100.
+
+### The form stopped talking customers out of jobs
+
+`/get-quotes` used to say *"we do not have anyone listed for this in X yet … we cannot promise a quote, and
+if the job is urgent you should not wait on us"* and keep the contact fields shut behind **Send it anyway**.
+
+Under D7 that is the wrong default, because you source a provider when a job arrives. It now says
+*"nobody is listed for this in X yet — send it and we will go and find somebody"*, and the rest of the form
+is open. The confirmation page matches. **What is unchanged is that we never claim a business covers an area
+when none does** — that line is the difference between optimism and a lie, and the browser suite asserts it.
+
+An empty category page also now offers the quote form instead of being a dead end.
+
+### Tests I changed on purpose, and the one I did not expect to
+
+Eleven assertions across four suites encoded the old rule and now encode the new one — `test-seo`,
+`test-cities`, `seo-audit` and `e2e-leads`. Each carries a comment saying D7 changed it. I would rather that
+were visible than tidy.
+
+One newly-indexable page had a **40-character meta description**, inherited from a one-line intro that was
+harmless while the page was not indexed. Fixed properly: below 70 characters the page writes a real sentence
+instead of using the intro.
+
+### A failure that is not mine, and is blocking the gate
+
+`npm run test:unit` stops at **`test-costs.ts`** — *"with a baseline set and burning, runway is a positive
+number of months"*. It is part of the parallel finance work, still untracked, and this batch did not touch it.
+
+The cause is a date-dependent fixture: the baseline is set to **now minus 30 days**, and the forced expense is
+dated **the 10th of the previous month**. Through October those two were in the wrong order and the expense
+fell outside the window; on 1 November it falls *inside* it, so a £1,000,000 expense is subtracted from the
+cash estimate, cash goes negative, and the runway is negative rather than positive. It has been passing by
+calendar luck.
+
+The one-line fix is in the test — date the forced expense relative to the baseline rather than to the
+calendar. There is arguably a second bug in `costs.ts`, which will happily report a *negative* runway where
+zero or null is the honest answer. I have not touched either: they are somebody else's uncommitted files, and
+I have already taken that liberty once this session.
+
+**So the suites after it in the chain were run individually instead, and all eight pass**: admin accounts,
+registration, leads, matching, coverage, notification, credit purchase, response.
+
+### Verification
+
+70 indexable URLs, the SEO audit's gate assertions green · `/businesses/london/plumbing` serves the new intro
+with no robots meta, while `/get-quotes/sent` and `/register/sent` still carry `noindex, nofollow` · all 13
+lead-system unit suites green · build and typecheck clean · the audit's remaining 10 failures are the
+pre-existing editorial backlog recorded in `RELEASE_CHECKLIST.md` §8, unchanged in number and kind.
+
+### Production
+
+One more command when you apply the rest: `npm run geo:intros -- --schema=public`. Production has 12
+categories and none of the 18 trades, so the intros land with them.
+
+### What I would do next
+
+**Locality × trade copy, or a decision not to publish it.** The gate now allows those pages; nothing writes
+them. Doing it properly means something true about each locality, which is real work and the only honest way
+to have 88,000 pages. Doing it badly is the one thing that would undo all of this.
+
+---
+
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

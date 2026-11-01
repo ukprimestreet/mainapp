@@ -34,8 +34,6 @@ export function QuoteForm({ categories, boroughs, formToken }: { categories: Opt
   const [placeId, setPlaceId] = useState("");
   const [supply, setSupply] = useState<Supply | null>(null);
   const [checking, setChecking] = useState(false);
-  /** Set only by the customer, after being told nobody covers their area. */
-  const [anyway, setAnyway] = useState(false);
 
   const borough = boroughs.find((b) => b.id === boroughId);
   const err = state.errors ?? {};
@@ -45,7 +43,6 @@ export function QuoteForm({ categories, boroughs, formToken }: { categories: Opt
     if (!categoryId || !placeId) { setSupply(null); return; }
     let cancelled = false;
     setChecking(true);
-    setAnyway(false); // a new trade or area is a new question; the last answer does not carry over
     fetch("/api/jobs/supply", {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ categoryId, placeId }),
@@ -57,9 +54,15 @@ export function QuoteForm({ categories, boroughs, formToken }: { categories: Opt
     return () => { cancelled = true; };
   }, [categoryId, placeId]);
 
-  // Ready means: we have answered the supply question, and the customer has accepted the answer. A bad
-  // answer they have not seen yet is not a reason to start collecting their details.
-  const ready = !!categoryId && !!placeId && !checking && !!supply?.ok && (supply.state !== "none" || anyway);
+  /**
+   * Ready means: they have told us what they need and where.
+   *
+   * It used to also require that somebody already covered the area, with the rest of the form shut behind a
+   * "Send it anyway" button. **Decision D7 removed that**: a job from an area we do not yet cover is a job
+   * PrimeStreet sources a provider for, so talking the customer out of sending it was the wrong default.
+   * What stays is that we never claim to have businesses we do not have — see the message below.
+   */
+  const ready = !!categoryId && !!placeId && !checking && !!supply?.ok;
 
   return (
     <form action={action} className="space-y-10">
@@ -110,20 +113,14 @@ export function QuoteForm({ categories, boroughs, formToken }: { categories: Opt
             </p>
           )}
           {!checking && supply?.ok && supply.state === "none" && (
-            <div role="alert" className="rounded-xl border-2 border-red-700 p-4 text-[15px]">
-              <p>
-                <strong>We do not have anyone listed for this in {supply.place} yet.</strong> You can still
-                send it — it tells us where to look for businesses, and a person will read it — but we cannot
-                promise you a quote, and if the job is urgent you should not wait on us.
-              </p>
-              {/* Nobody hands over a phone number before being told this. The rest of the form stays shut
-                  until they have said they want to send it anyway. */}
-              {!anyway && (
-                <button type="button" onClick={() => setAnyway(true)} className="mt-4 min-h-11 rounded-full border-2 border-ink px-5 font-bold transition hover:bg-mist">
-                  Send it anyway
-                </button>
-              )}
-            </div>
+            <p className="rounded-xl border-2 border-ink p-3 text-[15px]">
+              {/* No business is claimed here, because none is listed. What is promised is what actually
+                  happens: a person goes and finds one. Saying "we have nobody" and offering a "send it
+                  anyway" button talked people out of jobs we could have got done. */}
+              <strong>Nobody is listed for this in {supply.place} yet — send it and we will go and find
+              somebody.</strong> A person reads every request. You will hear either from a business or from
+              us, and your details go no further than the businesses we pass it to.
+            </p>
           )}
         </div>
       </section>

@@ -51,10 +51,13 @@ async function main() {
 
   // ---------------- quality gate ----------------
   t("a city that has not launched is never indexed, however much content it has", !decideCity(500, LONG, "COMING_SOON").index && decideCity(500, LONG, "COMING_SOON").reasons[0].includes("not launched"));
-  t("a live city still needs real businesses and an intro", !decideCity(0, LONG, "LIVE").index && !decideCity(10, null, "LIVE").index && !decideCity(1, LONG, "LIVE").index && decideCity(3, LONG, "LIVE").index);
+  // D7: a live city hub needs SUBSTANCE, not supply — copy of its own, or enough listings to be the copy.
+  t("a live city with real copy is indexed even with no businesses", decideCity(0, LONG, "LIVE").index);
+  t("…and with businesses and no copy, because the listing is the substance", decideCity(3, null, "LIVE").index);
+  t("…but a live city with neither stays out", !decideCity(0, null, "LIVE").index);
   t("coming soon beats a manual force-to-index, so empty cities can't be forced into search", !decideCity(5, LONG, "COMING_SOON", { robots: "INDEX" }).index);
   t("a live city can be forced or suppressed manually", decideCity(1, null, "LIVE", { robots: "INDEX" }).index && !decideCity(50, LONG, "LIVE", { robots: "NOINDEX" }).index);
-  t("neighbourhoods use the same rule as boroughs: no intro, no index", !decideLocation(10, null).index && decideLocation(10, LONG).index);
+  t("neighbourhoods use the same rule as boroughs", decideLocation(0, LONG).index && !decideLocation(0, null).index);
 
   // ---------------- real data ----------------
   const london = (await db.city.findUnique({ where: { slug: "london" } }))!;

@@ -90,7 +90,7 @@ async function customerAsks(page, { trade, borough, locality, email, description
   await page.select("#placeId", locality);
   await page.waitForFunction(() => !/Checking who covers/.test(document.body.innerText), { timeout: 20000 });
   const supply = await text(page);
-  if (/do not have anyone listed/.test(supply)) await page.click('button::-p-text(Send it anyway)');
+  // D7 removed the "Send it anyway" wall: the form is open whether or not anybody covers the area.
   await page.type("#description", description);
   await page.type("#name", "Casey Tester");
   await page.type("#phone", "020 7946 0144");

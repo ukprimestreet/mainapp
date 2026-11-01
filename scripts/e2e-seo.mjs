@@ -30,7 +30,12 @@ const cleanup = async () => {
   await db.seoPage.deleteMany(); await db.redirect.deleteMany(); await db.auditLog.deleteMany({ where: { targetType: "Seo" } });
 };
 await cleanup();
-for (let i = 1; i <= 3; i++) await db.business.create({ data: { slug: `e2e-seo-camden-${i}`, name: `E2E Camden Cleaner ${i}`, summary: "Camden cleaning business for SEO tests.", description: "A locally run cleaning business with plenty of detail, serving homes and small offices in the borough for many years.", cityId: city.id, locationId: camden.id, categoryId: cat.id, isSample: false, phone: "020 7946 07" + i + "0" } });
+// TWO Camden businesses, not three. Under decision D7 three real listings are substance by themselves and
+// unlock the page on their own, which would leave nothing for the "write an intro to unlock it" test below
+// to prove. Two keeps the page below that line, so the only way in is the copy — which is what these admin
+// tools are for. Two rather than one because a later test renames a business onto `e2e-seo-camden-2` to
+// check that a duplicate slug is refused, and that slug has to exist for the refusal to mean anything.
+for (let i = 1; i <= 2; i++) await db.business.create({ data: { slug: `e2e-seo-camden-${i}`, name: `E2E Camden Cleaner ${i}`, summary: "Camden cleaning business for SEO tests.", description: "A locally run cleaning business with plenty of detail, serving homes and small offices in the borough for many years.", cityId: city.id, locationId: camden.id, categoryId: cat.id, isSample: false, phone: "020 7946 07" + i + "0" } });
 
 // ---- auth
 const anon = await fetch(BASE + "/admin/seo", { redirect: "manual" });
@@ -41,9 +46,11 @@ await Promise.all([page.click('form:has(#password) button'), page.waitForFunctio
 // ---- health table explains what's missing
 await go("/admin/seo");
 let tx = await text();
-t("health: lists Camden with 3 real businesses and what it needs", tx.includes("Camden") && tx.includes("Original intro of 100+ characters"));
-t("health: summary counts + threshold explained", tx.includes("Indexed landing pages") && tx.includes("3 real businesses"));
-t("Camden area page currently noindex and absent from sitemap", (await robotsOf("/locations/london/camden")).includes("noindex") && !(await sitemapPaths()).includes("/locations/london/camden"));
+t("health: lists Camden and what it needs — copy, since one listing is not substance", tx.includes("Camden") && tx.includes("Original intro of 100+ characters"));
+t("health: summary counts, and the D7 rule explained in both directions",
+  tx.includes("Indexed landing pages") && tx.includes("3 real businesses") && /no longer a\s+reason to hold a page back/i.test(tx.replace(/\s+/g, " ")));
+t("a page with one listing and no copy is noindex and absent from the sitemap — nothing on it (D7 still refuses that)",
+  (await robotsOf("/locations/london/camden")).includes("noindex") && !(await sitemapPaths()).includes("/locations/london/camden"));
 
 // ---- write an intro → page unlocks everywhere
 await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/london/camden")}`);

@@ -114,14 +114,22 @@ try {
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 900 });
 
-  // ================================================================ the form is honest about supply first
+  /**
+   * ================================================================ the form is honest about supply
+   *
+   * **Decision D7 changed this.** It used to say "we do not have anyone listed … you should not wait on us"
+   * and keep the contact fields shut behind a "Send it anyway" button. The owner sources a provider when a
+   * job arrives, so discouraging the customer was costing jobs we could have got done.
+   *
+   * What is still asserted is the honesty: we do not claim to have businesses we do not have.
+   */
   await chooseWork(page, { trade: bareTrade.id, borough: borough.id, locality: locality.id });
   const noSupply = await text(page);
-  t("with nobody covering the trade, the form says so", /do not have anyone listed/i.test(noSupply), noSupply.slice(0, 300));
-  t("…before asking for any contact details", (await page.$("#phone")) === null);
-  t("…and says not to wait on us if it is urgent", /should not wait on us/i.test(noSupply));
-  await page.click('button::-p-text(Send it anyway)');
-  t("…but somebody who has read that can still send it, and the signal is not lost", (await page.$("#phone")) !== null);
+  t("with nobody covering the trade, the form says so plainly", /nobody is listed for this/i.test(noSupply), noSupply.slice(0, 300));
+  t("…and says what actually happens next: we go and find somebody", /go and find somebody/i.test(noSupply));
+  t("…without claiming any business covers the area", !/businesses cover/i.test(noSupply));
+  t("…and the rest of the form is open, not hidden behind a warning", (await page.$("#phone")) !== null,
+    "D7: a job from an uncovered area is one we source a provider for");
 
   await chooseWork(page, { trade: trade.id, borough: borough.id, locality: locality.id });
   const thin = await text(page);
@@ -245,7 +253,7 @@ try {
   await db.business.update({ where: { id: supplier.id }, data: { published: false } });
   await chooseWork(page, { trade: trade.id, borough: borough.id, locality: locality.id });
   t("unpublishing the only provider changes what the form tells the next customer",
-    /do not have anyone listed/i.test(await text(page)));
+    /nobody is listed for this/i.test(await text(page)));
 
   await page.close();
 } finally {

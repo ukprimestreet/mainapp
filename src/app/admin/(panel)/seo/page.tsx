@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MIN_BUSINESSES, MIN_INTRO_CHARS, seoHealth } from "@/lib/seo-engine";
+import { MIN_INTRO_CHARS, SUBSTANTIAL_LISTING, seoHealth } from "@/lib/seo-engine";
 
 export default async function SeoHealth({ searchParams }: { searchParams: Promise<{ msg?: string; kind?: string; status?: string }> }) {
   const { msg, kind = "", status = "" } = await searchParams;
@@ -8,12 +8,21 @@ export default async function SeoHealth({ searchParams }: { searchParams: Promis
     .filter((r) => r.count > 0 || r.kind !== "Area" || kind === "Area" || status !== "")
     .sort((a, b) => Number(b.verdict.index) - Number(a.verdict.index) || b.count - a.count);
   const indexed = all.filter((r) => r.verdict.index).length;
-  const close = all.filter((r) => !r.verdict.index && r.count >= MIN_BUSINESSES && r.robots !== "NOINDEX");
+  // "Close" now means: not indexed, and the only thing missing is the words.
+  const close = all.filter((r) => !r.verdict.index && r.robots !== "NOINDEX");
   return (
     <>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3"><h1 className="text-3xl font-extrabold">SEO &amp; index health</h1>
         <Link href="/admin/seo/redirects" className="inline-flex min-h-11 items-center rounded-full border-2 border-ink px-5 font-bold">Redirects</Link></div>
-      <p className="mb-4 max-w-3xl text-grey">Area, category and area × category pages are only indexed when they have real value: at least <strong className="text-ink">{MIN_BUSINESSES} real businesses</strong> and an <strong className="text-ink">original intro of {MIN_INTRO_CHARS}+ characters</strong> (area × category pages with 5+ businesses are exempt). Sample data never counts. The same rule feeds the sitemap, so they can't disagree.</p>
+      <p className="mb-4 max-w-3xl text-grey">
+        Area, category and area × category pages are indexed when there is <strong className="text-ink">something on them worth landing on</strong>:
+        an <strong className="text-ink">original intro of {MIN_INTRO_CHARS}+ characters</strong>, <em>or</em> at
+        least <strong className="text-ink">{SUBSTANTIAL_LISTING} real businesses</strong>, whose listing is the
+        substance by itself. Either is enough. <strong className="text-ink">Having no businesses is no longer a
+        reason to hold a page back</strong> (decision D7) — a job from an area we do not yet cover is one we
+        source a provider for. Sample data never counts, and the same rule feeds the sitemap, so the two
+        cannot disagree.
+      </p>
       {msg && <p role="status" className="mb-4 rounded-lg bg-yellow px-4 py-2 font-bold">{msg}</p>}
       <dl className="mb-6 grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl bg-mist p-4"><dt className="text-sm font-bold">Indexed landing pages</dt><dd className="font-display text-3xl font-extrabold">{indexed}</dd></div>
