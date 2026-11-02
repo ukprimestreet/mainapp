@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BusinessCard } from "@/components/Cards";
 import { IntroBlock, Pagination, listingLd } from "@/components/Listing";
-import { Container, JsonLd, PageHeader, SectionHead } from "@/components/ui";
+import { Container, EmptyState, JsonLd, PageHeader, SectionHead, buttonClass } from "@/components/ui";
 import { db } from "@/lib/db";
 import { redirectIfMoved } from "@/lib/redirects";
 import { FeaturedSlot } from "@/components/Sponsored";
@@ -23,15 +23,18 @@ async function load(citySlug: string, areaSlug: string, category: string, page: 
   ]);
   if (!loc || !cat) return null;
   const where = { locationId: loc.id, categoryId: cat.id, published: true };
-  const total = await db.business.count({ where });
-  if (!total) return null; // area x category pages exist only when there is something to show
   const path = areaCatPath(city.slug, loc.slug, cat.slug);
-  const [override, counts, items] = await Promise.all([
-    getSeoPage(path), realCounts(),
-    db.business.findMany({ where, include: businessInclude, orderBy: [{ isFeatured: "desc" }, { ratingCount: "desc" }, { name: "asc" }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE }),
-  ]);
-  const real = counts.byLocCat.get(`${loc.id}:${cat.id}`) ?? 0;
+  const [override, counts, total] = await Promise.all([getSeoPage(path), realCounts(), db.business.count({ where })]);
   const intro = resolveIntro(override, null);
+  // This line used to read `if (!total) return null`, and D7 left it disagreeing with the sitemap: the
+  // sitemap stopped requiring businesses, so an area x trade page an administrator had unlocked with
+  // copy could be listed and then serve a 404. The page exists when there is something to show —
+  // listings, or copy somebody wrote about this trade in this area. Neither, and it is still nothing.
+  if (!total && !intro) return null;
+  const items = total
+    ? await db.business.findMany({ where, include: businessInclude, orderBy: [{ isFeatured: "desc" }, { ratingCount: "desc" }, { name: "asc" }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE })
+    : [];
+  const real = counts.byLocCat.get(`${loc.id}:${cat.id}`) ?? 0;
   return { city, loc, cat, path, override, items, total, intro, verdict: decideLocCat(real, intro, override) };
 }
 
@@ -42,7 +45,13 @@ export async function generateMetadata({ params, searchParams }: P) {
   return listingMetadata({
     path: d.path, page, verdict: d.verdict, override: d.override,
     title: `${d.cat.name} in ${d.loc.name}, ${d.city.name}`,
-    description: `${d.total} ${d.cat.name.toLowerCase()} ${d.total === 1 ? "business" : "businesses"} in ${d.loc.name}, ${d.city.name}. Compare local options with profiles, services and reviews on PrimeStreet.`,
+    // "0 plumbing businesses in Camden" is a true sentence and a terrible search result. With nothing
+    // listed, lead with the copy that unlocked the page, or say what the page actually does.
+    description: d.total
+      ? `${d.total} ${d.cat.name.toLowerCase()} ${d.total === 1 ? "business" : "businesses"} in ${d.loc.name}, ${d.city.name}. Compare local options with profiles, services and reviews on PrimeStreet.`
+      : (d.intro ?? "").trim().length >= 70
+        ? d.intro!.trim().slice(0, 155)
+        : `${d.cat.name} in ${d.loc.name}, ${d.city.name}. Tell us about the job and we will find you businesses who can do it.`,
   });
 }
 
@@ -65,7 +74,17 @@ export default async function AreaCategoryPage({ params, searchParams }: P) {
         <IntroBlock title={`${cat.name} in ${loc.name}`} text={page === 1 ? d.intro : null} />
         {page === 1 && <FeaturedSlot categoryId={cat.id} locationId={loc.id} heading={`Featured ${cat.name.toLowerCase()} in ${loc.name}`} />}
         <section><SectionHead title={`${total} ${total === 1 ? "business" : "businesses"}`} />
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{items.map((b) => <BusinessCard key={b.id} b={b} />)}</div>
+          {items.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{items.map((b) => <BusinessCard key={b.id} b={b} />)}</div> : (
+            /* D7: not a dead end. Somebody who got here wants this trade in this area, and whether we
+               happen to have anybody listed is our problem rather than theirs. */
+            <EmptyState
+              title={`No ${cat.name.toLowerCase()} businesses listed in ${loc.name} yet`}
+              action={<Link href="/get-quotes" className={buttonClass()}>Tell us what you need</Link>}
+            >
+              Tell us about the job and a person here will find businesses who can do it. It is free, and
+              your details go no further than the businesses we pass it to.
+            </EmptyState>
+          )}
           <Pagination basePath={path} page={page} pages={pages} />
         </section>
         <nav aria-label="Related pages" className="grid gap-10 md:grid-cols-2">

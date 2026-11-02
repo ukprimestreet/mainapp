@@ -163,6 +163,40 @@ Re-run the SEO audit | it currently passes partly because these pages are exclud
 
 Not started: it is a batch, and it needs your authorisation.
 
+## D8 — the granularity we publish: boroughs yes, neighbourhoods not yet
+
+**Mine to decide, 2 November 2026,** because D7 left it open and the work could not continue without an
+answer. D7 said everything we build must be indexable. It did not say what we build.
+
+D7 opened the gate and there was nothing to walk through it with: **every one of the 83 Location rows in
+the database had an empty intro**, so after D7 not one area page in London was indexable. The 48 → 70
+jump that batch reported came entirely from the 18 trade category pages. The area side was untouched.
+
+**What I have published: all 33 London boroughs, with real copy.** Not the seven we cover — all 33, which
+is D7 applied honestly: if supply is not the test, Bromley has as much claim to a page as Barking. Each
+one answers a question that genuinely has a different answer per borough — *what is different about
+getting work done here?* — from the building stock and what it implies, through conservation areas,
+listed buildings, leasehold consent, party wall agreements, skip licences, controlled parking and tree
+preservation orders. No invented numbers, nothing about our own supply.
+
+**What I have not published: the 50 neighbourhood pages, and area × trade at volume.** The reasoning is
+the same in both cases and it is not timidity:
+
+- A neighbourhood page has to say a neighbourhood-sized amount of true things. Fifty variations on "X is
+  an area of Y, which is in London" is the thin content the brief forbids, and publishing it would undo
+  D7 rather than serve it. A neighbourhood indexes the moment somebody writes real copy for it — the gate
+  already allows that, and the admin tools already do it.
+- Area × trade is the combinatorial one: 83 areas × 18 trades is 1,494 URLs today and far more once
+  localities replace boroughs. Those pages index on real listings or on copy somebody wrote, and nothing
+  generates them. The borough page and the city × trade page are the honest home for that search until
+  then.
+
+**The practical consequence for a customer is nil**, which is the test I applied: every London address
+sits in one of the 33 boroughs, so there is no area where somebody searching lands on nothing. What they
+lose is a page named after their street, and what they would have got was a page that said nothing.
+
+**Reverse this by writing copy, not by changing code.** The gate does not care where the words come from.
+
 ## Also waiting on you, but not decisions
 
 | | Why it matters |

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ArticleCard, BusinessCard } from "@/components/Cards";
 import { IntroBlock, Pagination, listingLd } from "@/components/Listing";
-import { Container, EmptyState, JsonLd, PageHeader, SectionHead } from "@/components/ui";
+import { Container, EmptyState, JsonLd, PageHeader, SectionHead, buttonClass } from "@/components/ui";
 import { db } from "@/lib/db";
 import { redirectIfMoved } from "@/lib/redirects";
 import { FeaturedSlot } from "@/components/Sponsored";
@@ -39,9 +39,14 @@ export async function generateMetadata({ params, searchParams }: P) {
   return listingMetadata({
     path: d.path, page, verdict: d.verdict, override: d.override,
     title: `Businesses in ${d.loc.name}, ${d.city.name}`,
+    // With nothing listed these pages used to carry a 46-character description, which was harmless while
+    // they were never indexed. Borough copy (D8) indexes them, so lead with that copy where there is
+    // enough of it to be a description in its own right.
     description: d.total
       ? `${d.total} local ${d.total === 1 ? "business" : "businesses"} in ${d.loc.name}${cats.length ? `, from ${cats.map((c) => c.name.toLowerCase()).join(", ")} and more` : ""}. Profiles, reviews and stories from PrimeStreet.`
-      : `Local businesses and stories from ${d.loc.name}, ${d.city.name}.`,
+      : (d.intro ?? "").trim().length >= 70
+        ? d.intro!.trim().slice(0, 155)
+        : `Getting work done in ${d.loc.name}, ${d.city.name}: local businesses, stories, and a free way to tell us about a job and have somebody find you a trade.`,
   });
 }
 
@@ -83,7 +88,19 @@ export default async function AreaPage({ params, searchParams }: P) {
         {page === 1 && <FeaturedSlot locationId={loc.id} heading={`Featured in ${loc.name}`} />}
         <section><SectionHead title={`${total} ${total === 1 ? "business" : "businesses"} in ${loc.name}`} />
           {items.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{items.map((b) => <BusinessCard key={b.id} b={b} />)}</div>
-            : <EmptyState title={`We haven't added businesses in ${loc.name} yet`} action={<Link href="/businesses/submit" className="font-bold underline">Know one? Suggest it</Link>}>This area is on our list.</EmptyState>}
+            : (
+              /* D7: "this area is on our list" is a shrug. The useful thing to offer somebody standing in
+                 an area we have nobody listed in is the job form, because we will go and find them
+                 somebody — suggesting a business stays available underneath it. */
+              <EmptyState
+                title={`No businesses listed in ${loc.name} yet`}
+                action={<Link href="/get-quotes" className={buttonClass()}>Tell us what you need</Link>}
+              >
+                Tell us about the job and a person here will find businesses who can do it — free, and your
+                details go no further than the businesses we pass it to. Know a good one in {loc.name}?{" "}
+                <Link href="/businesses/submit" className="font-bold underline">Suggest it</Link>.
+              </EmptyState>
+            )}
           <Pagination basePath={path} page={page} pages={pages} />
         </section>
         {articles.length > 0 && <section><SectionHead title={`Stories from ${loc.name}`} /><div className="grid gap-8 sm:grid-cols-3">{articles.map((a) => <ArticleCard key={a.id} a={a} />)}</div></section>}

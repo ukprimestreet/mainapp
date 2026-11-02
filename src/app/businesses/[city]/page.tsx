@@ -7,7 +7,7 @@ import { businessInclude } from "@/lib/queries";
 import { breadcrumbLd, meta } from "@/lib/seo";
 import { JsonLd } from "@/components/ui";
 import { redirectIfMoved } from "@/lib/redirects";
-import { getSeoPage } from "@/lib/seo-engine";
+import { decideCity, getSeoPage, resolveIntro } from "@/lib/seo-engine";
 
 export const dynamic = "force-dynamic";
 type P = { params: Promise<{ city: string }> };
@@ -16,8 +16,13 @@ export async function generateMetadata({ params }: P) {
   const city = await db.city.findUnique({ where: { slug: (await params).city } });
   if (!city) return {};
   const [real, override] = await Promise.all([db.business.count({ where: { cityId: city.id, published: true, isSample: false } }), getSeoPage(`/businesses/${city.slug}`)]);
-  return meta({ title: override?.title?.trim() || `${city.name} businesses`, description: override?.description?.trim() || `Independent businesses across ${city.name}, by category.`, path: `/businesses/${city.slug}`, // D7: a city hub is not held back for want of listings. It is held back only if somebody says so.
-    noindex: override?.robots === "NOINDEX" });
+  // D7 replaced this with `noindex: override?.robots === "NOINDEX"`, which took the hub out of the gate
+  // altogether — and with it the rule that has nothing to do with supply: a city we have not launched is
+  // never indexed. A coming-soon hub was being offered to search engines. Back through decideCity, which
+  // is the same function the sitemap and the health screen read, so the three cannot disagree.
+  const verdict = decideCity(real, resolveIntro(override, city.intro), city.status, override);
+  return meta({ title: override?.title?.trim() || `${city.name} businesses`, description: override?.description?.trim() || `Independent businesses across ${city.name}, by category.`, path: `/businesses/${city.slug}`,
+    noindex: !verdict.index });
 }
 
 export default async function CityPage({ params }: P) {

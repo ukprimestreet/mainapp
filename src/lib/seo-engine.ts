@@ -229,7 +229,11 @@ export async function seoHealth(): Promise<HealthRow[]> {
       rows.push({ path: p, kind: "Area", label: `${l.name}${l.kind === "NEIGHBOURHOOD" ? " (neighbourhood)" : ""}`, count: n, introChars: introLength(intro), verdict: decideLocation(n, intro, ov.get(p)), robots: ov.get(p)?.robots ?? "AUTO" });
       for (const c of categories) {
         const lp = `/locations/${city.slug}/${l.slug}/${c.slug}`, k = counts.byLocCat.get(`${l.id}:${c.id}`) ?? 0;
-        if (!k) continue;
+        // Area x trade is the one combination big enough to flood this screen (areas x trades), so it is
+        // listed only where there is something to manage: real listings, or an override somebody has
+        // already written. Without the second half an administrator could unlock one of these pages with
+        // copy and then never see it here again.
+        if (!k && !ov.get(lp)) continue;
         const li = resolveIntro(ov.get(lp), null);
         rows.push({ path: lp, kind: "Area × category", label: `${c.name} in ${l.name}`, count: k, introChars: introLength(li), verdict: decideLocCat(k, li, ov.get(lp)), robots: ov.get(lp)?.robots ?? "AUTO" });
       }

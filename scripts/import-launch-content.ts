@@ -5,6 +5,10 @@
  *  - A business is only included when its own site published BOTH a full address and a telephone number.
  *  - Every article lists its primary sources and the date the facts were checked.
  * Idempotent: upserts by slug, deletes nothing. Safe to re-run.
+ *
+ * One thing it does NOT preserve: it writes `authorId` back to the PrimeStreet Editorial account, so
+ * re-running it undoes `set-article-author.ts`. Run that straight afterwards, every time — the two are a
+ * pair, and the byline on six published articles is not something to discover has moved.
  */
 import { PrismaClient } from "@prisma/client";
 
@@ -66,9 +70,9 @@ const sources = (lines: string[]) =>
 const ARTICLES: A[] = [
   {
     slug: "checks-before-paying-a-deposit-london-trades", type: "GUIDE", days: 5, featured: true,
-    title: "Five checks before you pay a deposit to a London trade",
+    title: "Five checks before you pay a trade a deposit",
     standfirst: "A deposit is the moment you lose your leverage. These checks take about ten minutes and tell you more than any star rating will.",
-    seoDescription: "Before paying a builder, plumber or electrician in London: how to check the company exists, the registrations are real, the insurance is current and the quote is enforceable.",
+    seoDescription: "Before paying a builder, plumber or electrician in London: how to check the company exists, the registrations are real and the insurance is current.",
     body: [
       "Every bad building job in London has the same shape. A price that felt keen, a deposit paid in good faith, and then a slow realisation that the person holding your money is harder to reach than they were when they wanted it.",
       "Reviews will not protect you here. They are easy to buy, easy to farm from friends, and they tell you about jobs that are not yours. What protects you is ten minutes of checking before the money moves.",
@@ -104,7 +108,7 @@ const ARTICLES: A[] = [
     slug: "small-business-rates-london-explained", type: "GUIDE", days: 9,
     title: "Small business rates in London, explained",
     standfirst: "Rateable value is not your rent and not your turnover. Here is what the numbers on the bill mean, and the relief that can take it to zero.",
-    seoDescription: "How business rates work for small London businesses: rateable value, small business rate relief at the £12,000 and £15,000 thresholds, the higher London multi-property cap, and how to check your valuation.",
+    seoDescription: "How business rates work for small London businesses: rateable value, small business rate relief at the £12,000 and £15,000 thresholds, and how to check yours.",
     body: [
       "Business rates are the tax on occupying commercial property, and they are one of the largest fixed costs a small London business carries. They are also widely misunderstood, which costs people money in both directions: some pay a bill they are entitled not to pay, and others assume a relief applies when it does not.",
       "## Rateable value is an estimate of rent, not of you",
@@ -133,7 +137,7 @@ const ARTICLES: A[] = [
     slug: "when-to-register-for-vat-london-business", type: "GUIDE", days: 14,
     title: "When your business has to register for VAT",
     standfirst: "One threshold, two tests, and a rolling twelve months that is not your financial year. This is the rule that catches growing businesses out.",
-    seoDescription: "The UK VAT registration threshold is £90,000 of taxable turnover. How the rolling 12-month test and the 30-day forward test work, and what registering changes for a small business.",
+    seoDescription: "The UK VAT registration threshold is £90,000 of taxable turnover. How the rolling 12-month test and the 30-day forward test work, and what registering changes.",
     body: [
       "VAT registration is the first tax milestone most growing businesses hit, and the rule that trips people is not the threshold itself. It is the period the threshold is measured over.",
       "## The threshold and the two tests",
@@ -160,9 +164,9 @@ const ARTICLES: A[] = [
   },
   {
     slug: "why-local-business-data-online-is-wrong", type: "INSIGHT", days: 2, featured: true,
-    title: "We tried to verify 19 London businesses in an afternoon. Three passed",
+    title: "We checked 19 London businesses. Three passed",
     standfirst: "Not because the businesses are not real, but because the web makes verification oddly hard. What that gap does to local search, and how to check a listing yourself.",
-    seoDescription: "An attempt to verify 19 London businesses from their own websites produced three with both a full address and a phone number. Why local business data online is so often wrong.",
+    seoDescription: "Nineteen London businesses, checked against their own websites for a full address and a phone number. Three passed. Why local business data is so often wrong.",
     body: [
       "PrimeStreet has a rule about its directory: a business only goes in if its own website publishes the facts we list. Not a review site, not an aggregator, not a travel listicle. The company's own words about where it is and how to reach it.",
       "We set out to apply that rule to a batch of well-known independent London businesses. Nineteen companies, chosen because they plainly exist and are plainly independent. The result was worse than we expected.",
@@ -197,9 +201,9 @@ const ARTICLES: A[] = [
   },
   {
     slug: "registered-address-tells-you-less-than-you-think", type: "INSIGHT", days: 6,
-    title: "A registered address tells you less than you think",
+    title: "What a registered address really tells you",
     standfirst: "It is the most official-looking fact about a company and one of the least useful. What the register actually records, and what to read instead.",
-    seoDescription: "A company's registered office is where statutory mail goes, not where it trades. Why local business directories get this wrong, and what to check on Companies House instead.",
+    seoDescription: "A company's registered office is where statutory mail goes, not where it trades. Why directories get this wrong, and what to check on Companies House instead.",
     body: [
       "If you want to check a company, the register is the right place to start. But the field people reach for first, the registered address, answers a narrower question than it appears to, and in a city of 33 boroughs that narrowness matters.",
       "## What the register is for",
@@ -224,9 +228,9 @@ const ARTICLES: A[] = [
   },
   {
     slug: "mayor-of-london-business-support-what-exists", type: "INSIGHT", days: 11,
-    title: "What the Mayor's business support actually consists of",
+    title: "What the Mayor's business support consists of",
     standfirst: "Four named programmes sit behind City Hall's business pages. What is harder to find is how much money is attached and who qualifies.",
-    seoDescription: "The Mayor of London's business and economy pages name the London Growth Plan, Mayor's Challenge LDN, the Good Work Standard and the London Living Wage. What each is, and what the pages do not say.",
+    seoDescription: "City Hall names four things: the London Growth Plan, Mayor's Challenge LDN, the Good Work Standard and the London Living Wage. What each is, and what is not said.",
     body: [
       "If you run a small business in London and go looking for the support City Hall offers, you arrive at the Mayor's business and economy pages. They are a reasonable place to start, and they are also a good illustration of why public business support is hard to use.",
       "## What is named there",

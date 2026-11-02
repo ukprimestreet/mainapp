@@ -11,6 +11,8 @@ let fail = 0, warn = 0;
 const t = (n, c, detail = "") => { console.log(c ? "PASS" : "FAIL", n, c ? "" : detail); if (!c) fail++; };
 const w = (n, c, detail = "") => { if (!c) { console.log("WARN", n, detail); warn++; } };
 const local = (u) => u.replace(/^https?:\/\/[^/]+/, BASE);
+/** HTML entities back to the characters they stand for, so lengths are measured the way search engines see them. */
+const unescape_ = (s) => s.replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#x2F;/g, "/").replace(/&amp;/g, "&");
 const get = (p, opts = {}) => fetch(BASE + p, { redirect: "manual", headers: { "user-agent": "Mozilla/5.0 SEOAudit" }, ...opts });
 
 // ---------------- fixture ----------------
@@ -41,7 +43,10 @@ const thin = await db.business.create({ data: { slug: "seo-fx-thin", name: "Thin
 const rated = await db.business.findFirst({ where: { slug: { startsWith: "seo-fx-1-" } } });
 await db.review.create({ data: { businessId: rated.id, authorName: "Real Reviewer", authorEmail: "rr@example.com", authorEmailHash: "seo-fx-rr", rating: 5, title: "Great", body: "Genuinely excellent service from start to finish, would recommend.", status: "PUBLISHED", bodyHash: "seo-fx-1" } });
 await db.business.update({ where: { id: rated.id }, data: { ratingAvg: 5, ratingCount: 1, imageUrl: "https://images.example/hero.jpg" } });
-await db.location.update({ where: { id: hackney.id }, data: { intro: "Hackney is one of London's most active small-business boroughs, with independent cafes, cleaners and trades clustered around Broadway Market, Dalston and Stoke Newington." } });
+// The fixture needs Hackney to HAVE an intro; it does not need to own the words. Since D8 the boroughs
+// carry real editorial, so only fill this in when the borough is blank — otherwise a test run would
+// quietly replace a page's copy with a fixture sentence and leave it there.
+if (!(hackney.intro ?? "").trim()) await db.location.update({ where: { id: hackney.id }, data: { intro: "Hackney is one of London's most active small-business boroughs, with independent cafes, cleaners and trades clustered around Broadway Market, Dalston and Stoke Newington." } });
 await db.seoPage.create({ data: { path: "/businesses/london/cleaning", intro: "Cleaning is one of the most searched-for local services in London. This page lists independent domestic and commercial cleaners with profiles, services, areas covered and customer reviews." } });
 await db.article.create({ data: { slug: "seo-fx-news", type: "NEWS", title: "A new cleaning firm opens in Hackney", standfirst: "A locally owned firm has opened its doors serving homes and offices.", body: "x".repeat(400), status: "PUBLISHED", publishedAt: new Date(Date.now() - 86400000), authorId: author.id, isSample: false, locationId: hackney.id, imageUrl: "https://images.example/a.jpg", imageAlt: "A cleaner at work" } });
 await db.article.create({ data: { slug: "seo-fx-guide", type: "GUIDE", title: "How to choose a cleaner in East London", standfirst: "What to ask, what to check and what it should cost across the borough.", body: "y".repeat(400), status: "PUBLISHED", publishedAt: new Date(Date.now() - 2 * 86400000), authorId: author.id, isSample: false } });
@@ -109,11 +114,14 @@ for (const u of urls) {
   t(`${pre} indexable (no noindex)`, !rob.includes("noindex"), rob);
   const canon = h.match(/<link rel="canonical" href="([^"]+)"/)?.[1];
   t(`${pre} canonical = self`, canon === SITE + (p === "/" ? "" : p) || canon === SITE + p || canon === SITE + "/", `canonical=${canon}`);
-  const title = h.match(/<title>([^<]*)<\/title>/)?.[1] ?? "";
+  // Both of these were measured as raw HTML, so an apostrophe counted as the six characters of
+  // `&#x27;` and a title Google would see as 67 characters was failing a 70-character check at 73.
+  // Measure what a search engine measures.
+  const title = unescape_(h.match(/<title>([^<]*)<\/title>/)?.[1] ?? "");
   t(`${pre} title present (10–70 chars)`, title.length >= 10 && title.length <= 70, `"${title}" (${title.length})`);
   w(`${pre} title ≤ 60 chars`, title.length <= 60, `${title.length}`);
   if (titles.has(title)) t(`${pre} unique title`, false, `duplicates ${titles.get(title)}`); else titles.set(title, p);
-  const desc = h.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? "";
+  const desc = unescape_(h.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? "");
   t(`${pre} meta description 50–165 chars`, desc.length >= 50 && desc.length <= 165, `(${desc.length}) "${desc}"`);
   if (p !== "/" && descs.has(desc)) t(`${pre} unique description`, false, `duplicates ${descs.get(desc)}`); else descs.set(desc, p);
   t(`${pre} exactly one <h1>`, (h.match(/<h1[ >]/g) ?? []).length === 1);
@@ -151,9 +159,17 @@ t("no empty-string titles/descriptions anywhere", ![...titles.keys()].includes("
 // ---------------- internal link health ----------------
 const broken = [];
 for (const l of [...seenLinks].filter((x) => !/^\/(admin|owner|_next)/.test(x))) {
-  let r = await get(l); let hops = 0;
-  while ([301, 302, 307, 308].includes(r.status) && hops++ < 4) r = await get(new URL(r.headers.get("location"), BASE).pathname);
-  if (r.status !== 200) broken.push(`${l} → ${r.status}`);
+  let r = await get(l); let hops = 0, external = false;
+  while ([301, 302, 307, 308].includes(r.status) && hops++ < 4) {
+    const to = new URL(r.headers.get("location"), BASE);
+    // An internal link may legitimately redirect off-site — /go/biz/<id>/directions hands the visitor to
+    // a maps provider. This loop used to take `.pathname` of that and re-request it against our own
+    // host, so a working outbound redirect was reported as a 404 on a path we never had. Where the
+    // destination leaves our origin, the link resolved; what happens next is somebody else's server.
+    if (to.origin !== new URL(BASE).origin) { external = true; break; }
+    r = await get(to.pathname);
+  }
+  if (!external && r.status !== 200) broken.push(`${l} → ${r.status}`);
 }
 t(`internal links resolve (${seenLinks.size} unique links checked)`, broken.length === 0, broken.slice(0, 8).join(", "));
 const aliasLinks = [];

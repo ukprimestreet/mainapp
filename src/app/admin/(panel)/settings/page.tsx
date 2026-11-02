@@ -16,6 +16,11 @@ const EDITABLE = [
   { key: "claims.auto_approve_domain_match", label: "Auto-approve matching email domains", help: "Type yes or no. When yes, a claim from an address on the company's own domain skips manual review.", multiline: false },
   { key: "reviews.min_chars", label: "Minimum review length", help: "How many characters a review must be before it can be submitted.", multiline: false },
   { key: "support.reply_hours", label: "Reply time we promise", help: "Used in the sales acknowledgement email. For example: two working days.", multiline: false },
+  { key: "revenue.monthly_target_pence", label: "Monthly revenue target (pence)", help: "Used by the Growth dashboard to show progress towards target. For example: 500000 for £5,000.", multiline: false },
+  { key: "vat.enabled", label: "Charge VAT", help: "Type yes or no. Off by default — only switch this on once VAT-registered. See the Finance page.", multiline: false },
+  { key: "vat.rate_bp", label: "VAT rate (basis points)", help: "2000 = 20%. Only used while Charge VAT is yes. Snapshotted on every order, so changing it never rewrites past orders.", multiline: false },
+  { key: "cash.starting_balance_pence", label: "Cash balance baseline (pence)", help: "Cash in the bank as of the baseline date below. Used by the Costs & cash flow page to estimate today's balance. For example: 1000000 for £10,000.", multiline: false },
+  { key: "cash.starting_balance_date", label: "Cash balance baseline date (YYYY-MM-DD)", help: "The date the balance above was true. Must be set alongside the balance for the estimate to work.", multiline: false },
 ] as const;
 
 export default async function Settings({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {

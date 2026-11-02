@@ -102,7 +102,18 @@ t("with real businesses + an intro, the London hubs become indexable", await (as
 t("the city hub is indexable (no noindex)", !(await robotsOf("/locations/london")).includes("noindex"));
 const savedIntro = london.intro;
 await db.city.update({ where: { id: london.id }, data: { intro: null } });
-t("remove the city intro and the hub drops out of the index AND the sitemap (one gate, no drift)", (await robotsOf("/locations/london")).includes("noindex") && !(await sitemapAll()).includes("<loc>" + BASE + "/locations/london</loc>"));
+// Before D7 this asserted that removing the intro dropped the hub out of the index. It does not any
+// more, and that is the decision rather than a slip: substance is copy OR a listing big enough to be
+// the content itself, and London has the listing. What the assertion is really for is "one gate, no
+// drift", so it now checks that the page and the sitemap say the same thing either way round.
+// The old assertion matched on "<loc>" + BASE + "/locations/london</loc>", and the sitemap is written
+// with NEXT_PUBLIC_SITE_URL rather than the host the test is driving, so that string never appeared and
+// the negative passed whatever the sitemap said. Match on the path, which is what is being claimed.
+const hubIn = async () => ({ page: !(await robotsOf("/locations/london")).includes("noindex"), map: /<loc>[^<]*\/locations\/london<\/loc>/.test(await sitemapAll()) });
+const noIntro = await hubIn();
+t("without an intro the hub stays indexed on the strength of its listing, and the sitemap agrees (D7)", noIntro.page && noIntro.map);
+const suppressed = await (async () => { await db.seoPage.create({ data: { path: "/locations/london", robots: "NOINDEX" } }); const r = await hubIn(); await db.seoPage.deleteMany({ where: { path: "/locations/london" } }); return r; })();
+t("suppress the hub and it leaves BOTH the page and the sitemap (one gate, no drift)", !suppressed.page && !suppressed.map);
 await db.city.update({ where: { id: london.id }, data: { intro: savedIntro } });
 t("neighbourhood with no intro is not indexed even when it has businesses", await (async () => {
   await db.business.update({ where: { id: real[0].id }, data: { locationId: shoreditch.id } });
@@ -164,8 +175,12 @@ t("launch refused while the intro is too short", (await setStatus("LIVE")).inclu
 await db.city.update({ where: { id: c1.id }, data: { intro: "D".repeat(150) } });
 t("launch accepted once it has a real business and an intro; launch date recorded", (await setStatus("LIVE")).includes("Saved") && await (async () => { const c = await db.city.findUnique({ where: { id: c1.id } }); return c.status === "LIVE" && c.launchedAt !== null; })());
 t("launched city: its areas become browsable immediately", (await status("/locations/e2e-city-one/e2e-area-north")) === 200);
-t("launched city with only ONE real business is browsable but still not indexable (thin-page gate)",
-  (await robotsOf("/locations/e2e-city-one")).includes("noindex") && !(await sitemapAll()).includes("/locations/e2e-city-one"));
+// Pre-D7 this read "browsable but still not indexable (thin-page gate)". A city cannot be launched
+// without an intro of 100+ characters — the test two lines up proves that — and under D7 an intro IS
+// substance, so a newly launched city is indexable from its first day whether or not anybody is listed
+// in it yet. That is the whole point of the decision: we do not hide an area for want of suppliers.
+t("a launched city is indexable on its copy alone, before the listings arrive (D7)",
+  !(await robotsOf("/locations/e2e-city-one")).includes("noindex") && (await sitemapAll()).includes("/locations/e2e-city-one"));
 const more = [];
 for (let i = 2; i <= 3; i++) more.push(await db.business.create({ data: { slug: `e2e-city-biz-new-${i}`, name: `E2E New City Biz ${i}`, summary: "Another real business in the new city.", description: "Another real and reasonably detailed description of a business in the newly launched test city, long enough to index.", cityId: c1.id, locationId: north.id, categoryId: cat.id, isSample: false, phone: "0161 496 020" + i } }));
 t("once it reaches the minimum of real businesses, the hub and its area enter the index and the sitemap",

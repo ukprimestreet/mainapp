@@ -28,8 +28,14 @@ const cleanup = async () => {
   await db.business.deleteMany({ where: { id: { in: ids } } });
   await db.article.deleteMany({ where: { slug: { startsWith: "e2e-seo-" } } });
   await db.seoPage.deleteMany(); await db.redirect.deleteMany(); await db.auditLog.deleteMany({ where: { targetType: "Seo" } });
+  await db.location.update({ where: { id: camden.id }, data: { intro: camdenIntro } });
 };
+// What this suite proves is that writing copy in the admin tools unlocks a page — so the page has to
+// start without copy. Since D8 every borough carries real editorial, so Camden's own intro is set aside
+// for the run and put back in cleanup. Taking a copy first means a crash cannot lose it.
+const camdenIntro = camden.intro;
 await cleanup();
+await db.location.update({ where: { id: camden.id }, data: { intro: null } });
 // TWO Camden businesses, not three. Under decision D7 three real listings are substance by themselves and
 // unlock the page on their own, which would leave nothing for the "write an intro to unlock it" test below
 // to prove. Two keeps the page below that line, so the only way in is the copy — which is what these admin
@@ -82,10 +88,17 @@ t("title + description overrides applied to the page", (await titleOf("/location
 await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/london/camden")}`);
 await setv("#robots", "NOINDEX"); await click("Save");
 t("NOINDEX override: page noindex and removed from sitemap", (await robotsOf("/locations/london/camden")).includes("noindex") && !(await sitemapPaths()).includes("/locations/london/camden"));
-// ---- INDEX override can't make an empty page indexable
-await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/barnet")}`);
+// ---- INDEX override on an empty page: D7 says the administrator's judgement wins
+// This used to assert the opposite, and it only ever passed because it was pointing at
+// `/locations/barnet` — a pre-multi-city URL that is not a page, so the override was written at a path
+// nothing reads and the empty-page refusal was never actually exercised. Camden Town is a real page with
+// no businesses and, by decision D8, no copy of its own.
+const EMPTY = "/locations/london/camden-town";
+await go(`/admin/seo/edit?path=${encodeURIComponent(EMPTY)}`);
+t("an area page with no listings and no copy is noindex by default", (await robotsOf(EMPTY)).includes("noindex") && !(await sitemapPaths()).includes(EMPTY));
 await setv("#intro", intro); await setv("#robots", "INDEX"); await click("Save");
-t("INDEX override cannot index an empty page (0 real businesses)", (await robotsOf("/locations/barnet")).includes("noindex") && !(await sitemapPaths()).includes("/locations/barnet"));
+t("INDEX override indexes an empty page, and the sitemap agrees (D7: supply is not the gate)",
+  !(await robotsOf(EMPTY)).includes("noindex") && (await sitemapPaths()).includes(EMPTY));
 // reset
 await go(`/admin/seo/edit?path=${encodeURIComponent("/locations/london/camden")}`);
 await click("Reset this page to automatic");

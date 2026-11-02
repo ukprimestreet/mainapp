@@ -104,7 +104,10 @@ t("in RSS feed", (await (await fetch(BASE + "/feed.xml")).text()).includes("E2E 
 await go("/authors/e2e-author");
 t("author page lists article", (await text()).includes("E2E Editorial Piece"));
 t("live article not deletable", await (async () => { await go(`/admin/articles/${art.id}`); await click("Delete this article"); await new Promise((r) => setTimeout(r, 1500)); return (await db.article.count({ where: { id: art.id } })) === 1; })());
-t("author with articles not deletable", await (async () => { await go("/admin/authors"); await page.evaluate(() => [...document.querySelectorAll("li")].find((l) => l.innerText.includes("E2E Author")).querySelector("button").click()); await new Promise((r) => setTimeout(r, 1500)); return (await db.author.count({ where: { slug: "e2e-author" } })) === 1; })());
+t("author with articles not deletable", await (async () => { await go("/admin/authors"); /* The writers list on /admin/authors became a table in "Author accounts: admin invites, passwords,
+   profile gate, review queue"; this still looked for an <li> and crashed on undefined, which is why
+   everything after it in this suite had stopped running. */
+await page.evaluate(() => [...document.querySelectorAll("tr")].find((l) => l.innerText.includes("E2E Author")).querySelector("button").click()); await new Promise((r) => setTimeout(r, 1500)); return (await db.author.count({ where: { slug: "e2e-author" } })) === 1; })());
 
 // slug uniqueness
 await go("/admin/articles/new?type=NEWS");

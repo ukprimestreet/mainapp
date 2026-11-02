@@ -20,7 +20,10 @@ const owner =
   (await db.owner.create({ data: { email: "owner@slice.example", name: "Slice Owner" } }));
 const fx =
   (await db.business.findFirst({ where: { slug: "slice-fixture" } })) ??
-  (await db.business.create({ data: { slug: "slice-fixture", name: "Slice Fixture", summary: "A fixture for audits.", description: "x".repeat(90), cityId: city.id, locationId: loc.id, categoryId: cat.id, phone: "020 7946 0000" } }));
+  (await db.business.create({ data: { slug: "slice-fixture", name: "Slice Fixture", // The summary becomes this page's meta description, and the fixture is published and not marked as
+// sample, so the SEO audit crawls it like any other profile and reported a 21-character description as
+// a failure on every run. Long enough to pass the same rule a real profile has to pass.
+summary: "A fixture business used by the accessibility and SEO audits, with enough detail on it to pass the same profile checks a real listing has to pass.", description: "x".repeat(90), cityId: city.id, locationId: loc.id, categoryId: cat.id, phone: "020 7946 0000" } }));
 await db.businessOwner.upsert({ where: { ownerId_businessId: { ownerId: owner.id, businessId: fx.id } }, create: { ownerId: owner.id, businessId: fx.id }, update: {} });
 const inviteTok = randomBytes(12).toString("base64url");
 await db.teamInvite.deleteMany({ where: { email: "mate@slice.example" } });

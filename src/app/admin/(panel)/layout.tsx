@@ -43,6 +43,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ] },
     { title: "Directory", items: [
       { href: "/admin/leads", label: "Leads", icon: "bolt", badge: openLeads || undefined },
+      { href: "/admin/leads-analytics", label: "Lead analytics", icon: "chart" },
       { href: "/admin/moderation", label: "Moderation", icon: "inbox", badge: ratings + claims + subs + inbox },
       { href: "/admin/registrations", label: "Registrations", icon: "shop", badge: registrations || undefined },
       { href: "/admin/businesses", label: "Businesses", icon: "shop" },
