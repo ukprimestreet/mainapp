@@ -1569,3 +1569,131 @@ to have 88,000 pages. Doing it badly is the one thing that would undo all of thi
 ---
 
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**
+
+## Batch D8 — somebody has to write the words
+
+### The gap D7 left
+
+D7 opened the gate and there was nothing to walk through it with. **Every one of the 83 Location rows in
+the database had an empty intro.** After D7 not a single area page in London was indexable: the 48 → 70
+jump that batch reported came entirely from the 18 trade category pages, and the area side — which is
+what somebody searching "electrician in Hackney" actually lands on — was untouched.
+
+### Decision D8: boroughs yes, neighbourhoods not yet
+
+Mine to make, because D7 said everything we build must be indexable and did not say what we build. It is
+recorded in full in `DECISIONS.md`.
+
+**Published: all 33 London boroughs, with real copy.** Not the seven we cover — all 33, which is D7
+applied honestly. If supply is not the test then Bromley has as much claim to a page as Barking.
+
+Each one answers a question that genuinely has a different answer per borough: *what is different about
+getting work done here?* Becontree's near-identical interwar houses, so a trade who has done one street
+has effectively surveyed yours. Camden's conservation areas and basement policy. Havering's driveways,
+where a skip does not need a council licence because it is not standing on the road. Tower Hamlets, where
+almost everything is leasehold and written consent is the first step rather than the last.
+
+Same four rules as the trade intros: **no invented numbers** (no populations, no prices, nothing somebody
+could budget against that I cannot stand behind); **only checkable facts** — conservation areas, listed
+building consent, leasehold and freeholder consent, party wall agreements, skip licences, controlled
+parking, tree preservation orders, the five-square-metre front-garden rule; **written for somebody about
+to hire a trade**, not for a crawler; **nothing claimed about our own supply**.
+
+**Not published: the 50 neighbourhood pages, and area × trade at volume.** Fifty variations on "X is an
+area of Y, which is in London" is the thin content the brief forbids, and publishing it would undo D7
+rather than serve it. Area × trade is 1,494 URLs today and far more once localities replace boroughs;
+those index on real listings or on copy somebody writes, and nothing generates them. The practical cost
+to a customer is nil — every London address sits in one of the 33 boroughs — and either becomes indexable
+the moment somebody writes for it, with no code change.
+
+### Three bugs found on the way, two of them D7's
+
+**A sitemap URL that served a 404.** D7 removed the business-count guard from the sitemap's area × trade
+loop but left `if (!total) return null` in the page, so a page an administrator unlocked with copy would
+be listed in the sitemap and then 404. The page now exists when there is substance — listings, or copy —
+and 404s only when there is neither.
+
+**A city we have not launched was being offered to search engines.** D7 replaced the gate call in
+`/businesses/[city]` with `noindex: override?.robots === "NOINDEX"`, which took the hub out of the gate
+altogether and with it the rule that has nothing to do with supply: a coming-soon city is never indexed.
+Back through `decideCity`, so the page, the sitemap and the health screen read one function again. The
+cities suite had been asserting this and had not been run since before D7.
+
+**Area × trade pages an administrator unlocked then vanished from the health screen**, which skipped every
+row with no listings — so the one tool for managing them hid them. Now listed when there are listings *or*
+an override to manage.
+
+### Three test defects that were hiding real behaviour
+
+- `e2e-cities` asserted the sitemap did **not** contain `"<loc>" + BASE + "/locations/london</loc>"`. The
+  sitemap is written with `NEXT_PUBLIC_SITE_URL`, not the host the test drives, so that string never
+  appeared and the assertion passed whatever the sitemap said. Matches on the path now.
+- `e2e-seo`'s "INDEX override cannot index an empty page" pointed at `/locations/barnet`, a pre-multi-city
+  URL that is not a page — so the override was written at a path nothing reads and the rule was never
+  exercised. It now tests what D7 actually decided, on a real empty page: the override wins.
+- The SEO audit measured titles and descriptions as **raw HTML**, so an apostrophe counted as the six
+  characters of `&#x27;` and a 67-character title failed a 70-character check at 73. It also followed
+  outbound redirects by taking `.pathname` of an external URL and re-requesting it against our own host,
+  so `/go/biz/<id>/directions` — a working link to a maps provider — was reported as a 404 on a path we
+  never had.
+
+### The editorial backlog is cleared
+
+Six articles had over-long titles or descriptions; it has been in every batch report for weeks and was
+the only thing keeping the audit red. Three of the "failures" were the entity-counting bug above and were
+never real. The rest are shortened — same claims, fewer words.
+
+**The audit passes for the first time**, which matters more than the eight lines it removes: a permanently
+red suite cannot tell you when something new breaks.
+
+### Also fixed, found while running things
+
+`e2e-editorial` had been **crashing** — not failing, crashing — since "Author accounts: admin invites,
+passwords, profile gate, review queue", because the writers list on `/admin/authors` became a table and
+the suite still looked for an `<li>`. Everything after that line had stopped running. One word changed;
+the suite passes end to end.
+
+The a11y fixture business carried a 21-character meta description and is published and not marked as
+sample, so the audit crawled it like any real profile and failed on it every run.
+
+### Honest notes
+
+- **`import-launch-content.ts` rewrites article authorship.** I re-ran it to pick up the shortened copy
+  and it moved six published articles back to the PrimeStreet Editorial account, undoing
+  `set-article-author.ts`. Restored, and the importer now says in its header that the two are a pair.
+- **`test-costs.ts` still fails**, for the reason recorded under D7: a date-dependent fixture in the
+  untracked finance work. Not mine, unchanged, and every suite after it in the chain was run individually.
+- **`test-lead-notify` failed once and then passed four times** in a row, with no assertion name captured.
+  Reported rather than claimed fixed — the same unexplained contention as `e2e-leads` in batch D7.
+- I ran `e2e-search` against a server I had started without `POSTCODES_API_BASE`, so it called the real
+  postcode service instead of the suite's mock and failed on a coordinate the provider has since moved.
+  My harness mistake, not a defect; it passes against a correctly started server, and it spent a handful
+  of real API lookups finding that out.
+- Borough copy is seeded into `Location.intro`, which **the admin area form also edits**. The seeder
+  leaves any intro of 100+ characters alone; `--force` overwrites, so it must not be used in production
+  once anybody has edited copy there.
+
+### Verification
+
+**70 → 101 indexable URLs** · **SEO audit PASSED** (1 warning, a fixture title at 62 characters) ·
+`/locations/london/camden` and `/locations/london/havering` serve their intros with no robots meta, while
+`/locations/london/camden-town` still carries `noindex, follow` · full a11y sweep clean · 30 unit suites
+green (all but `test-costs`) · browser suites: seo, cities, editorial, search, leads, coverage · build and
+typecheck clean.
+
+### Production
+
+Two more commands when you apply the rest: `npm run geo:areas -- --schema=public` after the places and
+category seeds, and `npx tsx scripts/set-article-author.ts` if you ever re-run the content importer.
+
+### What I would do next
+
+**Nothing new until the production sequence is run.** The gate is right, the copy exists, the audit is
+green, and none of it is visible to anybody: production still has 0 places, 0 administrators, 12
+categories and none of the 18 trades. The next batch worth doing is the one that needs you — the import
+and seed sequence, `CRON_SECRET`, the Stripe keys, and the first providers. Everything after that is
+building more in a shop with the lights off.
+
+---
+
+**BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

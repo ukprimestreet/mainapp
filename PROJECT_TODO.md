@@ -210,9 +210,9 @@ A category is an editorial decision about what the directory covers and it chang
 - [x] **D7: the gate tests substance, not supply** — `MIN_BUSINESSES` is no longer a condition, and a page with no businesses but real copy is indexed
 - [x] **Real intros for all 18 trade categories**, so every one of them is indexable. No invented prices; only checkable facts
 - [x] The quote form no longer talks a customer out of sending a job from an area nobody covers
-- [x] Indexable URLs: 48 → 70, with no page added that has nothing on it
-- [ ] Locality × trade pages need their own copy before they are worth publishing at scale — the gate allows them, nothing writes them yet
-- [ ] The editorial SEO backlog the audit reports (6 over-long titles and descriptions), which predates this work
+- [x] Indexable URLs: 48 → 70 → **101**, with no page added that has nothing on it
+- [x] **D8: the granularity decided** — all 33 London boroughs published with real copy (83 Location rows all had empty intros, so after D7 no area page was indexable at all). Neighbourhood and area × trade pages are deliberately not generated; either indexes the moment somebody writes for it
+- [x] The editorial SEO backlog cleared, and **the SEO audit passes for the first time** — three of its failures were an entity-counting bug in the audit itself, not real
 
 ## Phase G — original list
 
