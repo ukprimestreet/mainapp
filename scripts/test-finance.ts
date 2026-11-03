@@ -34,6 +34,10 @@ const DAY = 86400_000;
     await db.sponsorship.deleteMany({ where: { sponsorName: { startsWith: "Fin " } } });
     await db.expense.deleteMany({ where: { description: { startsWith: "Unit test" } } });
     await db.stripeEvent.deleteMany({ where: { id: { startsWith: "evt_fin" } } });
+    // The product fixture was upserted and never removed, so it stayed in the shared dev database,
+    // showed up on /admin/commerce above the real products and broke e2e-commerce, which reads the
+    // first product row by position.
+    await db.product.deleteMany({ where: { key: { startsWith: "unit_fin_" } } });
   };
   await wipe();
   const city = (await db.city.findFirst())!, hk = (await db.location.findFirst({ where: { slug: "hackney" } }))!;

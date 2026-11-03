@@ -11,6 +11,8 @@ const DAY = 86400_000;
     await db.order.deleteMany({ where: { business: { slug: { startsWith: "mb-" } } } });
     await db.subscription.deleteMany({ where: { business: { slug: { startsWith: "mb-" } } } });
     await db.business.deleteMany({ where: { slug: { startsWith: "mb-" } } });
+    // Left behind until now: a product row that sorted above the real ones on /admin/commerce.
+    await db.product.deleteMany({ where: { key: { startsWith: "unit_mb_" } } });
   };
   await wipe();
 

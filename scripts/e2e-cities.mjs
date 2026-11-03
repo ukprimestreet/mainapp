@@ -242,7 +242,12 @@ await db.city.update({ where: { id: c1.id }, data: { status: "LIVE" } });
 // ============================================================ L. nothing from phase 1-9 regressed
 t("business profiles, categories and the home page still work", (await status("/businesses/london/cleaning")) === 200 && (await status("/categories")) === 200 && (await status("/")) === 200);
 t("home page area links are city-scoped", await (async () => { await pub.go("/"); return pub.page.evaluate(() => [...document.querySelectorAll('a[href^="/locations/"]')].filter((a) => a.getAttribute("href") !== "/locations").every((a) => /^\/locations\/[a-z0-9-]+\/[a-z0-9-]+$/.test(a.getAttribute("href")))); })());
-t("suggestions point at city-scoped area URLs", await (async () => { const r = await (await fetch(`${BASE}/api/search/suggest?q=hackn`, { headers: { "user-agent": HUMAN } })).json(); const area = (r.suggestions ?? r).find?.((s) => s.type === "area"); return !area || area.href.startsWith("/locations/london/"); })());
+// This took the FIRST area suggestion and required it to be London's. By the time it runs, this suite
+// has deliberately created a second city with its own area of the same name — that is the "same slug
+// in two cities" test above — so which of the two ranks first is not something the suite gets to
+// decide, and it failed or passed by luck. What the assertion is named for, and the only well-defined
+// claim here, is that EVERY area suggestion is city-scoped rather than a pre-multi-city URL.
+t("suggestions point at city-scoped area URLs", await (async () => { const r = await (await fetch(`${BASE}/api/search/suggest?q=hackn`, { headers: { "user-agent": HUMAN } })).json(); const list = (r.suggestions ?? r); if (!Array.isArray(list)) return true; const areas = list.filter((s) => s.type === "area"); return areas.every((a) => /^\/locations\/[a-z0-9-]+\/[a-z0-9-]+$/.test(a.href)); })());
 t("sample businesses are still never indexed", await (async () => { const s = await db.business.findFirst({ where: { isSample: true }, include: { city: true, category: true } }); return (await robotsOf(`/businesses/${s.city.slug}/${s.category.slug}/${s.slug}`)).includes("noindex"); })());
 
 await db.article.delete({ where: { id: art.id } }).catch(() => {});

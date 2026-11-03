@@ -1,9 +1,9 @@
-// End-to-end tests with real browser (Edge via puppeteer-core). Run against `next start -p 3417`.
+// End-to-end tests with real browser (Edge via puppeteer-core). Run against `npm run start:test` (port 3000).
 import puppeteer from "puppeteer-core";
 import { readFileSync } from "fs";
 import { PrismaClient } from "@prisma/client";
 
-const BASE = process.env.BASE ?? "http://localhost:3417";
+const BASE = process.env.BASE ?? "http://localhost:3000";
 const EDGE = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
 const PW = readFileSync(".env", "utf8").match(/ADMIN_PASSWORD="(.*)"/)[1];
 const ADMIN_EMAIL = readFileSync(".env", "utf8").match(/ADMIN_EMAIL="(.*)"/)[1];
@@ -22,9 +22,19 @@ await go("/admin");
 t("unauthenticated /admin redirects to login", page.url().endsWith("/admin/login"));
 await go("/admin/claims");
 t("unauthenticated /admin/claims redirects", page.url().endsWith("/admin/login"));
+// This suite deliberately submits one wrong password per run, and failed admin logins are recorded in
+// the database with an hourly per-account and per-address limit — which is the security behaviour we
+// want, and which the suite was walking into. Run it five times in an hour and the lockout answers
+// "Too many attempts. Try again in an hour." instead of "Incorrect email or password.", so the
+// assertion failed on a feature working correctly, and the rows outlived the server that wrote them.
+// Clear the failed attempts first: the limit itself is tested properly in test-admin-users.ts, which
+// uses its own synthetic address and cleans up after itself.
+await db.adminLoginAttempt.deleteMany({ where: { ok: false } });
 await go("/admin/login");
 await page.type("#email", ADMIN_EMAIL); await page.type("#password", "wrong-password");
-await Promise.all([page.click('form:has(#password) button'), page.waitForFunction(() => document.body.innerText.includes("Incorrect email or password"), { timeout: 8000 })]);
+// A generous ceiling: the wrong-password path is deliberately slow (it hashes a password even when the
+// account does not exist, so that a missing account and a wrong password take the same time to answer).
+await Promise.all([page.click('form:has(#password) button'), page.waitForFunction(() => document.body.innerText.includes("Incorrect email or password"), { timeout: 25000 })]);
 t("wrong password shows error", true);
 await page.$eval("#password", (e) => (e.value = ""));
 await page.$eval("#email", (e) => (e.value = ""));

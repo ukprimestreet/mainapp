@@ -216,13 +216,15 @@ A category is an editorial decision about what the directory covers and it chang
 
 ## Phase G — original list
 
-- [ ] Unit, integration, concurrency, security and e2e suites added to `npm run test:unit` / `test:e2e`
+- [x] Unit, integration, concurrency, security and e2e suites added to `npm run test:unit` / `test:e2e`
+- [x] **D9: both commands actually run.** `test:e2e` starts the right server for each of the three groups rather than chaining fifteen suites against one; six of them had been pointing at port 3417, which nothing in this repo has ever started
+- [ ] The browser suites still share one dev database and are not isolated from each other. Six couplings were fixed; no claim that there are no more — but the command runs now, so the next one shows up as a failure rather than as a suite nobody runs
 - [ ] a11y pass on every new page at 390px and 1440px
 - [ ] Privacy notice updated for the new processing purpose (sharing contact details with up to two businesses)
 - [ ] Marketing consent separate and unticked
 - [ ] Retention, deletion and role-based access rules implemented
 - [ ] **Legal review** of the privacy notice, business terms, £1 credit terms, refunds and VAT — owner action, cannot be substituted
-- [ ] Verify directory registration, reviews, listings, Premium enquiries and existing URLs all still work
+- [x] Verify directory registration, reviews, listings, Premium enquiries and existing URLs all still work — the registration, reviews, commerce, owner, payee and editorial suites all pass
 - [ ] Migration and rollback instructions confirmed
 
 ---

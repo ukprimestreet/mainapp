@@ -126,23 +126,65 @@ later gets mistaken for real demand.
 
 ---
 
-## 8. The SEO audit's existing backlog
+## 8. The SEO audit's backlog — cleared
 
-`BASE=... node scripts/seo-audit.mjs` reports **10 failures that have nothing to do with the lead system**,
-and they were there before this work. Recorded here so they are a decision rather than a surprise:
+This section used to list ten failures that predated the lead system and were being carried as a known
+decision. They are gone, and three of them were never real:
 
-| Count | What | Why it is not fixed here |
-|---|---|---|
-4 | meta descriptions over 165 characters on `/guides/*` and `/insights/*` | the text is editorial copy; trimming it is the owner's wording to choose, not mine to quietly rewrite |
-2 | titles over 70 characters on two insights pieces | same |
-1 | `/businesses/london/cleaning/slice-fixture` has a 21-character description | a test fixture in dev, not a real listing |
-3 | `/go/biz/<id>/directions` reported as 404 | an audit artefact: the route 302s correctly to Google Maps, and the audit is following an outbound `rel="nofollow"` link off the site |
+| What | Outcome |
+|---|---|
+4 meta descriptions over 165 characters, 2 titles over 70 | shortened; same claims, fewer words. The wording was the owner's to choose, so it was carried rather than quietly rewritten — it is rewritten now and the originals are in the history |
+`/businesses/london/cleaning/slice-fixture` at 21 characters | the a11y fixture is published and not marked as sample, so the audit crawled it like a real profile. It now carries a description that passes the same check a real listing has to |
+3 × `/go/biz/<id>/directions` reported as 404 | **not a real failure.** The audit followed an outbound redirect by taking `.pathname` of the maps URL and re-requesting it against our own host, so a working link was reported as a 404 on a path we never had |
+2 titles "over 70 characters" | **not real either.** Titles were measured as raw HTML, so an apostrophe counted as the six characters of `&#x27;` and a 67-character title failed at 73 |
 
-Two failures **were** mine and are fixed: `/get-quotes` and `/register` had no `BreadcrumbList`.
+**`npm run test:seo` now passes**, with one warning (a fixture title at 62 characters, over the 60-character
+preference but inside the limit). That matters more than the lines it removed: a permanently red suite
+cannot tell you when something new breaks.
 
-One real bug was found while doing this and fixed: every author page's breadcrumb linked to `/authors`,
+Two failures were mine and were fixed earlier: `/get-quotes` and `/register` had no `BreadcrumbList`.
+
+One real bug was found while doing that and fixed: every author page's breadcrumb linked to `/authors`,
 **which has never existed** and returns 404 in production. There is no authors index, so the breadcrumb is
 now plain text rather than a link to nowhere.
+
+## 9. Running the suites
+
+`npm run test:unit` runs every unit suite in one chain and passes.
+
+`npm run test:e2e` starts the right server for each group, runs its suites against it, stops it, and
+exits non-zero if any failed — eighteen checks in all, including the accessibility sweep and the SEO
+audit, so `test:a11y` and `test:seo` are no longer things to remember separately. It does **not** build:
+run `npm run build` first, because a stale build is the one failure it cannot see. Useful forms:
+`--group=web`, `--group=audits`, `--only=e2e-podcast`, `--keep` (leaves the server up after a failure).
+Every suite's full output is written to `node_modules/.cache/e2e-logs/`.
+
+There are four server configurations, which is why one chained command could never work:
+
+| Group | Port | Why it differs |
+|---|---|---|
+web | 3000 | mock postcode service and mock Stripe |
+lead-system | 3418 | outbound mail deliberately unconfigured, so what the suites assert about `emailOutbox` is a queued row rather than a real email to a real-looking address |
+credits | 3418 | the credit-purchase Stripe mock, on a different port from the commerce one |
+audits | 3000 | same as web, but run last: `a11y` creates fixtures and `seo-audit` wipes every `SeoPage` override during its own setup |
+
+Before this, `test:e2e` chained all fifteen against whatever server you had started, and six of them
+defaulted to port **3417, which nothing in this repository has ever started**. `start:test` did not
+disable mail either, which fails `e2e-reviews` on its own terms. The command could not pass however
+carefully it was run, so it stopped being run, and suites rotted: one had been crashing since the admin
+writers list became a table, one was asserting against copy that no longer existed, one was matching a
+sitemap string that could never appear.
+
+Running them **in sequence** then found six more assertions that were only ever true when a suite ran
+alone — fixed sleeps that were long enough by themselves, an admin-login lockout the suite tripped on
+itself, product fixtures three unit suites never deleted, and one assertion that required the first
+search suggestion to be London's when the same suite had just created a second city with an area of the
+same name. Not one of them was a product bug.
+
+**What is not fixed:** the browser suites share one dev database and are not isolated from each other.
+Six couplings were found and fixed; there is no claim that there are no more. What has changed is that
+they are now visible — the command runs, so the next coupling shows up as a failure rather than as a
+suite nobody runs.
 
 ---
 

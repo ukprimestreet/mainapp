@@ -1,10 +1,10 @@
-// Reviews end-to-end tests. Run against `next start -p 3417` with a seeded DB.
+// Reviews end-to-end tests. Run against `npm run start:test` (port 3000) with a seeded DB.
 import puppeteer from "puppeteer-core";
 import { readFileSync } from "fs";
 import { createHash } from "crypto";
 import { PrismaClient } from "@prisma/client";
 
-const BASE = process.env.BASE ?? "http://localhost:3417";
+const BASE = process.env.BASE ?? "http://localhost:3000";
 const ENV = readFileSync(".env", "utf8");
 const PW = ENV.match(/ADMIN_PASSWORD="(.*)"/)[1];
 const ADMIN_EMAIL = ENV.match(/ADMIN_EMAIL="(.*)"/)[1];
@@ -152,7 +152,8 @@ t("held review not public; rating recalculated to 4.0 from 1", !(await text()).i
 await go("/admin/reviews?tab=held");
 t("held tab lists it with report reasons", (await text()).includes("held-after-reports") && (await text()).includes("Spam or advertising"));
 await clickText("Reject");
-await sleep(1000);
+// A flat one-second wait: long enough alone, not long enough behind another suite.
+await page.waitForFunction(() => document.body.innerText.includes("Add a short reason"), { timeout: 15000 }).catch(() => {});
 t("reject requires a reason", (await text()).includes("Add a short reason") && (await db.review.findUnique({ where: { id: mallRev.id } })).status === "HELD");
 await page.type(`#n-${mallRev.id}`, "Contains advertising and a phone number");
 await clickText("Reject"); await sleep(1500);

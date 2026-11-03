@@ -1,10 +1,10 @@
-// Business claiming + owner dashboard end-to-end tests. Run against `next start -p 3417` with a seeded DB.
+// Business claiming + owner dashboard end-to-end tests. Run against `npm run start:test` (port 3000) with a seeded DB.
 import puppeteer from "puppeteer-core";
 import { readFileSync } from "fs";
 import { createHash, randomBytes } from "crypto";
 import { PrismaClient } from "@prisma/client";
 
-const BASE = process.env.BASE ?? "http://localhost:3417";
+const BASE = process.env.BASE ?? "http://localhost:3000";
 const PW = readFileSync(".env", "utf8").match(/ADMIN_PASSWORD="(.*)"/)[1];
 const ADMIN_EMAIL = readFileSync(".env", "utf8").match(/ADMIN_EMAIL="(.*)"/)[1];
 const db = new PrismaClient();

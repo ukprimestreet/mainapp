@@ -1,9 +1,9 @@
-// Editorial CMS end-to-end tests. Run against `next start -p 3417` with a seeded DB.
+// Editorial CMS end-to-end tests. Run against `npm run start:test` (port 3000) with a seeded DB.
 import puppeteer from "puppeteer-core";
 import { readFileSync } from "fs";
 import { PrismaClient } from "@prisma/client";
 
-const BASE = process.env.BASE ?? "http://localhost:3417";
+const BASE = process.env.BASE ?? "http://localhost:3000";
 const PW = readFileSync(".env", "utf8").match(/ADMIN_PASSWORD="(.*)"/)[1];
 const ADMIN_EMAIL = readFileSync(".env", "utf8").match(/ADMIN_EMAIL="(.*)"/)[1];
 const db = new PrismaClient();
@@ -126,6 +126,9 @@ await go(`/admin/articles/${art.id}`); await setv("#disclosure", "EDITORIAL"); a
 
 // unpublish
 await submit("Unpublish");
+// submit() waits a fixed 1500ms, which is enough when this suite runs alone and not when it runs
+// after another: the row was still PUBLISHED when the assertion read it. Wait for the write.
+await (async () => { const end = Date.now() + 15000; while (Date.now() < end) { if ((await db.article.findUnique({ where: { id: art.id } })).status === "DRAFT") return; await new Promise((r) => setTimeout(r, 300)); } })();
 t("unpublish → draft, 404 publicly", (await db.article.findUnique({ where: { id: art.id } })).status === "DRAFT" && (await status("/news/" + SLUG)) === 404);
 
 // interview needs business; BOTW can't be sponsored; founder disclosure

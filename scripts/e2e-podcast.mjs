@@ -110,7 +110,11 @@ t("copy kit generated (newsletter + 3 captions with the episode link)", (await p
 // ---- repurpose: written interview from transcript
 const author = await db.author.findFirst();
 await click("Create draft from transcript");
-t("redirected to the article editor with the draft", page.url().includes("/admin/articles/") && (await text()).includes("Draft created from the transcript"));
+// Creating the draft parses the transcript and then redirects, which took longer than click()'s fixed
+// 1700ms sleep on a loaded machine: the assertion read the old URL and failed on work that had in fact
+// succeeded. Wait for the navigation rather than hoping.
+await page.waitForFunction(() => location.pathname.startsWith("/admin/articles/"), { timeout: 15000 }).catch(() => {});
+t("redirected to the article editor with the draft", page.url().includes("/admin/articles/") && (await text()).includes("Draft created from the transcript"), "url=" + page.url());
 const art = await db.article.findFirst({ where: { episode: { id: ep.id } }, include: { businesses: true } });
 t("article draft: INTERVIEW, editorial, linked to episode + business", art?.type === "INTERVIEW" && art.status === "DRAFT" && art.disclosure === "EDITORIAL" && art.businesses.length === 1);
 t("article body is a Q&A built from the transcript", art.body.includes("## Welcome to the PrimeStreet Podcast") && art.body.includes("one van, a mop bucket") && art.body.includes("## What was the turning point?") && art.body.includes("/podcast/e2e-pod-episode") && !art.body.includes("Sarah Jones:"));

@@ -215,7 +215,7 @@ await free.go(`/owner/business/${alpha.id}/leads`);
 t("another owner can't open this business's leads (404)", (await free.text()).includes("couldn't find") || (await free.text()).includes("404"));
 await free.go(`/owner/business/${freeBiz.id}/leads`);
 await free.page.evaluate((id) => { const f = document.createElement("form"); }, lead.id);
-t("lead tampering: free owner's leads page is empty and the other business's lead is untouched", (await free.text()).includes("No enquiries yet") && (await db.lead.findUnique({ where: { id: lead.id } })).status !== "ARCHIVED");
+t("one owner's leads page shows nothing belonging to another, and their lead is untouched", (await free.text()).includes("No messages yet") && (await db.lead.findUnique({ where: { id: lead.id } })).status !== "ARCHIVED");
 
 // ============================================================ D. click tracking
 const ua = (s) => s;

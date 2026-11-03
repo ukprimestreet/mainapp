@@ -41,6 +41,8 @@ const DAY = 86400_000;
     await db.writerPayment.deleteMany({ where: { author: { email: "gd-writer@unit.test" } } });
     await db.author.deleteMany({ where: { email: "gd-writer@unit.test" } });
     await db.setting.deleteMany({ where: { key: TARGET_SETTING_KEY } });
+    // Left behind until now: two product rows that sorted above the real ones on /admin/commerce.
+    await db.product.deleteMany({ where: { key: { startsWith: "unit_gd_" } } });
   };
   await wipe();
 

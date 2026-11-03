@@ -1697,3 +1697,142 @@ building more in a shop with the lights off.
 ---
 
 **BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**
+
+## Batch D9 — a test suite nobody could run
+
+### Why this and not more features
+
+The D8 report said the next batch worth doing was the one that needs you: the production sequence. You
+said keep going, so I took the thing that makes everything after it trustworthy instead. In D8 I found
+two suites that had been silently broken for weeks — one *crashing* since the admin writers list became
+a table, one asserting against copy the lead-system rework had replaced — and I found them by running
+them by hand. Eight more had not been run at all this session. That is not a test suite, it is a
+collection of scripts that used to pass.
+
+### `npm run test:e2e` could not pass, however carefully you ran it
+
+Three reasons, all of them structural:
+
+**Six suites defaulted to port 3417, and nothing in this repository has ever started a server on 3417.**
+`e2e`, `e2e-reviews`, `e2e-owner`, `e2e-payee`, `e2e-editorial`, `a11y` and `a11y-slice` all pointed at
+it. Four of those suites were not broken in any way — they were unreachable, and had been for as long
+as the port was wrong. They pass untouched once pointed at a server that exists.
+
+**The fifteen suites need three different server configurations**, so one chained command was never
+going to work:
+
+| Group | Port | Why it differs |
+|---|---|---|
+web | 3000 | mock postcode service, mock Stripe |
+lead-system | 3418 | outbound mail deliberately unconfigured, so what they assert about `emailOutbox` is a queued row and not a real email to a real-looking address |
+credits | 3418 | the credit-purchase Stripe mock, on a different port from the commerce one |
+
+**`start:test` did not disable mail**, and `e2e-reviews` asserts that `/admin/outbox` says mail is *not*
+delivered. So even the documented way of running the web suites failed on one of them.
+
+`npm run test:e2e` is now `scripts/e2e-all.mjs`: it starts the right server for each group, runs the
+suites against it, stops it, and exits non-zero if any failed. A fourth group runs the
+accessibility sweep and the SEO audit, so `test:a11y` and `test:seo` are no longer separate things to
+remember — eighteen checks under one command. `--group=`, `--only=` and `--keep` for working on one thing. The old chain is kept as `test:e2e:chain` for anyone managing their own server.
+It deliberately does not build — a stale build is the one failure it cannot see, so that stays explicit.
+
+### What running them together actually found
+
+Not one product bug. Six assertions that were only ever true when the suite ran by itself, which is the
+only way anybody had run them. The failures moved around between runs, which is the signature:
+
+**`e2e` locked itself out of its own assertion.** It submits one wrong password per run, and failed
+admin logins are recorded **in the database** with an hourly per-account and per-address limit. That is
+the security behaviour we want and it is tested properly elsewhere. But five runs in an hour and the
+page answers "Too many attempts. Try again in an hour." instead of "Incorrect email or password.", so
+the assertion failed on a feature working correctly — and because the rows are in the database, they
+outlived the server that wrote them. It now clears the failed attempts first.
+
+**`e2e-commerce` was broken by somebody else's unit tests.** `test-finance`, `test-growth-dashboard` and
+`test-membership` each upsert a product fixture and never delete it. Four rows called "Fin premium",
+"GD premium", "GD featured" and "Mb premium" had accumulated in the shared dev database with
+`sortOrder: 0`, so they sorted **above the real products** on `/admin/commerce` — which also means
+anybody opening that screen in dev saw them. The suite reads the first product row by position and
+found "Fin premium". Cleanup added to all three.
+
+**`e2e-commerce`'s "lead tampering" assertion was dead.** The line above it builds a `<form>` element
+and never submits it, so no tampering was ever attempted; what it actually checks is that one owner's
+page shows nothing of another's. It had also been failing on copy — the owner leads page was rebuilt
+around assigned leads and its empty state now says "No messages yet". Renamed to what it tests. The
+real cross-tenant check is the assertion directly above it, which opens another business's leads page
+and gets a 404; that passes.
+
+**Three fixed-`sleep` races.** `e2e-podcast` clicked "create draft from transcript", which parses a
+transcript and then redirects, and read the URL after a flat 1700ms. `e2e-editorial` read an article row
+1500ms after submitting "Unpublish". `e2e-reviews` looked for a validation message one second after
+clicking "Reject". All three were long enough alone and not long enough behind another suite. They wait
+for the thing they are waiting for now.
+
+**`e2e-cities` was asserting something it did not get to decide.** It took the *first* area suggestion
+for "hackn" and required it to be London's — but by the time that line runs, the suite has deliberately
+created a second city with its own area of the same name, because the test two sections earlier is "the
+same area slug can exist in two cities". Which of the two ranks first is the search index's business,
+not the suite's, so it passed or failed by luck. It now asserts what its name claims and what is
+actually well defined: that every area suggestion is city-scoped rather than a pre-multi-city URL.
+
+### The runner printed the wrong six lines
+
+On a crash it showed the last six lines of output, which for a Prisma error is the client version and
+two `undefined`s rather than the message. It now writes every suite's full output to
+`node_modules/.cache/e2e-logs/` and prints from the first error line. That is how the three remaining
+flakes were identified; before it, I had four crashes and no idea what any of them said.
+
+### `npm run test:unit` completes
+
+The `test-costs.ts` date fixture that stopped the chain had already been fixed by the parallel session,
+with exactly the anchoring I described in the D7 report — the baseline is pinned to the start of the
+calendar month so the forced burn fixture in the previous month cannot fall inside it. Nothing of mine
+was needed. The whole chain runs and passes.
+
+### Honest notes
+
+- **`test:e2e` means something different now.** It used to be the raw chain; that is `test:e2e:chain`.
+  Anyone with it in muscle memory gets the runner, which is what they wanted, but it is a change.
+- **The suites still share one database and are not isolated from each other.** I fixed the six
+  couplings that showed up, and I am not claiming there are no more. Proper isolation means each suite
+  namespacing its own fixtures and not rebuilding shared indexes, which is a larger piece of work than
+  this batch. What has changed is that the couplings are now visible: the command runs, so the next one
+  will show up as a failure rather than as a suite nobody runs.
+- **I also caused one failure myself** and it is worth recording because it cost an hour: I ran
+  `e2e-search` against a server started without `POSTCODES_API_BASE`, so it called the real postcode
+  service instead of the suite's mock, failed on a coordinate the provider has since moved, and spent a
+  handful of real API lookups proving it. The runner exists partly so that cannot happen again.
+- **Nothing in `src/` changed in this batch** except what D8 had already landed. This is all test
+  infrastructure, three unit-suite cleanups, and documentation.
+
+### Verification
+
+**`npm run test:e2e`: 16/16 suites, twice, back to back** — the second run is the one that matters,
+because every failure in this batch moved between runs. Then the audits group added and run: `a11y`
+clean (no overflow, no axe violations) and `seo-audit` passed with 101 indexable URLs and the one
+known warning, a fixture title at 62 characters. **Eighteen checks under one command.**
+
+**`npm run test:unit`: the whole chain, green.**
+
+Typecheck clean. Nothing in `src/` changed in this batch, so there was nothing new to build; the servers
+the suites ran against were built from the committed tree.
+
+Run-by-run, for the record, because the drift is the point:
+
+| Run | Result |
+|---|---|
+before any of this | `test:e2e` could not complete: first suite, connection refused on a port nothing starts |
+first full run | 13/16 — `e2e` crashed, `e2e-reviews` on mail config, `e2e-search` crashed |
+after the mail and settle fixes | 10/16 — four Prisma crashes I could not read, because the runner printed the last six lines of a crash and a Prisma error ends in its client version |
+after full per-suite logging | 7/10 web — three *different* assertions, which is what finally identified them as couplings rather than defects |
+after the six coupling fixes | 10/10 web, then **16/16 and 16/16** |
+
+### What I would do next
+
+Unchanged from D8, and now with better grounds: **the production sequence, which needs you.** Production
+has 0 places, 0 administrators, 12 categories and none of the 18 trades. The difference is that when you
+do run it, `npm run test:unit` and `npm run test:e2e` both mean something.
+
+---
+
+**BATCH COMPLETE. I HAVE STOPPED. I WILL NOT START ANOTHER BATCH UNTIL YOU EXPLICITLY AUTHORISE IT.**

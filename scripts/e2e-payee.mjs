@@ -1,11 +1,11 @@
 // End to end: a writer saves payment details, an admin reveals them, and both leave the right trail.
-// Run against `next start -p 3417`.
+// Run against `npm run start:test` (port 3000).
 import puppeteer from "puppeteer-core";
 import { readFileSync } from "fs";
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../src/lib/author-password.ts";
 
-const BASE = process.env.BASE ?? "http://localhost:3417";
+const BASE = process.env.BASE ?? "http://localhost:3000";
 const env = readFileSync(".env", "utf8");
 const PW = env.match(/ADMIN_PASSWORD="(.*)"/)[1];
 const ADMIN_EMAIL = env.match(/ADMIN_EMAIL="(.*)"/)[1];

@@ -1,10 +1,10 @@
-// Accessibility (axe-core) + responsive overflow audit. Run against `next start -p 3417` with a seeded DB.
+// Accessibility (axe-core) + responsive overflow audit. Run against `npm run start:test` (port 3000) with a seeded DB.
 import puppeteer from "puppeteer-core";
 import { readFileSync } from "fs";
 import { createHash, randomBytes } from "crypto";
 import { PrismaClient } from "@prisma/client";
 
-const BASE = process.env.BASE ?? "http://localhost:3417";
+const BASE = process.env.BASE ?? "http://localhost:3000";
 const axeSrc = readFileSync("node_modules/axe-core/axe.min.js", "utf8");
 const PW = readFileSync(".env", "utf8").match(/ADMIN_PASSWORD="(.*)"/)[1];
 const ADMIN_EMAIL = readFileSync(".env", "utf8").match(/ADMIN_EMAIL="(.*)"/)[1];

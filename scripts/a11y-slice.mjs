@@ -6,7 +6,7 @@ import { createHash, createHmac, randomBytes } from "crypto";
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../src/lib/author-password.ts";
 
-const BASE = process.env.BASE ?? "http://localhost:3417";
+const BASE = process.env.BASE ?? "http://localhost:3000";
 const axeSrc = readFileSync("node_modules/axe-core/axe.min.js", "utf8");
 const env = readFileSync(".env", "utf8");
 const PW = env.match(/ADMIN_PASSWORD="(.*)"/)[1];
