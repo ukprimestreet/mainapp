@@ -6,6 +6,10 @@ export const SITE = {
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://primestreet.uk",
 };
 
+/** Search Console "HTML tag" verification: paste the code (the content="..." value only) between the quotes, then deploy.
+ *  The GOOGLE_SITE_VERIFICATION env var, if set, takes precedence. */
+export const GOOGLE_VERIFICATION_CODE = "";
+
 export const ARTICLE_TYPES = {
   NEWS: { label: "News", path: "news", blurb: "What's opening, expanding and changing across London business." },
   STORY: { label: "Stories", path: "stories", blurb: "The people and the journeys behind London's businesses." },

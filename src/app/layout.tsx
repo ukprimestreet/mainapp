@@ -4,7 +4,7 @@ import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
 import { Header, Footer } from "@/components/Shell";
 import { JsonLd } from "@/components/ui";
-import { SITE } from "@/lib/constants";
+import { SITE, GOOGLE_VERIFICATION_CODE } from "@/lib/constants";
 
 const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-display", weight: ["600", "700", "800"] });
 const body = Inter({ subsets: ["latin"], variable: "--font-body" });
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: { default: `${SITE.name} — ${SITE.tagline}`, template: `%s | ${SITE.name}` },
   description: SITE.description,
   applicationName: SITE.name,
-  verification: { google: process.env.GOOGLE_SITE_VERIFICATION || undefined, other: process.env.BING_SITE_VERIFICATION ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION } : undefined },
+  verification: { google: process.env.GOOGLE_SITE_VERIFICATION || GOOGLE_VERIFICATION_CODE || undefined, other: process.env.BING_SITE_VERIFICATION ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION } : undefined },
   alternates: { types: { "application/rss+xml": "/feed.xml" } },
 };
 export const viewport: Viewport = { themeColor: "#FFD400", width: "device-width", initialScale: 1 };
